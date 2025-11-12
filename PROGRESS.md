@@ -3959,3 +3959,451 @@ useEffect(() => {
 - 백그라운드 동기화
 
 ---
+
+## Phase 22: 네트워크 동기화 인프라 구축 ✅
+
+**완료 시간**: 2025-11-12 12:00
+**소요 시간**: 1.0시간
+
+### 주요 성과
+
+**1. 네트워크 라이브러리 설치**
+
+```bash
+npm install axios @react-native-community/netinfo
+```
+
+- **axios**: HTTP 클라이언트 라이브러리
+- **@react-native-community/netinfo**: 네트워크 상태 감지
+
+**2. ApiClient 구현** (420줄)
+
+Axios 기반 HTTP API 클라이언트 (Singleton Pattern)
+
+```typescript
+export class ApiClient {
+  async get<T>(url: string, config?: AxiosRequestConfig): Promise<ApiResponse<T>>;
+  async post<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<ApiResponse<T>>;
+  async put<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<ApiResponse<T>>;
+  async delete<T>(url: string, config?: AxiosRequestConfig): Promise<ApiResponse<T>>;
+  async uploadFile<T>(url: string, formData: FormData, onProgress?): Promise<ApiResponse<T>>;
+  
+  setAuthToken(token: string | null): void;
+  getAuthToken(): string | null;
+}
+```
+
+**주요 기능**:
+- 🌐 HTTP 요청 (GET, POST, PUT, DELETE)
+- 📁 파일 업로드 (multipart/form-data)
+- 🔑 인증 토큰 관리
+- 🔄 자동 재시도 로직 (지수 백오프)
+- ⏱️ 타임아웃 설정 (기본 30초)
+- 📊 요청/응답 인터셉터
+- ❌ 통합 에러 핸들링
+
+**재시도 로직**:
+```typescript
+// 재시도 가능한 메서드: GET, PUT, DELETE
+// 재시도 가능한 상태 코드: 408, 429, 500, 502, 503, 504
+// 최대 재시도: 3회
+// 지수 백오프: 1초 * 2^retryCount
+```
+
+**인터셉터**:
+```typescript
+// 요청 인터셉터
+- Authorization 헤더 자동 추가
+- 요청 로깅
+
+// 응답 인터셉터
+- 응답 로깅
+- 에러 재시도 처리
+```
+
+**에러 핸들링**:
+```typescript
+export interface ApiError {
+  code: string;           // 에러 코드 (e.g., "NETWORK_ERROR", "HTTP_404")
+  message: string;        // 사용자 친화적 메시지
+  details?: any;          // 원본 에러 데이터
+}
+```
+
+**3. useNetworkStatus Hook 구현** (90줄)
+
+네트워크 연결 상태를 감지하는 React Hook
+
+```typescript
+export function useNetworkStatus(): UseNetworkStatusResult {
+  return {
+    isConnected: boolean;              // 네트워크 연결 여부
+    connectionType: ConnectionType;     // 연결 타입 (wifi, cellular, none, etc.)
+    isInternetReachable: boolean | null;  // 인터넷 접근 가능 여부
+    refresh: () => Promise<void>;      // 상태 갱신
+  };
+}
+```
+
+**연결 타입**:
+- `wifi`: Wi-Fi 연결
+- `cellular`: 모바일 데이터
+- `ethernet`: 이더넷
+- `none`: 연결 없음
+- `unknown`: 알 수 없음
+
+**사용 예제**:
+```typescript
+const {isConnected, connectionType, isInternetReachable} = useNetworkStatus();
+
+useEffect(() => {
+  if (isConnected && connectionType === 'wifi') {
+    // Wi-Fi 연결 시 동기화
+    syncData();
+  }
+}, [isConnected, connectionType]);
+```
+
+**4. UploadQueue 구현** (370줄)
+
+업로드 작업을 큐잉하고 순차 처리하는 서비스 (Singleton Pattern)
+
+```typescript
+export class UploadQueue {
+  async addTask(type: UploadTaskType, data: any, maxRetries?: number): Promise<string>;
+  registerHandler(type: UploadTaskType, handler: UploadHandler): void;
+  setOnProgressCallback(callback: (progress: UploadProgress) => void): void;
+  
+  getProgress(): UploadProgress;
+  clearCompleted(): void;
+  retryFailed(): void;
+  clear(): void;
+  pause(): void;
+  resume(): void;
+}
+```
+
+**업로드 작업 타입**:
+```typescript
+enum UploadTaskType {
+  SESSION = 'SESSION',           // 세션 메타데이터
+  SENSOR_DATA = 'SENSOR_DATA',   // 센서 데이터
+  AUDIO_FILE = 'AUDIO_FILE',     // 오디오 파일
+}
+```
+
+**업로드 작업 상태**:
+```typescript
+enum UploadTaskStatus {
+  PENDING = 'PENDING',           // 대기 중
+  IN_PROGRESS = 'IN_PROGRESS',   // 진행 중
+  COMPLETED = 'COMPLETED',       // 완료
+  FAILED = 'FAILED',             // 실패
+}
+```
+
+**업로드 진행 상태**:
+```typescript
+interface UploadProgress {
+  totalTasks: number;       // 전체 작업 수
+  completedTasks: number;   // 완료된 작업 수
+  failedTasks: number;      // 실패한 작업 수
+  inProgressTasks: number;  // 진행 중인 작업 수
+  pendingTasks: number;     // 대기 중인 작업 수
+}
+```
+
+**핸들러 등록 및 사용**:
+```typescript
+const queue = getUploadQueue();
+
+// 핸들러 등록
+queue.registerHandler(UploadTaskType.SESSION, async (task) => {
+  const session = task.data;
+  await apiClient.post('/sessions', session);
+});
+
+// 작업 추가
+await queue.addTask(UploadTaskType.SESSION, sessionData, 3);
+
+// 진행 상태 구독
+queue.setOnProgressCallback((progress) => {
+  console.log(`Progress: ${progress.completedTasks}/${progress.totalTasks}`);
+});
+```
+
+**5. SyncManager 구현** (380줄)
+
+데이터 동기화를 관리하는 서비스 (Singleton Pattern)
+
+```typescript
+export class SyncManager {
+  async start(): Promise<void>;
+  stop(): void;
+  async sync(): Promise<void>;
+  async getStatus(): Promise<SyncStatus>;
+  updateOptions(options: Partial<SyncOptions>): void;
+}
+```
+
+**동기화 옵션**:
+```typescript
+interface SyncOptions {
+  autoSync?: boolean;      // 자동 동기화 (기본: true)
+  syncInterval?: number;   // 동기화 간격 (기본: 60000ms = 1분)
+  wifiOnly?: boolean;      // Wi-Fi 전용 (기본: false)
+  batchSize?: number;      // 배치 크기 (기본: 100)
+}
+```
+
+**동기화 상태**:
+```typescript
+interface SyncStatus {
+  isSyncing: boolean;           // 동기화 진행 중 여부
+  lastSyncTime: number | null;  // 마지막 동기화 시간
+  pendingSessions: number;       // 대기 중인 세션 수
+  pendingSensorData: number;     // 대기 중인 센서 데이터 수
+  pendingAudioFiles: number;     // 대기 중인 오디오 파일 수
+}
+```
+
+**사용 예제**:
+```typescript
+// API 클라이언트 초기화
+initializeApiClient({
+  baseURL: 'https://api.example.com',
+  timeout: 30000,
+  retryAttempts: 3,
+  retryDelay: 1000,
+});
+
+// 동기화 관리자 초기화 및 시작
+const syncManager = initializeSyncManager({
+  autoSync: true,
+  syncInterval: 60000,  // 1분
+  wifiOnly: false,
+  batchSize: 100,
+});
+
+await syncManager.start();
+
+// 수동 동기화
+await syncManager.sync();
+
+// 동기화 상태 확인
+const status = await syncManager.getStatus();
+console.log(`Pending: ${status.pendingSessions} sessions, ${status.pendingSensorData} data`);
+```
+
+**업로드 핸들러**:
+```typescript
+// 세션 업로드
+POST /sessions
+{
+  sessionId, startTime, endTime, enabledSensors, sampleRate, notes, isActive
+}
+
+// 센서 데이터 업로드 (배치)
+POST /sessions/:sessionId/sensor-data
+{
+  data: [{timestamp, sensorType, x, y, z, latitude, longitude, ...}]
+}
+
+// 오디오 파일 업로드
+POST /sessions/:sessionId/audio
+FormData: {sessionId, timestamp, duration, sampleRate, channels, format, file}
+```
+
+### 동기화 플로우
+
+```
+┌───────────────────────────────────────┐
+│ SyncManager 시작                      │
+├───────────────────────────────────────┤
+│ 1. 네트워크 상태 감지 시작             │
+│    - NetInfo 이벤트 구독               │
+│    ↓                                  │
+│ 2. 주기적 동기화 타이머 시작           │
+│    - setInterval(syncInterval)        │
+│    ↓                                  │
+│ 3. 즉시 동기화 시도                   │
+└───────────────────────────────────────┘
+
+┌───────────────────────────────────────┐
+│ 동기화 실행 (sync)                    │
+├───────────────────────────────────────┤
+│ 1. 네트워크 연결 확인                 │
+│    - isConnected 체크                 │
+│    - wifiOnly 옵션 체크               │
+│    ↓                                  │
+│ 2. 업로드되지 않은 데이터 찾기         │
+│    - findNotUploaded()                │
+│    ↓                                  │
+│ 3. 업로드 큐에 추가                   │
+│    - addTask(type, data, maxRetries)  │
+│    ↓                                  │
+│ 4. 큐 자동 처리                       │
+│    - UploadQueue.processQueue()       │
+│    ↓                                  │
+│ 5. 완료 시 데이터베이스 업데이트       │
+│    - markAsUploaded(ids)              │
+└───────────────────────────────────────┘
+
+┌───────────────────────────────────────┐
+│ UploadQueue 처리                      │
+├───────────────────────────────────────┤
+│ 1. PENDING 작업 가져오기              │
+│    ↓                                  │
+│ 2. 작업 상태를 IN_PROGRESS로 변경     │
+│    ↓                                  │
+│ 3. 등록된 핸들러 실행                 │
+│    - handleSessionUpload()            │
+│    - handleSensorDataUpload()         │
+│    - handleAudioFileUpload()          │
+│    ↓                                  │
+│ 4. 성공 시                            │
+│    - 상태: COMPLETED                  │
+│    - DB에 업로드 표시                 │
+│    ↓                                  │
+│ 5. 실패 시                            │
+│    - retryCount < maxRetries?         │
+│      - Yes: 상태: PENDING (재시도)    │
+│      - No: 상태: FAILED               │
+└───────────────────────────────────────┘
+```
+
+### 업데이트된 파일
+
+- **package.json**: axios, @react-native-community/netinfo 추가
+- **src/services/api/ApiClient.ts** (420줄): HTTP API 클라이언트
+- **src/services/api/index.ts**: API 서비스 export
+- **src/hooks/useNetworkStatus.ts** (90줄): 네트워크 상태 Hook
+- **src/hooks/index.ts**: useNetworkStatus export 추가
+- **src/services/sync/UploadQueue.ts** (370줄): 업로드 큐 관리
+- **src/services/sync/SyncManager.ts** (380줄): 동기화 관리자
+- **src/services/sync/index.ts**: Sync 서비스 export
+
+### 기술적 세부사항
+
+**ApiClient 재시도 로직**:
+- 재시도 가능 조건:
+  - 네트워크 에러 (no response)
+  - GET, PUT, DELETE 메서드
+  - 408, 429, 500, 502, 503, 504 상태 코드
+- 지수 백오프: delay * 2^retryCount
+- 최대 3회 재시도 (기본값)
+
+**UploadQueue 순차 처리**:
+- 한 번에 하나의 작업만 처리 (maxConcurrentTasks = 1)
+- 작업 실패 시 자동 재시도
+- 재시도 횟수 초과 시 FAILED 상태로 변경
+- clearCompleted()로 완료된 작업 제거
+- retryFailed()로 실패한 작업 재시도
+
+**SyncManager 자동 동기화**:
+- 네트워크 연결 변경 감지 → 즉시 동기화
+- 주기적 동기화 (기본 1분)
+- Wi-Fi 전용 모드 지원
+- 세션별 센서 데이터 배치 업로드
+
+**배치 업로드**:
+- 센서 데이터는 배치로 나누어 업로드
+- 기본 배치 크기: 100개
+- 세션별로 그룹화하여 업로드
+
+### 사용 시나리오
+
+**1. 앱 시작 시 동기화 설정**:
+```typescript
+// App.tsx
+useEffect(() => {
+  // API 클라이언트 초기화
+  initializeApiClient({
+    baseURL: 'https://api.example.com',
+    timeout: 30000,
+  });
+
+  // 동기화 관리자 초기화
+  const syncManager = initializeSyncManager({
+    autoSync: true,
+    syncInterval: 60000,
+    wifiOnly: true,  // Wi-Fi에서만 동기화
+  });
+
+  syncManager.start();
+
+  return () => {
+    syncManager.stop();
+  };
+}, []);
+```
+
+**2. 수동 동기화 버튼**:
+```typescript
+// SettingsScreen.tsx
+const handleSync = async () => {
+  const syncManager = getSyncManager();
+  await syncManager.sync();
+  
+  const status = await syncManager.getStatus();
+  Alert.alert(
+    '동기화 완료',
+    `대기 중: ${status.pendingSessions}개 세션, ${status.pendingSensorData}개 데이터`
+  );
+};
+```
+
+**3. 네트워크 상태 표시**:
+```typescript
+// StatusBar.tsx
+const {isConnected, connectionType} = useNetworkStatus();
+
+return (
+  <View>
+    {!isConnected && (
+      <Banner icon="wifi-off">
+        네트워크 연결 없음
+      </Banner>
+    )}
+    {isConnected && connectionType === 'cellular' && (
+      <Banner icon="signal-cellular-3">
+        모바일 데이터 사용 중
+      </Banner>
+    )}
+  </View>
+);
+```
+
+**4. 업로드 진행 상태 표시**:
+```typescript
+// SyncStatusScreen.tsx
+const [progress, setProgress] = useState<UploadProgress | null>(null);
+
+useEffect(() => {
+  const queue = getUploadQueue();
+  queue.setOnProgressCallback(setProgress);
+  
+  return () => {
+    queue.setOnProgressCallback(undefined);
+  };
+}, []);
+
+return (
+  <View>
+    <Text>전체: {progress?.totalTasks}</Text>
+    <Text>완료: {progress?.completedTasks}</Text>
+    <Text>실패: {progress?.failedTasks}</Text>
+    <ProgressBar 
+      progress={progress?.completedTasks / progress?.totalTasks} 
+    />
+  </View>
+);
+```
+
+### 다음 단계 (Phase 23)
+- 앱 초기화 및 설정 화면
+- API 서버 URL 설정
+- 동기화 설정 UI
+- 업로드 진행 상태 표시
+
+---

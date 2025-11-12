@@ -29,3 +29,10 @@ export type {
   UseAudioRecordingOptions,
   UseAudioRecordingResult,
 } from './useAudioRecording';
+
+export {useNetworkStatus} from './useNetworkStatus';
+export type {
+  ConnectionType,
+  NetworkStatus,
+  UseNetworkStatusResult,
+} from './useNetworkStatus';
