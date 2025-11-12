@@ -1450,10 +1450,361 @@ KooDTX App
 4. "새로운 센서 데이터 녹음을 시작하세요" 안내
 
 ### 다음 단계 (Phase 18)
-- 세션 상세 정보 화면
-- 센서 데이터 차트 시각화
-- 데이터 내보내기 기능 (CSV, JSON)
-- 세션 삭제 기능
+- 세션 상세 정보 화면 ✅
+- 센서 데이터 통계 표시 ✅
+- 데이터 내보내기 기능 (CSV, JSON) ✅
+- 세션 삭제 기능 ✅
+
+---
+
+## Phase 18: 세션 상세 화면 및 데이터 내보내기 ✅
+
+**완료 시간**: 2025-11-12 09:00
+**소요 시간**: 1.2시간
+
+### 주요 성과
+
+**1. SessionDetailScreen 구현** (580줄)
+
+세션의 상세 정보와 센서 데이터 통계를 표시하는 화면
+
+```typescript
+export function SessionDetailScreen({route, navigation}: Props) {
+  const {sessionId} = route.params;
+  const [session, setSession] = useState<RecordingSession | null>(null);
+  const [sensorData, setSensorData] = useState<SensorDataRecord[]>([]);
+  const [sensorStats, setSensorStats] = useState<Record<SensorType, SensorStats>>({});
+
+  // Load session data and calculate statistics
+  // Export to CSV/JSON
+  // Delete session
+}
+```
+
+**주요 기능**:
+- 📊 세션 정보 표시 (ID, 시간, 센서, 메모)
+- 📈 센서별 데이터 통계 (데이터 수, 평균값)
+- 📤 CSV 내보내기
+- 📤 JSON 내보내기
+- 🗑️ 세션 삭제 (확인 다이얼로그)
+- 🔄 Loading 상태 표시
+
+**세션 정보 카드**:
+```
+┌─────────────────────────────────┐
+│ 세션 정보          [🔴 녹음 중]  │
+├─────────────────────────────────┤
+│ 세션 ID: abc123...               │
+│ 시작 시간: 2025-11-12 08:00:00  │
+│ 종료 시간: 2025-11-12 08:15:30  │
+│ 소요 시간: 00:15:30             │
+│ 샘플 레이트: 100Hz              │
+│ 활성 센서: [ACC] [GYR] [MAG]    │
+│ 메모: 걷기 테스트                │
+└─────────────────────────────────┘
+```
+
+**센서 통계 카드** (각 센서별):
+```
+┌─────────────────────────────────┐
+│ 가속도계                         │
+├─────────────────────────────────┤
+│ 데이터 수: 1,250                 │
+│ 평균 X: 0.1234                  │
+│ 평균 Y: -0.4567                 │
+│ 평균 Z: 9.7890                  │
+└─────────────────────────────────┘
+
+┌─────────────────────────────────┐
+│ GPS                             │
+├─────────────────────────────────┤
+│ 데이터 수: 125                   │
+│ 평균 위도: 37.123456°           │
+│ 평균 경도: 127.123456°          │
+│ 평균 고도: 123.45m              │
+└─────────────────────────────────┘
+```
+
+**2. CSV 내보내기 기능**
+
+react-native-fs와 react-native-share를 사용한 파일 내보내기
+
+```typescript
+const exportToCSV = useCallback(async () => {
+  // Create CSV content
+  const headers = ['timestamp', 'sensorType', 'x', 'y', 'z', ...];
+  const csvContent = headers.join(',') + '\n' +
+    sensorData.map(record => [...].join(',')).join('\n');
+
+  // Write to file
+  const fileName = `session_${sessionId}_${Date.now()}.csv`;
+  const filePath = `${RNFS.DocumentDirectoryPath}/${fileName}`;
+  await RNFS.writeFile(filePath, csvContent, 'utf8');
+
+  // Share file
+  await Share.open({
+    url: `file://${filePath}`,
+    type: 'text/csv',
+  });
+}, [session, sensorData, sessionId]);
+```
+
+**CSV 형식**:
+```csv
+timestamp,sensorType,x,y,z,latitude,longitude,altitude,accuracy
+1731394800000,accelerometer,0.123,-0.456,9.789,,,,
+1731394800100,accelerometer,0.124,-0.455,9.788,,,,
+1731394800000,gps,,,37.123456,127.123456,123.45,10.5
+```
+
+**3. JSON 내보내기 기능**
+
+세션 정보, 센서 데이터, 통계를 포함한 JSON 파일
+
+```typescript
+const exportToJSON = useCallback(async () => {
+  const exportData = {
+    session: {
+      sessionId: session.sessionId,
+      startTime: session.startTime,
+      endTime: session.endTime,
+      enabledSensors: session.enabledSensors,
+      // ...
+    },
+    data: sensorData.map(record => ({
+      timestamp: record.timestamp,
+      sensorType: record.sensorType,
+      x: record.x,
+      // ...
+    })),
+    statistics: sensorStats,
+  };
+
+  await RNFS.writeFile(filePath, JSON.stringify(exportData, null, 2), 'utf8');
+  await Share.open({url: `file://${filePath}`, type: 'application/json'});
+}, [session, sensorData, sensorStats]);
+```
+
+**JSON 형식**:
+```json
+{
+  "session": {
+    "sessionId": "session-1731394800000-abc123",
+    "startTime": 1731394800000,
+    "endTime": 1731395730000,
+    "enabledSensors": ["accelerometer", "gyroscope", "magnetometer"]
+  },
+  "data": [
+    {
+      "timestamp": 1731394800000,
+      "sensorType": "accelerometer",
+      "x": 0.123,
+      "y": -0.456,
+      "z": 9.789
+    }
+  ],
+  "statistics": {
+    "accelerometer": {
+      "count": 1250,
+      "avgX": 0.1234,
+      "avgY": -0.4567,
+      "avgZ": 9.7890
+    }
+  }
+}
+```
+
+**4. 세션 삭제 기능**
+
+확인 다이얼로그와 함께 세션 및 센서 데이터 삭제
+
+```typescript
+const handleDelete = useCallback(async () => {
+  setDeleteDialogVisible(false);
+  try {
+    // Delete sensor data first
+    await dataRepo.deleteBySession(sessionId);
+    // Delete session
+    await sessionRepo.delete(sessionId);
+
+    Alert.alert('완료', '세션이 삭제되었습니다.', [
+      {text: '확인', onPress: () => navigation.goBack()}
+    ]);
+  } catch (error) {
+    Alert.alert('오류', '세션 삭제에 실패했습니다.');
+  }
+}, [sessionId, dataRepo, sessionRepo, navigation]);
+```
+
+**삭제 확인 다이얼로그**:
+```
+┌────────────────────────────────┐
+│ 세션 삭제                       │
+├────────────────────────────────┤
+│ 이 세션과 모든 센서 데이터를    │
+│ 삭제하시겠습니까?              │
+│ 이 작업은 되돌릴 수 없습니다.  │
+│                                │
+│         [취소]    [삭제]       │
+└────────────────────────────────┘
+```
+
+**5. HistoryStack Navigator 구현** (53줄)
+
+History 탭 내의 Stack Navigator
+
+```typescript
+export function HistoryStack() {
+  return (
+    <Stack.Navigator>
+      <Stack.Screen
+        name="HistoryList"
+        component={HistoryScreen}
+        options={{title: '기록', headerShown: false}}
+      />
+      <Stack.Screen
+        name="SessionDetail"
+        component={SessionDetailScreen}
+        options={{title: '세션 상세'}}
+      />
+    </Stack.Navigator>
+  );
+}
+```
+
+**네비게이션 플로우**:
+```
+History Tab
+├── HistoryList (HistoryScreen)
+│   └── [세션 카드 클릭]
+│       ↓
+└── SessionDetail (SessionDetailScreen)
+    ├── CSV 내보내기
+    ├── JSON 내보내기
+    ├── 세션 삭제
+    └── [뒤로가기] → HistoryList
+```
+
+**6. HistoryScreen 업데이트**
+
+세션 카드 클릭 시 상세 화면 이동
+
+```typescript
+export function HistoryScreen({navigation}: Props) {
+  const renderSessionItem = useCallback(
+    ({item}: {item: RecordingSession}) => {
+      return (
+        <TouchableOpacity
+          onPress={() =>
+            navigation.navigate('SessionDetail', {sessionId: item.sessionId})
+          }>
+          <Card style={styles.sessionCard}>
+            {/* ... */}
+          </Card>
+        </TouchableOpacity>
+      );
+    },
+    [navigation],
+  );
+}
+```
+
+**7. 의존성 설치**
+
+```bash
+npm install @react-navigation/native-stack
+npm install react-native-fs react-native-share
+```
+
+- **@react-navigation/native-stack**: Native Stack Navigator
+- **react-native-fs**: 파일 시스템 접근
+- **react-native-share**: 파일 공유 기능
+
+### 화면 구조 업데이트
+
+```
+KooDTX App
+├── 📱 Tab Navigator (Bottom)
+│   ├── 🔴 Recording (RecordingScreen)
+│   │
+│   └── 📋 History (HistoryStack)
+│       ├── HistoryList (HistoryScreen)
+│       │   └── [세션 카드 클릭]
+│       │       ↓
+│       └── SessionDetail (SessionDetailScreen)
+│           ├── 세션 정보
+│           ├── 센서 통계
+│           ├── CSV 내보내기
+│           ├── JSON 내보내기
+│           └── 세션 삭제
+```
+
+### 업데이트된 파일
+
+- **src/screens/SessionDetailScreen.tsx** (580줄): 세션 상세 화면
+- **src/navigation/HistoryStack.tsx** (53줄): History Stack Navigator
+- **src/navigation/index.ts**: Navigation barrel export
+- **src/screens/HistoryScreen.tsx**: 네비게이션 연결
+- **src/screens/index.ts**: SessionDetailScreen export
+- **App.tsx**: HistoryStack 사용
+- **package.json**: 새 의존성 추가
+
+### 사용자 플로우
+
+**플로우 1: 세션 상세 정보 보기**
+1. History 탭 선택
+2. 세션 카드 클릭
+3. 세션 상세 화면 표시
+4. 세션 정보 및 센서 통계 확인
+
+**플로우 2: 데이터 내보내기 (CSV)**
+1. 세션 상세 화면
+2. "CSV로 내보내기" 버튼 클릭
+3. 파일 생성 및 공유 시트 표시
+4. 공유 대상 선택 (이메일, 드라이브 등)
+
+**플로우 3: 데이터 내보내기 (JSON)**
+1. 세션 상세 화면
+2. "JSON으로 내보내기" 버튼 클릭
+3. 파일 생성 및 공유 시트 표시
+4. 공유 대상 선택
+
+**플로우 4: 세션 삭제**
+1. 세션 상세 화면
+2. "세션 삭제" 버튼 클릭
+3. 확인 다이얼로그 표시
+4. "삭제" 선택
+5. 세션 및 데이터 삭제
+6. HistoryList로 자동 이동
+
+### 기술적 세부사항
+
+**센서 통계 계산**:
+```typescript
+// 3-axis sensors (Accelerometer, Gyroscope, Magnetometer)
+const sumX = records.reduce((sum, r) => sum + (r.x || 0), 0);
+const avgX = sumX / count;
+
+// GPS
+const sumLat = records.reduce((sum, r) => sum + (r.latitude || 0), 0);
+const avgLatitude = sumLat / count;
+```
+
+**파일 경로**:
+- Android: `/data/data/com.koodtxtemp/files/session_*.csv`
+- iOS: `~/Library/Application Support/session_*.json`
+
+**에러 처리**:
+- 세션 없음: 뒤로 이동
+- 내보내기 실패: Alert 표시
+- 삭제 실패: Alert 표시
+- 사용자 취소: 조용히 무시
+
+### 다음 단계 (Phase 19)
+- 센서 데이터 차트 시각화 (Line Chart)
+- 실시간 차트 업데이트
+- 차트 확대/축소 기능
+- 센서별 차트 토글
 
 ---
 

@@ -4,7 +4,7 @@
  */
 
 import React, {useState, useEffect, useCallback} from 'react';
-import {View, StyleSheet, FlatList, RefreshControl} from 'react-native';
+import {View, StyleSheet, FlatList, RefreshControl, TouchableOpacity} from 'react-native';
 import {
   Text,
   Card,
@@ -13,11 +13,19 @@ import {
   Divider,
   ActivityIndicator,
 } from 'react-native-paper';
+import type {NativeStackScreenProps} from '@react-navigation/native-stack';
 import type {RecordingSession} from '@database/models';
 import {getRecordingSessionRepository} from '@database/repositories';
 import {formatTimestamp, calculateDuration, formatDuration} from '@utils/date';
 
-export function HistoryScreen() {
+type HistoryStackParamList = {
+  HistoryList: undefined;
+  SessionDetail: {sessionId: string};
+};
+
+type Props = NativeStackScreenProps<HistoryStackParamList, 'HistoryList'>;
+
+export function HistoryScreen({navigation}: Props) {
   const [sessions, setSessions] = useState<RecordingSession[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -49,14 +57,19 @@ export function HistoryScreen() {
   }, [loadSessions]);
 
   // Render session item
-  const renderSessionItem = useCallback(({item}: {item: RecordingSession}) => {
-    const duration = item.endTime
-      ? formatDuration(calculateDuration(item.startTime, item.endTime))
-      : '진행 중';
+  const renderSessionItem = useCallback(
+    ({item}: {item: RecordingSession}) => {
+      const duration = item.endTime
+        ? formatDuration(calculateDuration(item.startTime, item.endTime))
+        : '진행 중';
 
-    return (
-      <Card style={styles.sessionCard}>
-        <Card.Content>
+      return (
+        <TouchableOpacity
+          onPress={() =>
+            navigation.navigate('SessionDetail', {sessionId: item.sessionId})
+          }>
+          <Card style={styles.sessionCard}>
+            <Card.Content>
           <View style={styles.sessionHeader}>
             <Text variant="titleMedium">세션 {item.sessionId.slice(-8)}</Text>
             {item.isActive && (
@@ -121,15 +134,17 @@ export function HistoryScreen() {
               mode="flat"
               icon="cloud-check"
               style={styles.uploadedChip}
-              compact
-            >
+              compact>
               업로드 완료
             </Chip>
           )}
-        </Card.Content>
-      </Card>
-    );
-  }, []);
+            </Card.Content>
+          </Card>
+        </TouchableOpacity>
+      );
+    },
+    [navigation],
+  );
 
   // Empty list
   const renderEmptyList = useCallback(() => {

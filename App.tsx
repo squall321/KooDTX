@@ -10,7 +10,8 @@ import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
 import {getTheme} from '@config/theme';
-import {RecordingScreen, HistoryScreen} from '@screens';
+import {RecordingScreen} from '@screens';
+import {HistoryStack} from '@navigation/HistoryStack';
 
 const Tab = createBottomTabNavigator();
 
@@ -55,10 +56,11 @@ function App(): React.JSX.Element {
           />
           <Tab.Screen
             name="History"
-            component={HistoryScreen}
+            component={HistoryStack}
             options={{
               title: '기록',
               tabBarLabel: '기록',
+              headerShown: false,
               tabBarIcon: ({color, size}) => (
                 <MaterialCommunityIcons name="history" color={color} size={size} />
               ),

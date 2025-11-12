@@ -4,3 +4,4 @@
 
 export {RecordingScreen} from './RecordingScreen';
 export {HistoryScreen} from './HistoryScreen';
+export {SessionDetailScreen} from './SessionDetailScreen';
