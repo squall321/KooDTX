@@ -5989,3 +5989,318 @@ crashReporter.configure({
 - [ ] ANR (Application Not Responding) 감지
 
 ---
+
+## Phase 29: Production Build and Deployment Preparation ✅
+
+**날짜**: 2025-11-12
+
+### 목표
+프로덕션 빌드 및 배포 준비:
+- 환경 변수 설정
+- 버전 관리 자동화
+- 빌드 프로세스 문서화
+- 배포 가이드 작성
+
+### 구현 내용
+
+#### 1. 환경 변수 설정
+
+**.env.example** (템플릿 파일):
+- API 설정 (BASE_URL, TIMEOUT, RETRY)
+- 로깅 설정 (ENABLE_LOGGING, LOG_LEVEL, REMOTE_URL)
+- 크래시 리포팅 (SENTRY_DSN, FIREBASE_APP_ID)
+- 기능 플래그 (ANALYTICS, DEBUG_MODE)
+- 빌드 설정 (APP_VERSION, BUILD_NUMBER)
+- 환경 (NODE_ENV)
+
+**사용법**:
+```bash
+cp .env.example .env
+# .env 파일 수정
+```
+
+#### 2. 버전 관리 자동화
+
+**scripts/bump-version.js** (300+ lines):
+- 자동 버전 업데이트 스크립트
+- Semantic Versioning 지원 (patch, minor, major)
+- 다중 파일 업데이트:
+  - package.json → version
+  - Android build.gradle → versionName, versionCode
+  - iOS Info.plist → CFBundleShortVersionString, CFBundleVersion
+- Git commit 및 tag 자동 생성
+- 대화형 확인 프롬프트
+
+**기능**:
+```bash
+# Patch 버전 (0.1.0 → 0.1.1)
+npm run version:patch
+
+# Minor 버전 (0.1.1 → 0.2.0)
+npm run version:minor
+
+# Major 버전 (0.2.0 → 1.0.0)
+npm run version:major
+```
+
+**자동 처리**:
+- package.json 버전 업데이트
+- Android versionCode 자동 증가
+- iOS build number 자동 증가
+- Git commit: `chore(release): bump version from X to Y`
+- Git tag: `vX.Y.Z`
+
+**출력 예시**:
+```
+📦 Version Bump
+
+Current version: 0.1.0
+New version:     0.1.1
+
+Updating versions...
+
+✓ Updated package.json to 0.1.1
+✓ Updated Android versionCode to 2
+✓ Updated android/app/build.gradle to 0.1.1
+✓ Updated iOS build number to 2
+✓ Updated ios/KooDTX/Info.plist to 0.1.1
+
+✨ Version bump complete!
+
+Creating git commit and tag...
+
+✓ Created git commit
+✓ Created git tag v0.1.1
+
+Next steps:
+  git push && git push --tags
+```
+
+#### 3. 배포 가이드
+
+**docs/DEPLOYMENT.md** (500+ lines):
+완전한 배포 가이드 문서:
+
+**주요 섹션**:
+1. **환경 설정**
+   - 환경 변수 (.env) 설정
+   - 의존성 설치
+   - 서명 설정 (Android keystore, iOS provisioning)
+
+2. **버전 관리**
+   - 자동 버전 업데이트 (bump-version.js)
+   - 수동 버전 업데이트
+   - 버전 구성 요소 설명
+
+3. **Android 빌드**
+   - Development 빌드 (APK debug)
+   - Production 빌드 (APK release, AAB)
+   - 서명 설정 (signingConfigs)
+   - Keystore 생성
+   - ProGuard 설정
+
+4. **iOS 빌드**
+   - Development 빌드
+   - Production 빌드 (Archive)
+   - CLI로 Archive 생성
+   - Provisioning Profile 설정
+   - Xcode 배포 프로세스
+
+5. **릴리스 체크리스트**
+   - 빌드 전 체크리스트 (20+ 항목)
+   - 기능 확인 (7+ 항목)
+   - 빌드 설정 (5+ 항목)
+   - Android 체크리스트 (6+ 항목)
+   - iOS 체크리스트 (5+ 항목)
+   - 빌드 후 체크리스트 (5+ 항목)
+
+6. **배포 자동화**
+   - GitHub Actions 워크플로우 예시
+   - Fastlane 통합 예시
+
+7. **문제 해결**
+   - Android 빌드 실패 해결
+   - iOS 빌드 실패 해결
+   - 메모리 부족 문제
+
+8. **스토어 배포**
+   - Google Play Store 배포
+   - Apple App Store 배포
+   - 베타 테스팅 (Internal Testing, TestFlight)
+
+### 파일 구조
+
+```
+.env.example ✨ NEW
+scripts/
+└── bump-version.js ✨ NEW (300+ lines)
+docs/
+└── DEPLOYMENT.md ✨ NEW (500+ lines)
+package.json (updated)
+```
+
+### 기술적 세부사항
+
+**버전 업데이트 흐름**:
+```
+┌─────────────────────────────────────┐
+│ npm run version:patch/minor/major   │
+└────────────┬────────────────────────┘
+             │
+      ┌──────┴──────┐
+      │ Read current│
+      │   version   │
+      └──────┬──────┘
+             │
+      ┌──────┴──────┐
+      │ Calculate   │
+      │ new version │
+      └──────┬──────┘
+             │
+      ┌──────┴──────────┐
+      │ Update files:   │
+      │ - package.json  │
+      │ - build.gradle  │
+      │ - Info.plist    │
+      └──────┬──────────┘
+             │
+      ┌──────┴──────┐
+      │ Git commit  │
+      │ + tag       │
+      └─────────────┘
+```
+
+**Semantic Versioning**:
+- **MAJOR**: 호환되지 않는 API 변경
+- **MINOR**: 하위 호환되는 기능 추가
+- **PATCH**: 하위 호환되는 버그 수정
+
+**Android 빌드 타입**:
+- **APK**: 직접 설치 가능한 파일
+- **AAB** (Android App Bundle): Google Play 배포용
+
+**iOS 빌드 설정**:
+- **Development**: 디버깅용 빌드
+- **Release**: 최적화된 프로덕션 빌드
+- **Archive**: App Store 제출용
+
+### package.json 업데이트
+
+새로운 스크립트 추가:
+```json
+{
+  "scripts": {
+    "version:patch": "node scripts/bump-version.js patch",
+    "version:minor": "node scripts/bump-version.js minor",
+    "version:major": "node scripts/bump-version.js major"
+  }
+}
+```
+
+### 릴리스 프로세스
+
+**표준 릴리스 워크플로우**:
+```bash
+# 1. 버전 업데이트
+npm run version:minor
+
+# 2. 빌드 및 테스트
+npm run validate
+npm run analyze
+
+# 3. Android 빌드
+cd android
+./gradlew bundleRelease
+
+# 4. iOS 빌드 (Xcode)
+open ios/KooDTX.xcworkspace
+# Product → Archive
+
+# 5. Git 푸시
+git push && git push --tags
+
+# 6. 스토어 업로드
+# Play Console / App Store Connect
+```
+
+### 환경별 빌드 설정
+
+**Development**:
+```env
+NODE_ENV=development
+API_BASE_URL=https://dev-api.example.com
+ENABLE_DEBUG_MODE=true
+LOG_LEVEL=DEBUG
+```
+
+**Staging**:
+```env
+NODE_ENV=staging
+API_BASE_URL=https://staging-api.example.com
+ENABLE_DEBUG_MODE=false
+LOG_LEVEL=INFO
+```
+
+**Production**:
+```env
+NODE_ENV=production
+API_BASE_URL=https://api.example.com
+ENABLE_DEBUG_MODE=false
+LOG_LEVEL=WARN
+ENABLE_CRASH_REPORTING=true
+```
+
+### CI/CD 통합
+
+**GitHub Actions 워크플로우** (예시):
+```yaml
+name: Release
+on:
+  push:
+    tags: ['v*']
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm ci
+      - run: cd android && ./gradlew bundleRelease
+  ios:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm ci
+      - run: cd ios && pod install
+      - run: xcodebuild archive ...
+```
+
+### 보안 고려사항
+
+**민감한 정보 관리**:
+- `.env` 파일은 `.gitignore`에 추가
+- `gradle.properties`는 `.gitignore`에 추가
+- Keystore 파일은 안전하게 보관
+- API 키는 환경 변수로 관리
+- 서명 정보는 CI/CD Secrets에 저장
+
+**파일 권한**:
+```bash
+# Keystore 파일
+chmod 600 release.keystore
+
+# 빌드 스크립트
+chmod +x scripts/*.js
+```
+
+### 다음 단계 (Optional)
+- [ ] Fastlane 완전 통합
+- [ ] CodePush 설정 (OTA 업데이트)
+- [ ] 자동 스크린샷 생성
+- [ ] 베타 테스팅 자동화
+- [ ] 릴리스 노트 자동 생성
+
+---
+
+**프로젝트 상태**: ✅ **프로덕션 준비 완료**  
+**Phase 1-29 완료**: 모든 개발 단계 완료  
+**배포 준비**: Android & iOS 빌드 및 배포 준비 완료
