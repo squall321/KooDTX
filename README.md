@@ -23,6 +23,7 @@ KooDTX는 스마트폰의 다양한 센서 데이터와 오디오를 수집하�
 ## 🏗️ 기술 스택
 
 ### Frontend (React Native App)
+
 - React Native 0.73+
 - TypeScript 5.0+
 - WatermelonDB (로컬 데이터베이스)
@@ -31,6 +32,7 @@ KooDTX는 스마트폰의 다양한 센서 데이터와 오디오를 수집하�
 - React Native Paper (UI)
 
 ### Backend (Flask Sync Server)
+
 - Flask 3.0+
 - Python 3.11+
 - PostgreSQL 15+
@@ -39,6 +41,7 @@ KooDTX는 스마트폰의 다양한 센서 데이터와 오디오를 수집하�
 - Nginx + Gunicorn
 
 ### 인프라
+
 - 온프레미스 우분투 서버 (22.04 LTS)
 - Let's Encrypt SSL
 - Docker (선택)
@@ -46,6 +49,7 @@ KooDTX는 스마트폰의 다양한 센서 데이터와 오디오를 수집하�
 ## 📋 요구사항
 
 ### 개발 환경
+
 - Node.js 20.x LTS
 - npm 또는 yarn
 - Android Studio + Android SDK
@@ -53,6 +57,7 @@ KooDTX는 스마트폰의 다양한 센서 데이터와 오디오를 수집하�
 - Git
 
 ### 서버 환경
+
 - Ubuntu Server 22.04 LTS
 - Python 3.11+
 - PostgreSQL 15+
@@ -127,6 +132,7 @@ KooDTX/
 ## 🔬 센서 데이터 수집
 
 ### 지원 센서
+
 - **가속도계** (Accelerometer): 200-400Hz
 - **자이로스코프** (Gyroscope): 200-400Hz
 - **지자기계** (Magnetometer): 50Hz
@@ -134,6 +140,7 @@ KooDTX/
 - **오디오**: 44.1kHz (Mono/Stereo)
 
 ### 데이터 형식
+
 - 센서 데이터: JSON Lines (.jsonl)
 - 오디오: WAV (PCM) 또는 압축 포맷
 - 메타데이터: JSON

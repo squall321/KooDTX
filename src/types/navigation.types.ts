@@ -84,10 +84,7 @@ export type SettingsStackParamList = {
  * Navigation prop types for specific screens
  */
 export type NavigationProp<T extends keyof RootStackParamList> = {
-  navigate: (
-    screen: T,
-    params?: RootStackParamList[T],
-  ) => void;
+  navigate: (screen: T, params?: RootStackParamList[T]) => void;
   goBack: () => void;
   reset: (state: unknown) => void;
 };

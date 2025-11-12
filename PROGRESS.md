@@ -13,6 +13,7 @@
 ## 버전 히스토리
 
 ### v0.1.0-dev (2025-11-11)
+
 - 프로젝트 계획 수립 완료
 - 300 Phase 상세 계획 작성 완료 (`detailed_phases_plan.json`)
 - Git 저장소 초기화
@@ -21,9 +22,11 @@
 
 ## Phase 진행 현황
 
-### ✅ 완료된 Phase: 4/300
-### 🔄 진행 중: Phase 5
-### ⏳ 대기 중: Phase 6-300
+### ✅ 완료된 Phase: 5/300
+
+### 🔄 진행 중: Phase 6
+
+### ⏳ 대기 중: Phase 7-300
 
 ---
 
@@ -36,6 +39,7 @@
 **우선순위**: critical
 
 ### 작업 내용
+
 - [x] Git 설치 확인 및 최신 버전 확인 (v2.43.0)
 - [x] GitHub 저장소 생성 (KooDTX)
 - [x] .gitignore 파일 생성 (React Native + Python)
@@ -45,26 +49,31 @@
 ### 진행 로그
 
 **2025-11-11 22:43**
+
 - Git 저장소 이미 초기화됨
 - 브랜치: `claude/react-native-architecture-phases-011CV1xEc4avXyTZ4Qb4ryxK`
 - 상세 계획 파일 커밋 완료 (`detailed_phases_plan.json`)
 
 **2025-11-11 22:45**
+
 - PROGRESS.md 파일 생성 시작
 - 진행 상황 추적 시스템 구축
 
 **2025-11-11 22:50**
+
 - .gitignore 파일 생성 (React Native + Node.js + Python/Flask)
 - README.md 작성 완료 (프로젝트 개요, 기술 스택, 문서)
 - GIT_WORKFLOW.md 작성 완료 (브랜치 전략, 커밋 규칙, PR 템플릿)
 
 ### 산출물
+
 - `.gitignore` - Git 무시 파일 목록
 - `README.md` - 프로젝트 소개 문서
 - `GIT_WORKFLOW.md` - Git 워크플로우 가이드
 - `PROGRESS.md` - 진행 상황 추적 문서
 
 ### 다음 Phase
+
 → Phase 2: Node.js 및 개발 도구 설치
 
 ---
@@ -78,6 +87,7 @@
 **우선순위**: critical
 
 ### 작업 내용
+
 - [x] Node.js 버전 확인 (v22.21.1 - LTS v20.x 이상)
 - [x] npm 패키지 매니저 확인 (v10.9.4)
 - [x] yarn 패키지 매니저 확인 (v1.22.22)
@@ -89,32 +99,36 @@
 ### 진행 로그
 
 **2025-11-11 22:55**
+
 - 개발 환경 현황 확인 시작
 - Node.js v22.21.1 설치 확인 (LTS 요구사항 충족)
 - npm v10.9.4, yarn v1.22.22 확인
 
 **2025-11-11 22:57**
+
 - Java OpenJDK 21 확인 (JDK 17 요구사항 초과 달성)
 - JAVA_HOME 환경 변수 설정 확인: `/usr/lib/jvm/java-21-openjdk-amd64`
 
 **2025-11-11 23:00**
+
 - Android Studio 설치 가이드 작성 시작
 - `docs/ANDROID_SETUP_GUIDE.md` 생성
 - SDK Manager, AVD 설정, 환경 변수, 문제 해결 가이드 포함
 
 ### 환경 확인 결과
 
-| 도구 | 요구 버전 | 설치된 버전 | 상태 |
-|------|-----------|-------------|------|
-| Node.js | v20.x LTS | v22.21.1 | ✅ |
-| npm | 최신 | v10.9.4 | ✅ |
-| yarn | 선택 | v1.22.22 | ✅ |
-| Java JDK | 17+ | OpenJDK 21 | ✅ |
-| JAVA_HOME | 설정 필요 | 설정됨 | ✅ |
-| Android Studio | 설치 필요 | 문서화 | 📝 |
-| ANDROID_HOME | 설정 필요 | 가이드 제공 | 📝 |
+| 도구           | 요구 버전 | 설치된 버전 | 상태 |
+| -------------- | --------- | ----------- | ---- |
+| Node.js        | v20.x LTS | v22.21.1    | ✅   |
+| npm            | 최신      | v10.9.4     | ✅   |
+| yarn           | 선택      | v1.22.22    | ✅   |
+| Java JDK       | 17+       | OpenJDK 21  | ✅   |
+| JAVA_HOME      | 설정 필요 | 설정됨      | ✅   |
+| Android Studio | 설치 필요 | 문서화      | 📝   |
+| ANDROID_HOME   | 설정 필요 | 가이드 제공 | 📝   |
 
 ### 산출물
+
 - `docs/ANDROID_SETUP_GUIDE.md` - Android 개발 환경 설정 가이드 (240줄)
   - Android Studio 설치 방법
   - SDK 및 Tools 설정
@@ -124,11 +138,13 @@
   - 문제 해결 가이드
 
 ### 참고사항
+
 - CLI 환경에서 Android Studio 직접 설치는 불가능하므로 상세 가이드 문서로 대체
 - React Native는 npx를 통해 사용 가능하므로 글로벌 CLI 설치 불필요
 - 현재 환경은 개발 시작에 필요한 모든 도구가 준비됨
 
 ### 다음 Phase
+
 → Phase 3: React Native 프로젝트 초기화
 
 ---
@@ -142,6 +158,7 @@
 **우선순위**: critical
 
 ### 작업 내용
+
 - [x] React Native 프로젝트 생성 (v0.73.0)
 - [x] TypeScript 템플릿 적용 (기본값)
 - [x] 프로젝트 파일 복사 및 구성
@@ -152,16 +169,19 @@
 ### 진행 로그
 
 **2025-11-12 00:00**
+
 - `/tmp`에 임시 프로젝트 생성 시작
 - React Native CLI v20.0.2 사용
 - React Native v0.73.0으로 프로젝트 생성
 
 **2025-11-12 00:01**
+
 - 프로젝트 생성 완료 (템플릿 다운로드, 의존성 설치 포함)
 - 핵심 파일 복사: package.json, tsconfig.json, babel.config.js 등
 
 **2025-11-12 00:02**
-- 디렉토리 복사: android/, ios/, __tests__/, .bundle/
+
+- 디렉토리 복사: android/, ios/, **tests**/, .bundle/
 - 프로젝트 이름 수정: package.json, app.json
 - npm install 실행 (904 패키지 설치)
 
@@ -190,16 +210,17 @@ KooDTX/
 
 ### 기술 스택 확인
 
-| 패키지 | 버전 |
-|--------|------|
+| 패키지       | 버전   |
+| ------------ | ------ |
 | React Native | 0.73.0 |
-| React | 18.2.0 |
-| TypeScript | 5.0.4 |
-| Jest | 29.6.3 |
-| ESLint | 8.57.1 |
-| Prettier | 2.8.8 |
+| React        | 18.2.0 |
+| TypeScript   | 5.0.4  |
+| Jest         | 29.6.3 |
+| ESLint       | 8.57.1 |
+| Prettier     | 2.8.8  |
 
 ### 산출물
+
 - **React Native 프로젝트**: TypeScript 기반 프로젝트 구조
 - **Android 프로젝트**: 네이티브 Android 코드 및 Gradle 설정
 - **iOS 프로젝트**: 네이티브 iOS 코드 (추후 설정 필요)
@@ -207,12 +228,14 @@ KooDTX/
 - **린트/포맷**: ESLint + Prettier 설정 완료
 
 ### 참고사항
+
 - React Native 0.73부터 TypeScript가 기본 템플릿
 - 총 904개 패키지 설치 (node_modules)
 - 5개 보안 취약점 발견 (추후 Phase에서 해결)
 - iOS 디렉토리 이름이 여전히 "KooDTXTemp" (Android 우선 개발)
 
 ### 다음 Phase
+
 → Phase 4: TypeScript 설정 강화
 
 ---
@@ -226,6 +249,7 @@ KooDTX/
 **우선순위**: high
 
 ### 작업 내용
+
 - [x] TypeScript strict mode 활성화
 - [x] 강력한 타입 체킹 규칙 추가
 - [x] Path aliases 설정 (13개 경로)
@@ -236,16 +260,19 @@ KooDTX/
 ### 진행 로그
 
 **2025-11-12 00:10**
+
 - tsconfig.json 강화 시작
 - strict mode 활성화 및 추가 타입 체킹 규칙 설정
 - Path aliases 설정: @components, @screens, @navigation, @services 등
 
 **2025-11-12 00:12**
+
 - babel-plugin-module-resolver 설치 (16 packages)
 - babel.config.js에 path aliases 설정 추가
 - TypeScript와 Babel이 동일한 경로 해석 사용
 
 **2025-11-12 00:15**
+
 - src/types/ 디렉토리 생성
 - 타입 정의 파일 4개 작성:
   - common.types.ts: 공통 타입 (API, Pagination, Sync 등)
@@ -255,6 +282,7 @@ KooDTX/
   - index.ts: 중앙 export 파일
 
 **2025-11-12 00:18**
+
 - TypeScript 컴파일 테스트 실행
 - moduleResolution을 "bundler"로 수정 (React Native 0.73 호환)
 - 컴파일 성공 확인 ✅
@@ -262,6 +290,7 @@ KooDTX/
 ### TypeScript 설정 강화 내용
 
 #### Strict Mode 옵션
+
 ```typescript
 "strict": true,
 "noImplicitAny": true,
@@ -274,6 +303,7 @@ KooDTX/
 ```
 
 #### 추가 체크
+
 ```typescript
 "noUnusedLocals": true,
 "noUnusedParameters": true,
@@ -285,6 +315,7 @@ KooDTX/
 ```
 
 #### Path Aliases (13개)
+
 - `@components/*` → `src/components/*`
 - `@screens/*` → `src/screens/*`
 - `@navigation/*` → `src/navigation/*`
@@ -302,6 +333,7 @@ KooDTX/
 ### 생성된 타입 파일
 
 #### 1. common.types.ts (75줄)
+
 - ApiResponse: API 응답 래퍼
 - PaginationParams: 페이지네이션 파라미터
 - SyncableRecord: 동기화 가능한 레코드
@@ -309,6 +341,7 @@ KooDTX/
 - DateRange: 날짜 범위 필터
 
 #### 2. sensor.types.ts (125줄)
+
 - SensorType: 센서 타입 enum (5종)
 - AccelerometerData: 가속도계 데이터
 - GyroscopeData: 자이로스코프 데이터
@@ -319,6 +352,7 @@ KooDTX/
 - SensorSettings: 센서 설정
 
 #### 3. database.types.ts (75줄)
+
 - TableName: 데이터베이스 테이블명 enum
 - SyncQueueEntry: 동기화 큐 항목
 - UserSettings: 사용자 설정
@@ -326,6 +360,7 @@ KooDTX/
 - QueryFilter: 쿼리 필터 옵션
 
 #### 4. navigation.types.ts (75줄)
+
 - RootStackParamList: 루트 스택 네비게이터
 - MainTabParamList: 메인 탭 네비게이터
 - RecordingStackParamList: 녹화 스택 네비게이터
@@ -333,25 +368,169 @@ KooDTX/
 - SettingsStackParamList: 설정 스택 네비게이터
 
 ### 산출물
+
 - **tsconfig.json**: 강화된 TypeScript 설정 (64줄)
 - **babel.config.js**: Path aliases 설정 (26줄)
 - **src/types/**: 타입 정의 디렉토리 (5개 파일, 총 350줄)
 - **package.json**: babel-plugin-module-resolver 추가
 
 ### 참고사항
+
 - TypeScript strict mode로 런타임 에러를 컴파일 타임에 감지
 - Path aliases로 import 경로 간소화 (`../../utils/helper` → `@utils/helper`)
 - 모든 주요 도메인 타입 정의 완료 (센서, DB, 네비게이션)
 - 타입 안정성 대폭 향상
 
 ### 다음 Phase
+
 → Phase 5: ESLint 및 Prettier 설정
+
+---
+
+## Phase 5: ESLint 및 Prettier 설정 ✅
+
+**상태**: ✅ 완료
+**시작일**: 2025-11-12
+**완료일**: 2025-11-12
+**실제 소요**: 0.5시간
+**우선순위**: high
+
+### 작업 내용
+
+- [x] ESLint 규칙 강화 및 확장
+- [x] TypeScript ESLint 플러그인 설정
+- [x] React Hooks 규칙 추가
+- [x] Import 순서 자동 정렬 규칙
+- [x] Prettier 설정 확장 및 표준화
+- [x] ESLint-Prettier 통합
+- [x] npm scripts 추가 (lint:fix, format, validate)
+- [x] 전체 코드베이스 포맷팅 및 검증
+
+### 진행 로그
+
+**2025-11-12 00:25**
+
+- ESLint 설정 강화 시작
+- @typescript-eslint, react-hooks 플러그인 활성화
+- Path aliases resolver 설정 (babel-module)
+
+**2025-11-12 00:28**
+
+- ESLint 규칙 추가:
+  - TypeScript: no-unused-vars, no-explicit-any, consistent-type-imports
+  - React: hooks rules, prop-types off
+  - Import: 자동 정렬 및 그룹화
+  - Code quality: no-console (warn), no-debugger, prefer-const
+
+**2025-11-12 00:30**
+
+- Prettier 설정 확장:
+  - printWidth: 80
+  - tabWidth: 2
+  - singleQuote: true
+  - trailingComma: 'all'
+  - arrowParens: 'avoid'
+  - endOfLine: 'lf'
+
+**2025-11-12 00:32**
+
+- ESLint 플러그인 설치 (16 packages):
+  - eslint-config-prettier
+  - eslint-plugin-import
+  - eslint-import-resolver-babel-module
+
+**2025-11-12 00:35**
+
+- npm scripts 추가:
+  - `lint`: ESLint 검사
+  - `lint:fix`: ESLint 자동 수정
+  - `format`: Prettier 자동 포맷팅
+  - `format:check`: Prettier 검사
+  - `typecheck`: TypeScript 컴파일 검사
+  - `validate`: 전체 검증 (typecheck + lint + format:check)
+
+**2025-11-12 00:37**
+
+- 초기 lint 실행: 11개 이슈 발견
+- lint:fix 실행: 9개 자동 수정
+- 수동 수정: import 순서, require 문 처리
+
+**2025-11-12 00:40**
+
+- Prettier 포맷팅 실행 (26 files)
+- jsxBracketSameLine 옵션 제거 (deprecated)
+- 전체 검증 통과 ✅
+
+### ESLint 강화 내용
+
+#### 확장 설정
+
+```javascript
+extends: [
+  '@react-native',
+  'plugin:@typescript-eslint/recommended',
+  'plugin:react-hooks/recommended',
+  'prettier',
+];
+```
+
+#### TypeScript 규칙
+
+- `no-unused-vars`: 미사용 변수 에러 (\_로 시작하는 변수 제외)
+- `no-explicit-any`: any 타입 경고
+- `consistent-type-imports`: type import 강제
+
+#### Import 정렬 규칙
+
+- 그룹: builtin → external → internal → parent/sibling → index → type
+- React/React Native 우선 배치
+- 알파벳 순 정렬
+- 그룹 간 빈 줄 강제
+
+### npm Scripts
+
+| 스크립트     | 설명                             | 용도                  |
+| ------------ | -------------------------------- | --------------------- |
+| lint         | ESLint 검사                      | CI/CD, 개발 중 검사   |
+| lint:fix     | ESLint 자동 수정                 | 코드 정리             |
+| format       | Prettier 포맷팅                  | 전체 코드 포맷팅      |
+| format:check | Prettier 검사                    | CI/CD 검증            |
+| typecheck    | TypeScript 컴파일 검사           | 타입 에러 확인        |
+| validate     | 전체 검증 (type + lint + format) | PR 전 최종 검증       |
+
+### 산출물
+
+- **.eslintrc.js**: 강화된 ESLint 설정 (108줄)
+  - 15개 커스텀 규칙
+  - 4개 플러그인 통합
+  - Path aliases resolver 설정
+- **.prettierrc.js**: 표준 Prettier 설정 (30줄)
+- **package.json**: 6개 새로운 scripts 추가
+- **포맷팅된 코드**: 26개 파일 자동 포맷팅
+
+### 검증 결과
+
+✅ **TypeScript 컴파일**: 에러 없음
+✅ **ESLint**: 에러 없음
+✅ **Prettier**: 모든 파일 포맷 준수
+
+### 참고사항
+
+- ESLint와 Prettier가 완벽히 통합되어 충돌 없음
+- Import 순서가 자동으로 정렬되어 일관성 유지
+- validate 스크립트로 PR 전 자동 검증 가능
+- 코드 품질과 일관성이 크게 향상됨
+
+### 다음 Phase
+
+→ Phase 6: 프로젝트 폴더 구조 생성
 
 ---
 
 ## 주간 목표
 
 ### Week 1 (2025-11-11 ~ 2025-11-17)
+
 - [ ] Phase 1-10: 프로젝트 셋업 및 기본 인프라
 - [ ] 개발 환경 완전 구축
 - [ ] React Native 프로젝트 초기화
@@ -361,9 +540,9 @@ KooDTX/
 
 ## 통계
 
-- **총 작업 시간**: 2.0시간
-- **완료율**: 1.3% (4/300)
-- **이번 주 목표 완료율**: 40% (4/10)
+- **총 작업 시간**: 2.5시간
+- **완료율**: 1.7% (5/300)
+- **이번 주 목표 완료율**: 50% (5/10)
 
 ---
 
@@ -373,7 +552,7 @@ KooDTX/
 2. ~~Phase 2 완료 (Node.js 및 개발 도구 설치)~~ ✅
 3. ~~Phase 3 완료 (React Native 프로젝트 초기화)~~ ✅
 4. ~~Phase 4 완료 (TypeScript 설정 강화)~~ ✅
-5. Phase 5 시작 (ESLint 및 Prettier 설정)
+5. ~~Phase 5 완료 (ESLint 및 Prettier 설정)~~ ✅
 6. Phase 6 시작 (프로젝트 폴더 구조 생성)
 
 ---
@@ -385,4 +564,4 @@ KooDTX/
 
 ---
 
-*최종 업데이트: 2025-11-12 00:20*
+_최종 업데이트: 2025-11-12 00:45_

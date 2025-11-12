@@ -7,10 +7,12 @@
 ### Windows / macOS / Linux
 
 1. **Android Studio 다운로드**
+
    - 공식 사이트: https://developer.android.com/studio
    - 최신 안정 버전 (Hedgehog 2023.1.1 이상) 다운로드
 
 2. **설치 실행**
+
    - 설치 마법사 따라 진행
    - "Android Virtual Device" 포함하여 설치
    - 기본 설정으로 설치 (권장)
@@ -37,6 +39,7 @@ Android Studio 실행 → More Actions → SDK Manager
 - ✅ **Android 10.0 (Q) - API Level 29**
 
 **설치 방법:**
+
 1. SDK Manager → SDK Platforms 탭
 2. "Show Package Details" 체크
 3. 각 Android 버전에서 다음 항목 선택:
@@ -56,6 +59,7 @@ SDK Manager → SDK Tools 탭에서 다음 항목 설치:
 - ✅ **Intel x86 Emulator Accelerator (HAXM installer)** - Windows/Mac만
 
 **설치 경로 확인:**
+
 - Windows: `C:\Users\{username}\AppData\Local\Android\Sdk`
 - macOS: `/Users/{username}/Library/Android/sdk`
 - Linux: `/home/{username}/Android/Sdk`
@@ -65,6 +69,7 @@ SDK Manager → SDK Tools 탭에서 다음 항목 설치:
 ### Windows
 
 1. **시스템 환경 변수 편집**
+
    - 시작 → "환경 변수" 검색
    - "시스템 환경 변수 편집" 클릭
    - "환경 변수" 버튼 클릭
@@ -72,16 +77,19 @@ SDK Manager → SDK Tools 탭에서 다음 항목 설치:
 2. **새 시스템 변수 추가**
 
    **ANDROID_HOME:**
+
    - 변수 이름: `ANDROID_HOME`
    - 변수 값: `C:\Users\{username}\AppData\Local\Android\Sdk`
 
    **JAVA_HOME (이미 설정되어 있어야 함):**
+
    - 변수 이름: `JAVA_HOME`
    - 변수 값: `C:\Program Files\Java\jdk-17` (설치 경로에 맞게)
 
 3. **Path 변수 업데이트**
 
    Path 변수에 다음 추가:
+
    ```
    %ANDROID_HOME%\platform-tools
    %ANDROID_HOME%\emulator
@@ -109,6 +117,7 @@ export JAVA_HOME=/Library/Java/JavaVirtualMachines/jdk-17.jdk/Contents/Home  # m
 ```
 
 **설정 적용:**
+
 ```bash
 source ~/.bashrc  # 또는 source ~/.zshrc
 ```
@@ -133,6 +142,7 @@ node --version
 ```
 
 **예상 출력:**
+
 ```
 ANDROID_HOME=/Users/username/Library/Android/sdk
 Android Debug Bridge version 1.0.41
@@ -175,19 +185,23 @@ Android Studio → More Actions → Virtual Device Manager
 ### USB 디버깅 활성화
 
 1. **개발자 옵션 활성화:**
+
    - 설정 → 휴대전화 정보
    - "빌드 번호" 7회 탭
 
 2. **USB 디버깅 활성화:**
+
    - 설정 → 시스템 → 개발자 옵션
    - "USB 디버깅" 켜기
 
 3. **기기 연결 확인:**
+
    ```bash
    adb devices
    ```
 
    **예상 출력:**
+
    ```
    List of devices attached
    XXXXXXXXXX    device
@@ -200,6 +214,7 @@ Android Studio → More Actions → Virtual Device Manager
 React Native는 Gradle을 자동으로 다운로드합니다.
 
 **권장 버전:**
+
 - Gradle: 8.3+
 - Android Gradle Plugin: 8.1.0+
 
@@ -214,19 +229,23 @@ React Native는 Gradle을 자동으로 다운로드합니다.
 ### 흔한 문제
 
 **1. "ANDROID_HOME is not set"**
+
 - 환경 변수 재확인
 - 터미널/명령 프롬프트 재시작
 
 **2. "adb: command not found"**
+
 - Path 변수에 `platform-tools` 추가 확인
 - Android SDK 재설치
 
 **3. 에뮬레이터가 느림**
+
 - HAXM (Intel) 또는 Hyper-V (AMD) 설치
 - RAM 할당량 증가 (AVD 설정)
 - GPU 가속 활성화
 
 **4. "SDK location not found"**
+
 - `local.properties` 파일 생성:
   ```properties
   sdk.dir=/Users/username/Library/Android/sdk
