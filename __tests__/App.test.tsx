@@ -1,17 +1,25 @@
 /**
- * @format
+ * App component tests
  */
 
-import 'react-native';
 import React from 'react';
-
-// Note: import explicitly to use the types shipped with jest.
-import {it} from '@jest/globals';
-// Note: test renderer must be required after react-native.
-import renderer from 'react-test-renderer';
+import {render} from '@testing-library/react-native';
 
 import App from '../App';
 
-it('renders correctly', () => {
-  renderer.create(<App />);
+describe('App', () => {
+  it('should render without crashing', () => {
+    const {root} = render(<App />);
+    expect(root).toBeTruthy();
+  });
+
+  it('should render app title', () => {
+    const {getByText} = render(<App />);
+    expect(getByText('KooDTX')).toBeTruthy();
+  });
+
+  it('should render subtitle', () => {
+    const {getByText} = render(<App />);
+    expect(getByText('Local-First Sensor Data Collection App')).toBeTruthy();
+  });
 });
