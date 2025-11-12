@@ -10,3 +10,9 @@ export type {
   UseSensorCollectionOptions,
   UseSensorCollectionResult,
 } from './useSensorCollection';
+
+export {useSensorCollectionWithDB} from './useSensorCollectionWithDB';
+export type {
+  UseSensorCollectionWithDBOptions,
+  UseSensorCollectionWithDBResult,
+} from './useSensorCollectionWithDB';

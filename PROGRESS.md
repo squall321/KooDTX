@@ -22,9 +22,9 @@
 
 ## Phase 진행 현황
 
-### ✅ 완료된 Phase: 13/300
+### ✅ 완료된 Phase: 14/300
 
-### 🔄 진행 중: Phase 14
+### 🔄 진행 중: Phase 15
 
 ### ⏳ 대기 중: Phase 11-300
 
@@ -1127,6 +1127,211 @@ Time:        6.032 s
 ## Phase 11: React Native 센서 라이브러리 설치 ✅
 ## Phase 12: 센서 데이터 수집 및 버퍼링 시스템 ✅
 ## Phase 13: WatermelonDB 로컬 데이터베이스 설정 ✅
+## Phase 14: 센서 데이터 저장 통합 ✅
+
+**완료 시간**: 2025-11-12 06:30  
+**소요 시간**: 0.5시간
+
+### 주요 성과
+
+**1. SensorDataService 구현** (230줄)
+
+센서 데이터 수집부터 데이터베이스 저장까지 전체 파이프라인을 통합하는 서비스
+
+```typescript
+export class SensorDataService {
+  private buffer: SensorDataBuffer;
+  private batchSaver: SensorDataBatchSaver;
+  private sensorDataRepo: SensorDataRepository;
+  private sessionRepo: RecordingSessionRepository;
+  
+  async start(): void;
+  async stop(): Promise<void>;
+  addData(data: SensorData): void;
+  addBatch(data: SensorData[]): void;
+  async flush(): Promise<void>;
+}
+```
+
+**주요 기능**:
+- 🔄 **버퍼링**: SensorDataBuffer를 통한 메모리 버퍼링
+- 💾 **배치 저장**: SensorDataBatchSaver를 통한 데이터베이스 저장
+- 🔁 **재시도**: 실패한 배치 자동 재시도
+- 📊 **통계**: 버퍼 및 저장 통계 추적
+- 📈 **세션 업데이트**: 자동 세션 데이터 카운트 업데이트
+- 🎯 **싱글톤**: 전역 인스턴스 관리
+
+**2. useSensorCollectionWithDB Hook** (200줄)
+
+데이터베이스 저장 기능이 통합된 센서 수집 Hook
+
+```typescript
+export function useSensorCollectionWithDB(
+  sessionId: string | null,
+  options: UseSensorCollectionWithDBOptions = {},
+): UseSensorCollectionWithDBResult
+```
+
+**옵션**:
+- `enabled`: 자동 시작/중지
+- `sensors`: 센서별 설정
+- `onData`: 데이터 콜백
+- `onError`: 에러 콜백
+- `bufferSize`: 버퍼 크기 (기본: 100)
+- `flushInterval`: 플러시 간격 (기본: 5000ms)
+- `retryAttempts`: 재시도 횟수 (기본: 3)
+
+**반환값**:
+- `isRunning`: 실행 상태
+- `runningSensors`: 실행 중인 센서 목록
+- `error`: 에러 상태
+- `start()`: 센서 시작
+- `stop()`: 센서 중지
+- `getBufferStats()`: 버퍼 통계
+- `getSaverStats()`: 저장 통계
+- `getFailedBatchesCount()`: 실패 배치 수
+- `flush()`: 수동 플러시
+
+**3. 통합 테스트** (163줄)
+
+SensorDataService의 기본 기능 테스트
+
+```typescript
+describe('SensorDataService', () => {
+  // 초기화, 시작/중지
+  // 데이터 추가 (단일/배치)
+  // 통계 조회
+  // 수동 플러시
+  // 싱글톤 패턴
+  // 에러 처리
+});
+```
+
+### 데이터 흐름 (완전한 파이프라인)
+
+```
+센서 하드웨어
+    ↓
+SensorService (AccelerometerService, GyroscopeService, etc.)
+    ↓
+SensorManager.startCollection()
+    ↓
+useSensorCollectionWithDB Hook
+    ↓
+SensorDataService
+    ├─→ SensorDataBuffer (메모리 버퍼링)
+    │     └─→ 자동 플러시 (크기/시간 기반)
+    └─→ SensorDataBatchSaver (배치 저장)
+          └─→ SensorDataRepository.createBatch()
+                └─→ WatermelonDB
+                      └─→ SQLite Database
+```
+
+### 사용 예시
+
+**기본 사용**:
+```typescript
+const {isRunning, start, stop} = useSensorCollectionWithDB(
+  sessionId,
+  {
+    enabled: true,
+    sensors: {
+      [SensorType.ACCELEROMETER]: {enabled: true, sampleRate: 100},
+      [SensorType.GYROSCOPE]: {enabled: true, sampleRate: 100},
+      [SensorType.GPS]: {enabled: true, sampleRate: 1},
+    },
+    bufferSize: 100,
+    flushInterval: 5000,
+    retryAttempts: 3,
+    onData: (data) => {
+      console.log('Received data:', data);
+    },
+    onError: (error) => {
+      console.error('Sensor error:', error);
+    },
+  }
+);
+
+// 데이터는 자동으로 데이터베이스에 저장됨
+```
+
+**통계 모니터링**:
+```typescript
+const {getBufferStats, getSaverStats, getFailedBatchesCount} = 
+  useSensorCollectionWithDB(sessionId, options);
+
+// 버퍼 통계
+const bufferStats = getBufferStats();
+console.log('Buffer:', bufferStats.currentSize, '/', bufferStats.totalReceived);
+
+// 저장 통계
+const saverStats = getSaverStats();
+console.log('Saved:', saverStats.totalSaved, 'Failed:', saverStats.totalFailed);
+
+// 실패 배치 수
+const failedCount = getFailedBatchesCount();
+console.log('Failed batches:', failedCount);
+```
+
+**수동 제어**:
+```typescript
+const {start, stop, flush} = useSensorCollectionWithDB(
+  sessionId,
+  {enabled: false} // 자동 시작 비활성화
+);
+
+// 수동 시작
+await start([SensorType.ACCELEROMETER, SensorType.GYROSCOPE]);
+
+// 수동 플러시
+await flush();
+
+// 수동 중지
+await stop();
+```
+
+### 파일 구조
+```
+src/
+├── services/
+│   ├── SensorDataService.ts           # 통합 서비스
+│   └── __tests__/
+│       └── SensorDataService.test.ts  # 통합 테스트
+└── hooks/
+    ├── useSensorCollectionWithDB.ts   # DB 통합 Hook
+    └── index.ts                       # 업데이트된 Export
+```
+
+### 주요 특징
+
+**성능 최적화**:
+- ⚡ 메모리 버퍼링으로 I/O 최소화
+- 📦 배치 삽입으로 데이터베이스 성능 최적화
+- ⏱️ 시간 기반 자동 플러시
+
+**안정성**:
+- 🔁 자동 재시도 메커니즘
+- 💾 실패한 배치 큐 관리
+- 📊 세션 데이터 카운트 자동 업데이트
+
+**관찰 가능성**:
+- 📈 실시간 버퍼 통계
+- 📉 저장 성공/실패 통계
+- 🔍 실패 배치 추적
+
+**사용 편의성**:
+- 🎣 React Hook 인터페이스
+- 🔧 완전 설정 가능
+- 🎯 싱글톤 패턴
+
+### 다음 단계 (Phase 15)
+- Recording UI 화면 구현
+- 센서 선택 및 설정 UI
+- 실시간 센서 데이터 시각화
+- 녹음 시작/중지 제어
+
+---
+
 
 **완료 시간**: 2025-11-12 06:00  
 **소요 시간**: 0.8시간
@@ -1889,9 +2094,9 @@ Time:        7.769 s
 
 ## 통계
 
-- **총 작업 시간**: 7.5시간
-- **완료율**: 4.3% (13/300)
-- **이번 주 목표 완료율**: 130% (13/10)
+- **총 작업 시간**: 8.0시간
+- **완료율**: 4.7% (14/300)
+- **이번 주 목표 완료율**: 140% (14/10)
 
 ---
 
