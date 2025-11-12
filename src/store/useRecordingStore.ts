@@ -5,7 +5,7 @@
 
 import {create} from 'zustand';
 
-import type {RecordingSession, SensorType} from '@types';
+import type {RecordingSession, SensorType} from '@app-types';
 
 interface RecordingState {
   // Current session

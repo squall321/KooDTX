@@ -5,7 +5,7 @@
 
 import {accelerometer, setUpdateIntervalForType, SensorTypes} from 'react-native-sensors';
 import type {Subscription} from 'rxjs';
-import {SensorType, type AccelerometerData} from '@types/sensor.types';
+import {SensorType, type AccelerometerData} from '@app-types/sensor.types';
 import {SensorService, type SensorDataCallback, type SensorErrorCallback} from './SensorService';
 
 export class AccelerometerService extends SensorService<AccelerometerData> {

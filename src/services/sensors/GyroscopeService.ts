@@ -5,7 +5,7 @@
 
 import {gyroscope, setUpdateIntervalForType, SensorTypes} from 'react-native-sensors';
 import type {Subscription} from 'rxjs';
-import {SensorType, type GyroscopeData} from '@types/sensor.types';
+import {SensorType, type GyroscopeData} from '@app-types/sensor.types';
 import {SensorService, type SensorDataCallback, type SensorErrorCallback} from './SensorService';
 
 export class GyroscopeService extends SensorService<GyroscopeData> {

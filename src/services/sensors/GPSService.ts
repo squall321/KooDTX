@@ -5,7 +5,7 @@
 
 import Geolocation from '@react-native-community/geolocation';
 import type {GeolocationResponse} from '@react-native-community/geolocation';
-import {SensorType, type GPSData} from '@types/sensor.types';
+import {SensorType, type GPSData} from '@app-types/sensor.types';
 import {SensorService, type SensorDataCallback, type SensorErrorCallback} from './SensorService';
 
 export class GPSService extends SensorService<GPSData> {

@@ -3,7 +3,7 @@
  * Manages all sensor services and coordinates data collection
  */
 
-import {SensorType, type SensorData, type SensorConfig} from '@types/sensor.types';
+import {SensorType, type SensorData, type SensorConfig} from '@app-types/sensor.types';
 import {AccelerometerService} from './AccelerometerService';
 import {GyroscopeService} from './GyroscopeService';
 import {MagnetometerService} from './MagnetometerService';

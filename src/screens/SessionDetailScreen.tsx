@@ -30,7 +30,7 @@ import {
   getAudioRecordingRepository,
 } from '@database/repositories';
 import {formatTimestamp, calculateDuration, formatDuration} from '@utils/date';
-import {SensorType} from '@types/sensor.types';
+import {SensorType} from '@app-types/sensor.types';
 import Share from 'react-native-share';
 import RNFS from 'react-native-fs';
 import {getAudioRecorderService} from '@services/audio/AudioRecorderService';

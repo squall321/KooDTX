@@ -7,7 +7,7 @@ import {Model} from '@nozbe/watermelondb';
 import {field, readonly, date} from '@nozbe/watermelondb/decorators';
 
 export class AudioRecording extends Model {
-  static table = 'audio_recordings';
+  static override table = 'audio_recordings';
 
   @field('session_id') sessionId!: string;
   @field('timestamp') timestamp!: number;

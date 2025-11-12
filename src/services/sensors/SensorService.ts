@@ -3,7 +3,7 @@
  * All sensor services should extend this class
  */
 
-import type {SensorType, SensorData} from '@types/sensor.types';
+import type {SensorType, SensorData} from '@app-types/sensor.types';
 
 /**
  * Sensor callback types

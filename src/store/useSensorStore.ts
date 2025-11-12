@@ -5,7 +5,7 @@
 
 import {create} from 'zustand';
 
-import type {SensorSettings, SensorType} from '@types';
+import type {SensorSettings, SensorType} from '@app-types';
 
 interface SensorState {
   // Sensor settings

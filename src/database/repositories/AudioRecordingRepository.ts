@@ -5,7 +5,7 @@
  */
 
 import {Q} from '@nozbe/watermelondb';
-import {getDatabase} from '../connection';
+import {database} from '../index';
 import {AudioRecording} from '../models/AudioRecording';
 
 export interface CreateAudioRecordingInput {
@@ -40,7 +40,6 @@ export class AudioRecordingRepository {
    * Create a new audio recording record
    */
   async create(input: CreateAudioRecordingInput): Promise<AudioRecording> {
-    const database = getDatabase();
     const audioRecordingsCollection = database.get<AudioRecording>(
       'audio_recordings',
     );
@@ -66,7 +65,6 @@ export class AudioRecordingRepository {
    * Find audio recording by ID
    */
   async findById(id: string): Promise<AudioRecording | null> {
-    const database = getDatabase();
     const audioRecordingsCollection = database.get<AudioRecording>(
       'audio_recordings',
     );
@@ -83,7 +81,6 @@ export class AudioRecordingRepository {
    * Find audio recordings by session ID
    */
   async findBySession(sessionId: string): Promise<AudioRecording[]> {
-    const database = getDatabase();
     const audioRecordingsCollection = database.get<AudioRecording>(
       'audio_recordings',
     );
@@ -99,7 +96,6 @@ export class AudioRecordingRepository {
    * Find all audio recordings
    */
   async findAll(): Promise<AudioRecording[]> {
-    const database = getDatabase();
     const audioRecordingsCollection = database.get<AudioRecording>(
       'audio_recordings',
     );
@@ -115,7 +111,6 @@ export class AudioRecordingRepository {
    * Find audio recordings that need to be uploaded
    */
   async findNotUploaded(): Promise<AudioRecording[]> {
-    const database = getDatabase();
     const audioRecordingsCollection = database.get<AudioRecording>(
       'audio_recordings',
     );
@@ -134,7 +129,6 @@ export class AudioRecordingRepository {
     id: string,
     input: UpdateAudioRecordingInput,
   ): Promise<AudioRecording> {
-    const database = getDatabase();
     const audioRecordingsCollection = database.get<AudioRecording>(
       'audio_recordings',
     );
@@ -159,7 +153,6 @@ export class AudioRecordingRepository {
    * Mark audio recordings as uploaded
    */
   async markAsUploaded(ids: string[]): Promise<void> {
-    const database = getDatabase();
     const audioRecordingsCollection = database.get<AudioRecording>(
       'audio_recordings',
     );
@@ -185,7 +178,6 @@ export class AudioRecordingRepository {
    * Delete audio recording by ID
    */
   async delete(id: string): Promise<void> {
-    const database = getDatabase();
     const audioRecordingsCollection = database.get<AudioRecording>(
       'audio_recordings',
     );
@@ -201,7 +193,6 @@ export class AudioRecordingRepository {
    * Delete all audio recordings for a session
    */
   async deleteBySession(sessionId: string): Promise<void> {
-    const database = getDatabase();
     const audioRecordingsCollection = database.get<AudioRecording>(
       'audio_recordings',
     );
@@ -222,7 +213,6 @@ export class AudioRecordingRepository {
    * Get total count of audio recordings
    */
   async count(): Promise<number> {
-    const database = getDatabase();
     const audioRecordingsCollection = database.get<AudioRecording>(
       'audio_recordings',
     );
@@ -234,7 +224,6 @@ export class AudioRecordingRepository {
    * Get count of audio recordings by session
    */
   async countBySession(sessionId: string): Promise<number> {
-    const database = getDatabase();
     const audioRecordingsCollection = database.get<AudioRecording>(
       'audio_recordings',
     );

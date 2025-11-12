@@ -4,7 +4,7 @@
  */
 
 import {useEffect, useRef, useState, useCallback} from 'react';
-import type {SensorType, SensorData} from '@types/sensor.types';
+import type {SensorType, SensorData} from '@app-types/sensor.types';
 import {getSensorManager} from '@services/sensors';
 
 export interface UseSensorOptions {

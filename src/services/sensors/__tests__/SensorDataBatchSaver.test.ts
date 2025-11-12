@@ -2,7 +2,7 @@
  * SensorDataBatchSaver test suite
  */
 
-import {SensorType, type SensorData} from '@types/sensor.types';
+import {SensorType, type SensorData} from '@app-types/sensor.types';
 import {SensorDataBatchSaver} from '../SensorDataBatchSaver';
 
 // Helper to create mock sensor data

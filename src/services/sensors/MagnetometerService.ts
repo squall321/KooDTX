@@ -5,7 +5,7 @@
 
 import {magnetometer, setUpdateIntervalForType, SensorTypes} from 'react-native-sensors';
 import type {Subscription} from 'rxjs';
-import {SensorType, type MagnetometerData} from '@types/sensor.types';
+import {SensorType, type MagnetometerData} from '@app-types/sensor.types';
 import {SensorService, type SensorDataCallback, type SensorErrorCallback} from './SensorService';
 
 export class MagnetometerService extends SensorService<MagnetometerData> {

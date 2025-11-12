@@ -3,7 +3,7 @@
  * Manages buffering and batching of sensor data
  */
 
-import type {SensorData, SensorType} from '@types/sensor.types';
+import type {SensorData, SensorType} from '@app-types/sensor.types';
 
 export interface BufferConfig {
   maxSize?: number;

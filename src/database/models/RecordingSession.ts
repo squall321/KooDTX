@@ -5,10 +5,10 @@
 
 import {Model} from '@nozbe/watermelondb';
 import {field, readonly, date, json} from '@nozbe/watermelondb/decorators';
-import type {SensorType} from '@types/sensor.types';
+import type {SensorType} from '@app-types/sensor.types';
 
 export class RecordingSession extends Model {
-  static table = 'recording_sessions';
+  static override table = 'recording_sessions';
 
   @field('session_id') sessionId!: string;
   @field('start_time') startTime!: number;

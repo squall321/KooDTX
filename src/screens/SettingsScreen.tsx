@@ -17,7 +17,6 @@ import {
   Button,
   Switch,
   Divider,
-  SegmentedButtons,
 } from 'react-native-paper';
 import {getSettingsManager} from '@services/config';
 import type {ApiSettings, SyncSettings} from '@services/config';

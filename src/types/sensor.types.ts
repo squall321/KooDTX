@@ -2,7 +2,7 @@
  * Sensor data types for KooDTX
  */
 
-import type {SyncableRecord} from './common.types';
+import type {SyncStatus} from './common.types';
 
 /**
  * Sensor type enum
@@ -18,10 +18,17 @@ export enum SensorType {
 /**
  * Base sensor data interface
  */
-export interface BaseSensorData extends SyncableRecord {
+export interface BaseSensorData {
+  id?: string;
   sensorType: SensorType;
   timestamp: number;
   sessionId: string;
+  isUploaded?: boolean;
+  createdAt?: number;
+  updatedAt?: number;
+  syncStatus?: SyncStatus;
+  syncedAt?: number;
+  deviceId?: string;
 }
 
 /**

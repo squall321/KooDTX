@@ -4,7 +4,7 @@
  */
 
 import {Q} from '@nozbe/watermelondb';
-import type {SensorType} from '@types/sensor.types';
+import type {SensorType} from '@app-types/sensor.types';
 import {database, RecordingSession} from '../index';
 
 export interface CreateSessionData {

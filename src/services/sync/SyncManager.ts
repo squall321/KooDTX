@@ -295,7 +295,7 @@ export class SyncManager {
    * 세션 동기화
    */
   private async syncSessions(): Promise<void> {
-    const sessions = await this.sessionRepo.findNotUploaded();
+    const sessions = await this.sessionRepo.findUnuploaded();
     console.log(`[SyncManager] Found ${sessions.length} sessions to upload`);
 
     for (const session of sessions) {
@@ -307,7 +307,7 @@ export class SyncManager {
    * 센서 데이터 동기화
    */
   private async syncSensorData(): Promise<void> {
-    const allData = await this.dataRepo.findNotUploaded();
+    const allData = await this.dataRepo.findUnuploaded();
     console.log(`[SyncManager] Found ${allData.length} sensor data records to upload`);
 
     // 세션별로 그룹화
@@ -352,8 +352,8 @@ export class SyncManager {
    */
   public async getStatus(): Promise<SyncStatus> {
     const [sessions, sensorData, audioFiles] = await Promise.all([
-      this.sessionRepo.findNotUploaded(),
-      this.dataRepo.findNotUploaded(),
+      this.sessionRepo.findUnuploaded(),
+      this.dataRepo.findUnuploaded(),
       this.audioRepo.findNotUploaded(),
     ]);
 

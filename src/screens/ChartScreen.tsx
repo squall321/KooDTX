@@ -20,7 +20,7 @@ import {LineChart} from 'react-native-chart-kit';
 import type {NativeStackScreenProps} from '@react-navigation/native-stack';
 import type {SensorDataRecord} from '@database/models';
 import {getSensorDataRepository} from '@database/repositories';
-import {SensorType} from '@types/sensor.types';
+import {SensorType} from '@app-types/sensor.types';
 
 type HistoryStackParamList = {
   HistoryList: undefined;

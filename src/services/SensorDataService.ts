@@ -3,7 +3,7 @@
  * Integrates sensor data collection with database storage
  */
 
-import type {SensorType, SensorData} from '@types/sensor.types';
+import type {SensorType, SensorData} from '@app-types/sensor.types';
 import {SensorDataBuffer, SensorDataBatchSaver} from '@services/sensors';
 import {
   getSensorDataRepository,

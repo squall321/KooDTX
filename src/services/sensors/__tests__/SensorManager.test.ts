@@ -2,7 +2,7 @@
  * SensorManager test suite
  */
 
-import {SensorType} from '@types/sensor.types';
+import {SensorType} from '@app-types/sensor.types';
 import {
   SensorManager,
   getSensorManager,

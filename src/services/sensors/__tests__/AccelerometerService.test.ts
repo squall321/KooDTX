@@ -20,7 +20,7 @@ jest.mock('react-native-sensors', () => ({
   },
 }));
 
-import {SensorType} from '@types/sensor.types';
+import {SensorType} from '@app-types/sensor.types';
 import {AccelerometerService} from '../AccelerometerService';
 
 describe('AccelerometerService', () => {

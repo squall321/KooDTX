@@ -3,7 +3,7 @@
  * Handles batch saving of sensor data
  */
 
-import type {SensorData, SensorType} from '@types/sensor.types';
+import type {SensorData, SensorType} from '@app-types/sensor.types';
 
 export interface BatchSaveResult {
   success: boolean;

@@ -4,7 +4,7 @@
  */
 
 import {Q} from '@nozbe/watermelondb';
-import type {SensorType, SensorData} from '@types/sensor.types';
+import type {SensorType, SensorData} from '@app-types/sensor.types';
 import {database, SensorDataRecord} from '../index';
 
 export class SensorDataRepository {
@@ -37,7 +37,7 @@ export class SensorDataRepository {
           record.heading = data.heading;
         }
 
-        record.isUploaded = data.isUploaded;
+        record.isUploaded = data.isUploaded ?? false;
       });
     });
   }
@@ -71,7 +71,7 @@ export class SensorDataRepository {
               record.heading = data.heading;
             }
 
-            record.isUploaded = data.isUploaded;
+            record.isUploaded = data.isUploaded ?? false;
           }),
         ),
       );

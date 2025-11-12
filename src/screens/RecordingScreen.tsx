@@ -17,7 +17,7 @@ import {
   ActivityIndicator,
   Banner,
 } from 'react-native-paper';
-import {SensorType} from '@types/sensor.types';
+import {SensorType} from '@app-types/sensor.types';
 import {useSensorCollectionWithDB, usePermissions, useAudioRecording} from '@hooks';
 import {getRecordingSessionRepository} from '@database/repositories';
 import {generateSessionId} from '@utils';

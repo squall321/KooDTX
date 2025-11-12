@@ -2,7 +2,7 @@
  * SensorDataBuffer test suite
  */
 
-import {SensorType, type SensorData} from '@types/sensor.types';
+import {SensorType, type SensorData} from '@app-types/sensor.types';
 import {SensorDataBuffer} from '../SensorDataBuffer';
 
 // Helper to create mock sensor data

@@ -5,10 +5,10 @@
 
 import {Model} from '@nozbe/watermelondb';
 import {field, readonly, date} from '@nozbe/watermelondb/decorators';
-import type {SensorType} from '@types/sensor.types';
+import type {SensorType} from '@app-types/sensor.types';
 
 export class SensorDataRecord extends Model {
-  static table = 'sensor_data';
+  static override table = 'sensor_data';
 
   @field('sensor_type') sensorType!: SensorType;
   @field('session_id') sessionId!: string;
