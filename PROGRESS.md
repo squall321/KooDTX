@@ -22,9 +22,9 @@
 
 ## Phase 진행 현황
 
-### ✅ 완료된 Phase: 11/300
+### ✅ 완료된 Phase: 12/300
 
-### 🔄 진행 중: Phase 12
+### 🔄 진행 중: Phase 13
 
 ### ⏳ 대기 중: Phase 11-300
 
@@ -1125,6 +1125,199 @@ Time:        6.032 s
 
 ## Phase 10: 유틸리티 라이브러리 설치 ✅
 ## Phase 11: React Native 센서 라이브러리 설치 ✅
+## Phase 12: 센서 데이터 수집 및 버퍼링 시스템 ✅
+
+**완료 시간**: 2025-11-12 05:00  
+**소요 시간**: 1.0시간
+
+### 주요 성과
+
+**1. React Hooks 구현** (~400줄)
+
+**useSensor Hook** (183줄)
+```typescript
+export function useSensor(
+  sensorType: SensorType,
+  sessionId: string | null,
+  options: UseSensorOptions = {},
+): UseSensorResult
+```
+
+**주요 기능**:
+- 개별 센서 제어
+- 센서 가용성 자동 확인
+- 최신 센서 데이터 추적
+- 에러 처리
+- 자동 시작/중지 (enabled 옵션)
+- 컴포넌트 언마운트 시 자동 정리
+
+**useSensorCollection Hook** (213줄)
+```typescript
+export function useSensorCollection(
+  sessionId: string | null,
+  options: UseSensorCollectionOptions = {},
+): UseSensorCollectionResult
+```
+
+**주요 기능**:
+- 여러 센서 동시 관리
+- 센서별 설정 (sampleRate, enabled)
+- 데이터 버퍼링 (configurable buffer size)
+- 배치 콜백 (bufferSize, batchInterval)
+- 실행 중인 센서 추적
+- 버퍼 플러시 및 클리어
+
+**2. 센서 데이터 버퍼링 시스템**
+
+**SensorDataBuffer** (265줄)
+```typescript
+export class SensorDataBuffer {
+  add(data: SensorData): void;
+  addBatch(data: SensorData[]): void;
+  async flush(): Promise<SensorData[]>;
+  clear(): void;
+  start(): void;
+  async stop(): Promise<void>;
+}
+```
+
+**주요 기능**:
+- 메모리 기반 데이터 버퍼링
+- 자동 플러시 (버퍼 크기 초과 시)
+- 타이머 기반 플러시 (설정 간격)
+- 센서 타입별 필터링
+- 시간 범위 필터링
+- 통계 추적 (totalReceived, totalFlushed, flushCount)
+- 버퍼 상태 관리
+
+**3. 배치 저장 시스템**
+
+**SensorDataBatchSaver** (235줄)
+```typescript
+export class SensorDataBatchSaver {
+  async saveBatch(batch: SensorData[]): Promise<BatchSaveResult>;
+  async retryFailedBatches(): Promise<BatchSaveResult>;
+  getFailedBatchesCount(): number;
+  clearFailedBatches(): void;
+}
+```
+
+**주요 기능**:
+- 배치 데이터 저장
+- 실패 재시도 로직 (exponential backoff)
+- 실패한 배치 큐 관리
+- 최대 재시도 횟수 설정
+- 통계 추적 (totalBatches, totalSaved, totalFailed)
+- 정적 헬퍼 메서드:
+  - groupBySensorType: 센서 타입별 그룹화
+  - sortByTimestamp: 타임스탬프 정렬
+  - filterByTimeRange: 시간 범위 필터
+
+**4. 테스트 작성 및 검증** (35개 테스트)
+
+**SensorDataBuffer.test.ts** (22개 테스트)
+- 초기화 및 설정
+- 데이터 추가 (단일/배치)
+- 플러시 동작
+- 자동 플러시
+- 통계 추적
+- 필터링 (센서 타입, 시간 범위)
+- 설정 관리
+- 시작/중지
+
+**SensorDataBatchSaver.test.ts** (13개 테스트)
+- 배치 저장
+- 통계 추적
+- 실패한 배치 관리
+- 재시도 로직 (성공/실패 케이스)
+- 정적 메서드
+- 콜백 설정
+
+### 테스트 결과
+```
+✅ 총 149개 테스트 통과
+  - 기존 114개 테스트 (Phase 1-11)
+  - 신규 35개 테스트 (Phase 12)
+
+Test Suites: 12 passed, 12 total
+Tests:       149 passed, 149 total
+Time:        8.344 s
+```
+
+### 파일 구조
+```
+src/
+├── hooks/
+│   ├── useSensor.ts                  # 개별 센서 Hook
+│   ├── useSensorCollection.ts        # 다중 센서 Hook
+│   └── index.ts                      # Export 모듈
+└── services/sensors/
+    ├── SensorDataBuffer.ts           # 버퍼링 시스템
+    ├── SensorDataBatchSaver.ts       # 배치 저장 시스템
+    ├── index.ts                      # 업데이트된 Export
+    └── __tests__/
+        ├── SensorDataBuffer.test.ts
+        └── SensorDataBatchSaver.test.ts
+```
+
+### 아키텍처 패턴
+
+**데이터 흐름**:
+```
+센서 → SensorService → useSensor/useSensorCollection 
+  → SensorDataBuffer → onBatch 콜백 
+  → SensorDataBatchSaver → 저장소 (DB/File)
+```
+
+**주요 특징**:
+- **성능 최적화**: 버퍼링으로 I/O 최소화
+- **신뢰성**: 실패 재시도 및 큐 관리
+- **유연성**: 설정 가능한 버퍼 크기, 플러시 간격
+- **관찰 가능성**: 상세한 통계 및 상태 추적
+- **타입 안전성**: TypeScript 완전 지원
+
+### 사용 예시
+
+**개별 센서 사용**:
+```typescript
+const {isRunning, latestData, start, stop} = useSensor(
+  SensorType.ACCELEROMETER,
+  sessionId,
+  {
+    enabled: true,
+    sampleRate: 100,
+    onData: (data) => console.log(data),
+  }
+);
+```
+
+**다중 센서 사용**:
+```typescript
+const {isRunning, runningSensors, dataBuffer} = useSensorCollection(
+  sessionId,
+  {
+    enabled: true,
+    sensors: {
+      [SensorType.ACCELEROMETER]: {enabled: true, sampleRate: 100},
+      [SensorType.GYROSCOPE]: {enabled: true, sampleRate: 100},
+    },
+    bufferSize: 100,
+    batchInterval: 1000,
+    onBatch: async (batch) => {
+      await saver.saveBatch(batch);
+    },
+  }
+);
+```
+
+### 다음 단계 (Phase 13)
+- WatermelonDB 설치 및 설정
+- 센서 데이터 스키마 정의
+- 로컬 데이터베이스 모델 구현
+- 센서 데이터 CRUD 작업
+
+---
+
 
 **완료 시간**: 2025-11-12 04:00  
 **소요 시간**: 0.7시간
@@ -1458,9 +1651,9 @@ Time:        7.769 s
 
 ## 통계
 
-- **총 작업 시간**: 5.7시간
-- **완료율**: 3.7% (11/300)
-- **이번 주 목표 완료율**: 110% (11/10)
+- **총 작업 시간**: 6.7시간
+- **완료율**: 4.0% (12/300)
+- **이번 주 목표 완료율**: 120% (12/10)
 
 ---
 

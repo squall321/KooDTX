@@ -12,3 +12,13 @@ export {GPSService} from './GPSService';
 
 export {SensorManager, getSensorManager, resetSensorManager} from './SensorManager';
 export type {SensorManagerOptions, SensorAvailability} from './SensorManager';
+
+export {SensorDataBuffer} from './SensorDataBuffer';
+export type {BufferConfig, BufferStats} from './SensorDataBuffer';
+
+export {SensorDataBatchSaver} from './SensorDataBatchSaver';
+export type {
+  BatchSaveResult,
+  BatchSaverConfig,
+  BatchSaverStats,
+} from './SensorDataBatchSaver';
