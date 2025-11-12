@@ -5657,3 +5657,335 @@ npm run analyze
 - [ ] Lazy Loading 전략
 
 ---
+
+## Phase 28: Error Logging and Monitoring ✅
+
+**날짜**: 2025-11-12
+
+### 목표
+에러 로깅 및 모니터링 시스템 구축:
+- 통합 로깅 서비스
+- 전역 에러 핸들러
+- React Error Boundary
+- 크래시 리포팅 시스템
+
+### 구현 내용
+
+#### 1. Logger Service (로깅 서비스)
+
+**src/services/logging/Logger.ts** (300+ lines):
+- Singleton 패턴 로깅 서비스
+- 5단계 로그 레벨 (DEBUG, INFO, WARN, ERROR, FATAL)
+- 로컬 로그 저장 (메모리, 최대 1000개)
+- 콘솔 출력 (DEV 모드)
+- 원격 서버 전송 지원
+- 디바이스 정보 자동 수집
+- 사용자 ID 추적
+
+**주요 기능**:
+```typescript
+// 로그 레벨별 메서드
+logger.debug(message, context);
+logger.info(message, context);
+logger.warn(message, context);
+logger.error(message, error, context);
+logger.fatal(message, error, context);
+
+// 설정
+logger.configure({
+  enabled: true,
+  minLevel: LogLevel.INFO,
+  remoteLogging: true,
+  remoteUrl: 'https://api.example.com/logs',
+});
+
+// 조회
+logger.getLogs();
+logger.getErrorLogs();
+logger.getStats();
+```
+
+**로그 구조**:
+```typescript
+interface LogEntry {
+  id: string;
+  level: LogLevel;
+  message: string;
+  timestamp: number;
+  context?: Record<string, any>;
+  error?: Error;
+  userId?: string;
+  deviceInfo?: DeviceInfo;
+}
+```
+
+#### 2. Error Handler (에러 핸들러)
+
+**src/services/logging/ErrorHandler.ts** (180+ lines):
+- 전역 JavaScript 에러 포착
+- Promise rejection 포착
+- Console error 포착
+- 자동 로깅 및 카운팅
+- 치명적 에러 크래시 리포팅
+- 커스텀 에러 핸들러 지원
+
+**기능**:
+```typescript
+// 초기화
+errorHandler.initialize({
+  enableCrashReporting: true,
+  onError: (error, isFatal) => {
+    // 커스텀 처리
+  },
+});
+
+// 에러 정보
+errorHandler.getErrorCount();
+errorHandler.getLastError();
+errorHandler.resetErrorCount();
+```
+
+**포착하는 에러**:
+- JavaScript runtime errors (ErrorUtils)
+- Unhandled promise rejections
+- Console.error 호출
+- 치명적 에러 (isFatal)
+
+#### 3. Error Boundary (에러 경계)
+
+**src/components/ErrorBoundary.tsx** (150+ lines):
+- React 컴포넌트 에러 포착
+- 기본 에러 화면 제공
+- 커스텀 Fallback 지원
+- 에러 리셋 기능
+- DEV 모드 상세 정보 표시
+
+**사용법**:
+```typescript
+// 앱 레벨
+<ErrorBoundary>
+  <App />
+</ErrorBoundary>
+
+// 커스텀 Fallback
+<ErrorBoundary fallback={CustomFallback}>
+  <Screen />
+</ErrorBoundary>
+```
+
+**Fallback 화면**:
+- 사용자 친화적 메시지
+- 재시도 버튼
+- DEV 모드: 에러 상세 정보, 스택 트레이스
+- 스크롤 가능한 에러 컨테이너
+
+#### 4. Crash Reporter (크래시 리포터)
+
+**src/services/logging/CrashReporter.ts** (200+ lines):
+- 크래시 리포트 수집 및 저장
+- AsyncStorage 영구 저장 (최대 50개)
+- 앱 상태 추적 (active, background, inactive)
+- 크래시 통계
+- 원격 서버 전송 준비
+
+**기능**:
+```typescript
+// 초기화
+await crashReporter.initialize();
+
+// 크래시 리포트
+await crashReporter.reportCrash(error, context);
+
+// 조회
+crashReporter.getReports();
+crashReporter.getRecentReports(10);
+crashReporter.getStats();
+
+// 내보내기
+crashReporter.exportReports();
+```
+
+**CrashReport 구조**:
+```typescript
+interface CrashReport {
+  id: string;
+  timestamp: number;
+  error: {message, stack, name};
+  context?: Record<string, any>;
+  deviceInfo?: any;
+  userId?: string;
+  appState: 'active' | 'background' | 'inactive';
+  memoryUsage?: number;
+}
+```
+
+#### 5. 에러 처리 가이드
+
+**docs/ERROR_HANDLING.md** (400+ lines):
+완전한 에러 처리 가이드 문서:
+
+**주요 섹션**:
+1. Logger Service
+   - 기본 사용법, 설정, 로그 조회, 로그 레벨
+2. Error Handler
+   - 초기화, 기능, 에러 정보 조회
+3. Error Boundary
+   - 기본 사용, 커스텀 Fallback, 화면별 적용
+4. Crash Reporter
+   - 초기화, 크래시 리포트, 조회
+5. Best Practices
+   - 로그 레벨 사용, 컨텍스트 정보, 민감 정보 제외
+   - 에러 핸들링 패턴, Error Boundary 배치
+6. Integration
+   - App.tsx 통합, 서비스 통합
+   - Sentry, Firebase Crashlytics 연동 예시
+
+### 파일 구조
+
+```
+src/
+├── services/
+│   └── logging/
+│       ├── Logger.ts ✨ NEW (300+ lines)
+│       ├── ErrorHandler.ts ✨ NEW (180+ lines)
+│       ├── CrashReporter.ts ✨ NEW (200+ lines)
+│       └── index.ts ✨ NEW
+└── components/
+    └── ErrorBoundary.tsx ✨ NEW (150+ lines)
+
+docs/
+└── ERROR_HANDLING.md ✨ NEW (400+ lines)
+```
+
+### 기술적 세부사항
+
+**로깅 아키텍처**:
+```
+┌─────────────────────────────────────┐
+│ Application Code                    │
+├─────────────────────────────────────┤
+│ logger.info() / logger.error()      │
+└────────────┬────────────────────────┘
+             │
+      ┌──────┴──────┐
+      │   Logger    │
+      │  Service    │
+      └──────┬──────┘
+             │
+      ┌──────┴──────────┐
+      │                 │
+      ▼                 ▼
+┌──────────┐      ┌──────────┐
+│ Console  │      │ Remote   │
+│ Output   │      │ Server   │
+└──────────┘      └──────────┘
+```
+
+**에러 처리 흐름**:
+```
+┌─────────────────────────────────────┐
+│ Error Occurs                        │
+└────────────┬────────────────────────┘
+             │
+      ┌──────┴──────┐
+      │             │
+      ▼             ▼
+┌──────────┐  ┌──────────────┐
+│ Error    │  │ Error        │
+│ Boundary │  │ Handler      │
+│ (React)  │  │ (Global)     │
+└────┬─────┘  └──────┬───────┘
+     │               │
+     │         ┌─────┴─────┐
+     │         │  Logger   │
+     │         │  Service  │
+     │         └─────┬─────┘
+     │               │
+     └───────┬───────┘
+             ▼
+      ┌─────────────┐
+      │   Crash     │
+      │  Reporter   │
+      └─────────────┘
+```
+
+**로그 레벨 우선순위**:
+- DEBUG (0): 개발 전용
+- INFO (1): 일반 정보
+- WARN (2): 경고
+- ERROR (3): 에러
+- FATAL (4): 치명적 에러
+
+**저장 메커니즘**:
+- Logger: 메모리 (최대 1000개)
+- CrashReporter: AsyncStorage (최대 50개)
+- 로그 순환: 오래된 로그 자동 삭제
+
+### 사용 예시
+
+**1. 로깅**:
+```typescript
+import {logger} from '@services/logging';
+
+logger.info('User logged in', {userId: user.id});
+logger.error('API call failed', error, {endpoint: '/api/data'});
+```
+
+**2. 에러 핸들링**:
+```typescript
+// App.tsx
+errorHandler.initialize({
+  enableCrashReporting: true,
+  onError: (error, isFatal) => {
+    if (isFatal) {
+      crashReporter.reportCrash(error);
+    }
+  },
+});
+```
+
+**3. Error Boundary**:
+```typescript
+<ErrorBoundary>
+  <App />
+</ErrorBoundary>
+```
+
+**4. 크래시 리포팅**:
+```typescript
+try {
+  await dangerousOperation();
+} catch (error) {
+  await crashReporter.reportCrash(error as Error, {
+    operation: 'dangerousOperation',
+  });
+}
+```
+
+### 원격 서비스 연동 준비
+
+**Sentry 연동 준비**:
+```typescript
+logger.configure({
+  remoteUrl: 'SENTRY_DSN',
+  remoteLogging: true,
+});
+```
+
+**Firebase Crashlytics 연동 준비**:
+```typescript
+crashReporter.configure({
+  onCrash: async (report) => {
+    // Firebase로 전송
+  },
+});
+```
+
+### 다음 단계 (Optional)
+- [ ] Sentry SDK 통합
+- [ ] Firebase Crashlytics 통합
+- [ ] 로그 검색 및 필터링 UI
+- [ ] 성능 메트릭 수집
+- [ ] ANR (Application Not Responding) 감지
+
+---
