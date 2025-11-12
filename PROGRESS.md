@@ -6304,3 +6304,340 @@ chmod +x scripts/*.js
 **프로젝트 상태**: ✅ **프로덕션 준비 완료**  
 **Phase 1-29 완료**: 모든 개발 단계 완료  
 **배포 준비**: Android & iOS 빌드 및 배포 준비 완료
+
+---
+
+## Phase 30: 보행 감지 센서 (Step Detector)
+
+**완료 날짜**: 2025-11-12
+
+### 구현 내용
+
+#### 1. 타입 정의 및 데이터 구조
+**파일**: `src/types/sensor.types.ts`
+- `SensorType.STEP_DETECTOR` 추가
+- `StepActivityType` enum 정의 (WALKING, RUNNING, UNKNOWN)
+- `StepDetectorData` 인터페이스 정의:
+  - `elapsedRealtimeNanos`: 부팅 후 경과 시간 (나노초)
+  - `utcEpochMs`: UTC 타임스탬프 (밀리초)
+  - `activityType`: 활동 타입 (걷기/뛰기/알 수 없음)
+  - `confidence`: 분류 신뢰도 (0-1)
+
+#### 2. StepDetectorService 구현
+**파일**: `src/services/sensors/StepDetectorService.ts` (400+ 라인)
+
+**핵심 기능**:
+- 가속도계 데이터 기반 실시간 보행 감지
+- Peak Detection 알고리즘으로 걸음 감지
+- 걷기/뛰기 자동 분류
+- 신뢰도 계산 (표준편차 기반)
+
+**설정 가능한 파라미터**:
+```typescript
+interface StepDetectionConfig {
+  minMagnitude: number;           // 최소 가속도 크기 (기본: 1.5 m/s²)
+  maxTimeBetweenSteps: number;    // 최대 걸음 간격 (기본: 2000ms)
+  minTimeBetweenSteps: number;    // 최소 걸음 간격 (기본: 200ms)
+  runningThreshold: number;       // 뛰기 임계값 (기본: 2.5 m/s²)
+  activityWindowSize: number;     // 분류 윈도우 크기 (기본: 5걸음)
+}
+```
+
+**알고리즘 세부사항**:
+
+1. **가속도 전처리**:
+   ```typescript
+   magnitude = sqrt(x² + y² + z²)
+   magnitudeWithoutGravity = |magnitude - 9.81|
+   ```
+
+2. **Peak Detection**:
+   - 5개 샘플 윈도우에서 로컬 최대값 찾기
+   - 최소 크기 및 시간 간격 검증
+   - Debouncing으로 중복 감지 방지
+
+3. **활동 분류**:
+   - 최근 N걸음의 평균 가속도 계산
+   - 임계값 기반 걷기/뛰기 분류
+   - 표준편차로 신뢰도 계산
+
+4. **신뢰도 계산**:
+   ```typescript
+   confidence = max(0, min(1, 1 - (stdDev / 2.0)))
+   ```
+
+**사용 예시**:
+```typescript
+const stepDetector = new StepDetectorService();
+
+// 설정 커스터마이징
+stepDetector.configure({
+  minMagnitude: 2.0,
+  runningThreshold: 3.0,
+});
+
+// 활동 감지 활성화
+stepDetector.setActivityDetection(true);
+
+// 시작
+await stepDetector.start(sessionId, (stepData) => {
+  console.log('Step detected:', stepData.activityType);
+  console.log('Confidence:', stepData.confidence);
+});
+
+// 통계 확인
+const stats = stepDetector.getStatistics();
+console.log('Average magnitude:', stats.averageMagnitude);
+console.log('Current activity:', stats.activityType);
+```
+
+#### 3. 데이터베이스 스키마 업데이트
+
+**스키마 버전**: 1 → 2
+
+**새 테이블**: `step_events`
+```typescript
+tableSchema({
+  name: 'step_events',
+  columns: [
+    {name: 'session_id', type: 'string', isIndexed: true},
+    {name: 'timestamp', type: 'number', isIndexed: true},
+    {name: 'elapsed_realtime_nanos', type: 'number'},
+    {name: 'utc_epoch_ms', type: 'number'},
+    {name: 'activity_type', type: 'string', isIndexed: true},
+    {name: 'confidence', type: 'number', isOptional: true},
+    {name: 'is_uploaded', type: 'boolean'},
+    {name: 'created_at', type: 'number'},
+    {name: 'updated_at', type: 'number'},
+  ],
+})
+```
+
+**모델**: `src/database/models/StepEvent.ts`
+- WatermelonDB Model 클래스
+- Field decorators 사용
+- 자동 타임스탬프 관리
+
+#### 4. StepEventRepository 구현
+**파일**: `src/database/repositories/StepEventRepository.ts` (240+ 라인)
+
+**주요 메서드**:
+```typescript
+// CRUD Operations
+create(data: StepDetectorData): Promise<StepEvent>
+createBatch(dataArray: StepDetectorData[]): Promise<StepEvent[]>
+
+// Query Methods
+findBySession(sessionId: string): Promise<StepEvent[]>
+findByActivityType(activityType: StepActivityType): Promise<StepEvent[]>
+findBySessionAndActivity(sessionId, activityType): Promise<StepEvent[]>
+findByTimeRange(startTime, endTime): Promise<StepEvent[]>
+
+// Statistics
+countStepsBySession(sessionId: string): Promise<number>
+countStepsBySessionAndActivity(sessionId, activityType): Promise<number>
+getSessionStatistics(sessionId: string): Promise<Statistics>
+
+// Latest Data
+getLatest(): Promise<StepEvent | null>
+getLatestBySession(sessionId: string): Promise<StepEvent | null>
+
+// Sync Operations
+markAsUploaded(stepEventIds: string[]): Promise<void>
+getPendingUpload(): Promise<StepEvent[]>
+
+// Delete Operations
+deleteBySession(sessionId: string): Promise<void>
+deleteAll(): Promise<void>
+```
+
+**Statistics 타입**:
+```typescript
+interface Statistics {
+  totalSteps: number;
+  walkingSteps: number;
+  runningSteps: number;
+  unknownSteps: number;
+  averageConfidence: number;
+}
+```
+
+#### 5. UI 컴포넌트 - StepCounter
+**파일**: `src/components/StepCounter.tsx` (200+ 라인)
+
+**주요 기능**:
+- 실시간 걸음 수 표시
+- 현재 활동 상태 표시 (아이콘 + 색상)
+- 걷기/뛰기 세부 분류 통계
+- 신뢰도 퍼센트 표시
+- 부드러운 애니메이션 효과
+
+**Props**:
+```typescript
+interface StepCounterProps {
+  totalSteps: number;         // 전체 걸음 수
+  walkingSteps: number;       // 걷기 걸음 수
+  runningSteps: number;       // 뛰기 걸음 수
+  currentActivity: StepActivityType;  // 현재 활동
+  confidence?: number;        // 신뢰도 (0-1)
+  showDetails?: boolean;      // 세부 정보 표시 여부
+}
+```
+
+**디자인 특징**:
+- Material Design 스타일
+- 활동별 색상 구분:
+  - 걷기: 녹색 (#4CAF50)
+  - 뛰기: 주황-빨강 (#FF5722)
+  - 알 수 없음: 회색 (#9E9E9E)
+- 이모지 아이콘 사용 (🚶 걷기, 🏃 뛰기, ❓ 알 수 없음)
+- 그림자 효과와 반응형 레이아웃
+
+**사용 예시**:
+```typescript
+<StepCounter
+  totalSteps={1234}
+  walkingSteps={1000}
+  runningSteps={234}
+  currentActivity={StepActivityType.WALKING}
+  confidence={0.87}
+  showDetails={true}
+/>
+```
+
+### 기술적 세부사항
+
+#### Peak Detection 알고리즘
+1. **데이터 수집**: 50Hz 샘플링 (20ms 간격)
+2. **전처리**: 중력 제거 (9.81 m/s²)
+3. **윈도우 검사**: 5샘플 전후로 로컬 최대값 확인
+4. **시간 검증**: 
+   - 최소 간격: 200ms (초당 최대 5걸음)
+   - 최대 간격: 2000ms (연속성 확인)
+5. **크기 검증**: 최소 1.5 m/s² 가속도
+
+#### 활동 분류 로직
+```
+if (averageMagnitude >= runningThreshold):
+  activity = RUNNING
+else:
+  activity = WALKING
+
+confidence = 1 - (standardDeviation / 2.0)
+```
+
+#### 성능 최적화
+- 순환 버퍼로 메모리 사용 최소화 (1초 데이터만 유지)
+- 배치 데이터베이스 쓰기 지원
+- 인덱스를 통한 빠른 쿼리 (session_id, timestamp, activity_type)
+
+### 통합 가이드
+
+#### 1. 서비스 초기화
+```typescript
+import {StepDetectorService} from '@services/sensors';
+
+const stepDetector = new StepDetectorService();
+const isAvailable = await stepDetector.isAvailable();
+
+if (isAvailable) {
+  await stepDetector.start(sessionId, handleStepData);
+}
+```
+
+#### 2. 데이터 저장
+```typescript
+import {getStepEventRepository} from '@database/repositories';
+
+const stepRepo = getStepEventRepository();
+
+// 단일 이벤트
+await stepRepo.create(stepData);
+
+// 배치 저장
+await stepRepo.createBatch(stepDataArray);
+```
+
+#### 3. 통계 조회
+```typescript
+const stats = await stepRepo.getSessionStatistics(sessionId);
+console.log(`총 ${stats.totalSteps}걸음`);
+console.log(`걷기: ${stats.walkingSteps}, 뛰기: ${stats.runningSteps}`);
+console.log(`평균 신뢰도: ${(stats.averageConfidence * 100).toFixed(1)}%`);
+```
+
+### 파일 구조
+```
+src/
+├── types/
+│   └── sensor.types.ts              # StepDetectorData, StepActivityType 추가
+├── services/
+│   └── sensors/
+│       └── StepDetectorService.ts   # 보행 감지 서비스 (400+ 라인)
+├── database/
+│   ├── schema.ts                    # step_events 테이블 추가 (v2)
+│   ├── index.ts                     # StepEvent 모델 등록
+│   ├── models/
+│   │   ├── StepEvent.ts            # StepEvent 모델
+│   │   └── index.ts                # Export 추가
+│   └── repositories/
+│       ├── StepEventRepository.ts   # StepEvent Repository (240+ 라인)
+│       └── index.ts                # Export 추가
+└── components/
+    └── StepCounter.tsx              # 걸음 수 UI 컴포넌트 (200+ 라인)
+```
+
+### 테스트 시나리오
+
+1. **정확도 테스트**:
+   - 실제 걸음 수와 감지된 걸음 수 비교
+   - 다양한 걸음 속도에서 테스트
+   - 계단 오르기/내리기 구분
+
+2. **활동 분류 테스트**:
+   - 천천히 걷기 → WALKING
+   - 빠르게 걷기 → WALKING (높은 magnitude)
+   - 조깅/달리기 → RUNNING
+   - 정지 → 감지 없음
+
+3. **성능 테스트**:
+   - 배터리 사용량 모니터링
+   - CPU 사용률 확인
+   - 메모리 누수 검사
+
+### 알려진 제한사항
+
+1. **센서 의존성**: 
+   - 가속도계의 정확도에 의존
+   - 저가 디바이스에서 노이즈 증가 가능
+
+2. **활동 분류**:
+   - 단순 임계값 기반 분류
+   - 복잡한 활동 (계단, 자전거)은 정확도 낮음
+
+3. **오탐지 가능성**:
+   - 차량 이동 중 진동
+   - 손 흔들기 등의 움직임
+
+### 향후 개선 방향
+
+1. **ML 기반 분류**:
+   - TensorFlow Lite 통합
+   - 더 정교한 활동 분류 (계단, 자전거 등)
+   - 개인화된 보행 패턴 학습
+
+2. **추가 기능**:
+   - 보폭 추정
+   - 칼로리 소모 계산
+   - 일일/주간/월간 통계
+   - 목표 설정 및 알림
+
+3. **최적화**:
+   - 적응형 샘플링 레이트
+   - 배터리 최적화 모드
+   - 백그라운드 처리 개선
+
+---
+
+**Phase 30 완료**: ✅ 보행 감지 센서 시스템 구현 완료  
+**다음 단계**: Phase 31 - 보행 계수 센서 (Step Counter with cumulative count)

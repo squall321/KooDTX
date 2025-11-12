@@ -12,9 +12,10 @@ KooDTX는 React Native로 구현한 센서 데이터 수집 및 동기화 애플
 
 ### 📱 센서 데이터 수집
 - **가속도계 (Accelerometer)**: X, Y, Z축 가속도 측정
-- **자이로스코프 (Gyroscope)**: X, Y, Z축 회전 속도 측정  
+- **자이로스코프 (Gyroscope)**: X, Y, Z축 회전 속도 측정
 - **자기계 (Magnetometer)**: X, Y, Z축 자기장 측정
 - **GPS**: 위도, 경도, 고도, 정확도, 속도, 방향 측정
+- **보행 감지 (Step Detector)**: 실시간 걸음 감지 및 걷기/뛰기 분류
 - **오디오**: 44.1kHz 스테레오 AAC 녹음
 
 ### 💾 로컬 우선 아키텍처 (Local-First)

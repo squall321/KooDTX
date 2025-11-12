@@ -13,6 +13,7 @@ export enum SensorType {
   MAGNETOMETER = 'magnetometer',
   GPS = 'gps',
   AUDIO = 'audio',
+  STEP_DETECTOR = 'step_detector',
 }
 
 /**
@@ -90,6 +91,26 @@ export interface AudioData extends BaseSensorData {
 }
 
 /**
+ * Step activity type
+ */
+export enum StepActivityType {
+  WALKING = 'walking',
+  RUNNING = 'running',
+  UNKNOWN = 'unknown',
+}
+
+/**
+ * Step detector data (event-based step detection)
+ */
+export interface StepDetectorData extends BaseSensorData {
+  sensorType: SensorType.STEP_DETECTOR;
+  elapsedRealtimeNanos: number; // Elapsed time in nanoseconds since boot
+  utcEpochMs: number; // UTC timestamp in milliseconds
+  activityType: StepActivityType; // Walking or running classification
+  confidence?: number; // Confidence level (0-1) for activity classification
+}
+
+/**
  * Union type for all sensor data
  */
 export type SensorData =
@@ -97,7 +118,8 @@ export type SensorData =
   | GyroscopeData
   | MagnetometerData
   | GPSData
-  | AudioData;
+  | AudioData
+  | StepDetectorData;
 
 /**
  * Sensor recording session
@@ -134,5 +156,8 @@ export interface SensorSettings {
     format: 'wav' | 'aac' | 'mp3';
     bitrate: number;
     channels: 1 | 2;
+  };
+  [SensorType.STEP_DETECTOR]: SensorConfig & {
+    activityDetection: boolean; // Enable walking/running classification
   };
 }
