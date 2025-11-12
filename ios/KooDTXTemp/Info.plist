@@ -33,7 +33,13 @@
 		<true/>
 	</dict>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string></string>
+	<string>KooDTX needs access to your location to record GPS data during data collection sessions.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>KooDTX needs access to your location to record GPS data during data collection sessions.</string>
+	<key>NSMotionUsageDescription</key>
+	<string>KooDTX needs access to motion sensors to collect accelerometer, gyroscope, and magnetometer data.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>KooDTX needs access to your microphone to record audio during data collection sessions.</string>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIRequiredDeviceCapabilities</key>

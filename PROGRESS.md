@@ -22,9 +22,9 @@
 
 ## Phase 진행 현황
 
-### ✅ 완료된 Phase: 10/300
+### ✅ 완료된 Phase: 11/300
 
-### 🔄 진행 중: Phase 11
+### 🔄 진행 중: Phase 12
 
 ### ⏳ 대기 중: Phase 11-300
 
@@ -1124,6 +1124,138 @@ Time:        6.032 s
 ---
 
 ## Phase 10: 유틸리티 라이브러리 설치 ✅
+## Phase 11: React Native 센서 라이브러리 설치 ✅
+
+**완료 시간**: 2025-11-12 04:00  
+**소요 시간**: 0.7시간
+
+### 주요 성과
+
+**1. 센서 라이브러리 설치**
+```bash
+npm install react-native-sensors @react-native-community/geolocation
+```
+- react-native-sensors: 가속도계, 자이로스코프, 자기계 지원
+- @react-native-community/geolocation: GPS 위치 정보
+
+**2. 플랫폼 권한 설정**
+
+**Android (AndroidManifest.xml)**
+```xml
+<!-- Sensor permissions -->
+<uses-permission android:name="android.permission.HIGH_SAMPLING_RATE_SENSORS" />
+
+<!-- Location permissions -->
+<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+<uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+
+<!-- Audio recording permission -->
+<uses-permission android:name="android.permission.RECORD_AUDIO" />
+<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+```
+
+**iOS (Info.plist)**
+```xml
+<key>NSLocationWhenInUseUsageDescription</key>
+<string>KooDTX needs access to your location to record GPS data during data collection sessions.</string>
+<key>NSMotionUsageDescription</key>
+<string>KooDTX needs access to motion sensors to collect accelerometer, gyroscope, and magnetometer data.</string>
+<key>NSMicrophoneUsageDescription</key>
+<string>KooDTX needs access to your microphone to record audio during data collection sessions.</string>
+```
+
+**3. 센서 서비스 아키텍처 구현** (~1,050줄)
+
+**SensorService.ts** (93줄) - 추상 기본 클래스
+```typescript
+export abstract class SensorService<T extends SensorData = SensorData> {
+  abstract start(sessionId: string, onData: SensorDataCallback<T>, onError?: SensorErrorCallback): Promise<void>;
+  abstract stop(): Promise<void>;
+  abstract isAvailable(): Promise<boolean>;
+  setSampleRate(rate: number): void;
+  getSampleRate(): number;
+}
+```
+
+**개별 센서 서비스 구현**:
+- **AccelerometerService.ts** (107줄): 3축 가속도계 데이터 수집
+- **GyroscopeService.ts** (105줄): 3축 자이로스코프 데이터 수집
+- **MagnetometerService.ts** (105줄): 3축 자기계 데이터 수집
+- **GPSService.ts** (108줄): GPS 위치 정보 수집
+
+**SensorManager.ts** (245줄) - 통합 센서 관리
+```typescript
+export class SensorManager {
+  async checkAvailability(): Promise<SensorAvailability>;
+  async startCollection(sessionId: string, enabledSensors: SensorType[], options?: SensorManagerOptions): Promise<void>;
+  async stopCollection(): Promise<void>;
+  getRunningSensors(): SensorType[];
+  setSampleRate(sensorType: SensorType, rate: number): void;
+}
+```
+
+**주요 기능**:
+- 싱글톤 패턴으로 전역 접근
+- 여러 센서 동시 제어
+- 센서별 샘플링 레이트 설정
+- 통합 데이터 콜백
+- 센서 가용성 확인
+
+**4. 테스트 작성 및 검증** (19개 테스트)
+- **SensorManager.test.ts**: 10개 테스트
+  - 초기화 및 서비스 접근
+  - 샘플링 레이트 관리
+  - 싱글톤 패턴 검증
+  - 리소스 정리
+- **AccelerometerService.test.ts**: 9개 테스트
+  - 서비스 초기화
+  - 샘플링 레이트 설정/검증
+  - 시작/중지 동작
+  - 리소스 정리
+
+**5. Jest 설정 개선**
+- uuid 패키지 ESM 지원 추가
+```javascript
+transformIgnorePatterns: [
+  'node_modules/(?!(react-native|...|uuid)/)',
+],
+```
+
+### 테스트 결과
+```
+✅ 총 114개 테스트 통과
+  - 기존 95개 테스트 (Phase 1-10)
+  - 신규 19개 테스트 (Phase 11 센서 서비스)
+
+Test Suites: 10 passed, 10 total
+Tests:       114 passed, 114 total
+Time:        20.516 s
+```
+
+### 파일 구조
+```
+src/services/sensors/
+├── SensorService.ts          # 추상 기본 클래스
+├── AccelerometerService.ts   # 가속도계 서비스
+├── GyroscopeService.ts       # 자이로스코프 서비스
+├── MagnetometerService.ts    # 자기계 서비스
+├── GPSService.ts             # GPS 서비스
+├── SensorManager.ts          # 센서 매니저
+├── index.ts                  # Export 모듈
+└── __tests__/
+    ├── SensorManager.test.ts
+    └── AccelerometerService.test.ts
+```
+
+### 다음 단계 (Phase 12)
+- 센서 데이터 실시간 수집 구현
+- 센서 Hook 작성 (useSensor, useSensorData)
+- 녹음 세션과 센서 연동
+- 센서 데이터 버퍼링 및 배치 저장
+
+---
+
 
 **상태**: ✅ 완료
 **시작일**: 2025-11-12
@@ -1326,9 +1458,9 @@ Time:        7.769 s
 
 ## 통계
 
-- **총 작업 시간**: 5.0시간
-- **완료율**: 3.3% (10/300)
-- **이번 주 목표 완료율**: 100% (10/10)
+- **총 작업 시간**: 5.7시간
+- **완료율**: 3.7% (11/300)
+- **이번 주 목표 완료율**: 110% (11/10)
 
 ---
 

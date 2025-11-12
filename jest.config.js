@@ -47,7 +47,7 @@ module.exports = {
 
   // Transform configuration
   transformIgnorePatterns: [
-    'node_modules/(?!(react-native|@react-native|@react-navigation|react-native-.*|@react-native-community)/)',
+    'node_modules/(?!(react-native|@react-native|@react-navigation|react-native-.*|@react-native-community|uuid)/)',
   ],
 
   // Module file extensions
