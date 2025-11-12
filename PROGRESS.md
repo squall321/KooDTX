@@ -22,11 +22,11 @@
 
 ## Phase 진행 현황
 
-### ✅ 완료된 Phase: 5/300
+### ✅ 완료된 Phase: 6/300
 
-### 🔄 진행 중: Phase 6
+### 🔄 진행 중: Phase 7
 
-### ⏳ 대기 중: Phase 7-300
+### ⏳ 대기 중: Phase 8-300
 
 ---
 
@@ -527,6 +527,79 @@ extends: [
 
 ---
 
+## Phase 6: 프로젝트 폴더 구조 생성 ✅
+
+**상태**: ✅ 완료
+**시작일**: 2025-11-12
+**완료일**: 2025-11-12
+**실제 소요**: 0.5시간
+**우선순위**: critical
+
+### 작업 내용
+
+- [x] src/ 디렉토리 구조 생성 (13개 디렉토리)
+- [x] 각 디렉토리에 README.md 추가 (12개)
+- [x] 프로젝트 구조 문서 작성
+- [x] Path aliases와 매핑 확인
+
+### 진행 로그
+
+**2025-11-12 00:50**
+
+- src/ 디렉토리 구조 생성 시작
+- 13개 주요 디렉토리 생성: components, screens, navigation, services, utils, hooks, store, assets, config, constants, models, database, types
+
+**2025-11-12 00:55**
+
+- 각 디렉토리에 README.md 파일 생성 (12개)
+- 디렉토리별 목적, 구조, 가이드라인, 예제 코드 작성
+- 총 문서 분량: 약 1,500줄
+
+**2025-11-12 01:00**
+
+- 프로젝트 구조 통합 문서 작성
+- docs/PROJECT_STRUCTURE.md 생성 (400줄)
+- 전체 폴더 구조, 명명 규칙, 모범 사례 문서화
+
+### 생성된 폴더 구조
+
+```
+src/
+├── components/      # 재사용 가능한 UI 컴포넌트
+├── screens/         # 전체 화면 뷰
+├── navigation/      # React Navigation 설정
+├── services/        # 비즈니스 로직 및 API
+├── hooks/           # 커스텀 React hooks
+├── store/           # Zustand 전역 상태
+├── types/           # TypeScript 타입 정의 (Phase 4에서 생성)
+├── utils/           # 유틸리티 함수
+├── config/          # 설정 파일
+├── constants/       # 상수 및 enum
+├── models/          # 비즈니스 엔티티 모델
+├── database/        # WatermelonDB 설정
+└── assets/          # 정적 자산 (이미지, 폰트)
+```
+
+### 산출물
+
+- **13개 디렉토리**: 완전한 프로젝트 구조
+- **12개 README 파일**: 각 디렉토리 문서화 (총 ~865줄)
+- **docs/PROJECT_STRUCTURE.md**: 통합 프로젝트 구조 문서 (400줄)
+- **총 문서**: ~1,265줄
+
+### 참고사항
+
+- 모든 디렉토리가 tsconfig.json의 path aliases와 매핑됨
+- babel.config.js의 module-resolver와 동기화됨
+- 각 디렉토리에 목적, 구조, 가이드라인, 예제 포함
+- 확장 가능한 구조로 설계 (새 기능 추가 용이)
+
+### 다음 Phase
+
+→ Phase 7: Jest 및 테스트 환경 설정
+
+---
+
 ## 주간 목표
 
 ### Week 1 (2025-11-11 ~ 2025-11-17)
@@ -540,9 +613,9 @@ extends: [
 
 ## 통계
 
-- **총 작업 시간**: 2.5시간
-- **완료율**: 1.7% (5/300)
-- **이번 주 목표 완료율**: 50% (5/10)
+- **총 작업 시간**: 3.0시간
+- **완료율**: 2.0% (6/300)
+- **이번 주 목표 완료율**: 60% (6/10)
 
 ---
 
@@ -553,7 +626,8 @@ extends: [
 3. ~~Phase 3 완료 (React Native 프로젝트 초기화)~~ ✅
 4. ~~Phase 4 완료 (TypeScript 설정 강화)~~ ✅
 5. ~~Phase 5 완료 (ESLint 및 Prettier 설정)~~ ✅
-6. Phase 6 시작 (프로젝트 폴더 구조 생성)
+6. ~~Phase 6 완료 (프로젝트 폴더 구조 생성)~~ ✅
+7. Phase 7 시작 (Jest 및 테스트 환경 설정)
 
 ---
 
@@ -564,4 +638,4 @@ extends: [
 
 ---
 
-_최종 업데이트: 2025-11-12 00:45_
+_최종 업데이트: 2025-11-12 01:05_
