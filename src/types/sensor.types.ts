@@ -15,6 +15,7 @@ export enum SensorType {
   AUDIO = 'audio',
   STEP_DETECTOR = 'step_detector',
   STEP_COUNTER = 'step_counter',
+  SIGNIFICANT_MOTION = 'significant_motion',
 }
 
 /**
@@ -122,6 +123,28 @@ export interface StepCounterData extends BaseSensorData {
 }
 
 /**
+ * Significant motion event types
+ */
+export enum SignificantMotionType {
+  FALL = 'fall',               // Free fall detected
+  THROW = 'throw',             // Throwing motion
+  SHAKE = 'shake',             // Strong shaking
+  IMPACT = 'impact',           // Sudden impact
+  UNKNOWN = 'unknown',         // Unclassified significant motion
+}
+
+/**
+ * Significant motion data (one-shot event detection)
+ */
+export interface SignificantMotionData extends BaseSensorData {
+  sensorType: SensorType.SIGNIFICANT_MOTION;
+  elapsedRealtimeNanos: number; // Elapsed time in nanoseconds since boot
+  motionType: SignificantMotionType; // Type of motion detected
+  magnitude: number; // Motion magnitude (m/s²)
+  duration?: number; // Duration of motion event (ms)
+}
+
+/**
  * Union type for all sensor data
  */
 export type SensorData =
@@ -131,7 +154,8 @@ export type SensorData =
   | GPSData
   | AudioData
   | StepDetectorData
-  | StepCounterData;
+  | StepCounterData
+  | SignificantMotionData;
 
 /**
  * Sensor recording session
@@ -174,5 +198,9 @@ export interface SensorSettings {
   };
   [SensorType.STEP_COUNTER]: SensorConfig & {
     resetOnBoot: boolean; // Track boot events and reset count
+  };
+  [SensorType.SIGNIFICANT_MOTION]: SensorConfig & {
+    motionClassification: boolean; // Enable motion type classification
+    minimumMagnitude: number; // Minimum magnitude to trigger (m/s²)
   };
 }
