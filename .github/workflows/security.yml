@@ -1,0 +1,192 @@
+name: Security Checks
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+  schedule:
+    # Run security checks every Monday at 00:00 UTC
+    - cron: '0 0 * * 1'
+  workflow_dispatch:
+
+jobs:
+  dependency-audit:
+    name: Dependency Audit
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Run npm audit
+        run: |
+          echo "### NPM Audit Report"
+          npm audit --audit-level=moderate || true
+          echo ""
+          echo "Audit completed. Review findings above."
+
+      - name: Check for vulnerable dependencies
+        run: |
+          echo "Checking for known vulnerabilities..."
+          npm audit --json > audit-report.json || true
+
+          if [ -f audit-report.json ]; then
+            VULNERABILITIES=$(cat audit-report.json | grep -o '"vulnerabilities":{[^}]*}' | grep -o '"total":[0-9]*' | cut -d':' -f2 || echo "0")
+            echo "Total vulnerabilities found: $VULNERABILITIES"
+
+            if [ "$VULNERABILITIES" -gt "0" ]; then
+              echo "⚠️ Vulnerabilities detected. Please review and update dependencies."
+            else
+              echo "✅ No vulnerabilities detected"
+            fi
+          fi
+
+      - name: Upload audit report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: npm-audit-report
+          path: audit-report.json
+
+  dependency-review:
+    name: Dependency Review
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Dependency Review
+        uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: moderate
+          allow-licenses: MIT, Apache-2.0, BSD-2-Clause, BSD-3-Clause, ISC
+
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check for secrets in code
+        run: |
+          echo "### Scanning for potential secrets..."
+
+          # Check for common secret patterns
+          echo "Checking for API keys..."
+          if grep -r -i "api[_-]key\s*=\s*['\"]" src/ 2>/dev/null; then
+            echo "⚠️ Potential API key found in code"
+          else
+            echo "✅ No hardcoded API keys detected"
+          fi
+
+          echo "Checking for access tokens..."
+          if grep -r -i "token\s*=\s*['\"]" src/ 2>/dev/null | grep -v "mock" | grep -v "test" | grep -v "example"; then
+            echo "⚠️ Potential access token found"
+          else
+            echo "✅ No hardcoded tokens detected"
+          fi
+
+          echo "Checking for passwords..."
+          if grep -r -i "password\s*=\s*['\"]" src/ 2>/dev/null | grep -v "placeholder" | grep -v "example"; then
+            echo "⚠️ Potential password found"
+          else
+            echo "✅ No hardcoded passwords detected"
+          fi
+
+      - name: Check .env files
+        run: |
+          if [ -f .env ]; then
+            echo "⚠️ .env file found in repository. This should be in .gitignore"
+            exit 1
+          else
+            echo "✅ No .env file in repository"
+          fi
+
+      - name: Verify .gitignore
+        run: |
+          if [ -f .gitignore ]; then
+            echo "✅ .gitignore exists"
+
+            # Check for common entries
+            if grep -q ".env" .gitignore; then
+              echo "✅ .env in .gitignore"
+            else
+              echo "⚠️ .env not in .gitignore"
+            fi
+
+            if grep -q "node_modules" .gitignore; then
+              echo "✅ node_modules in .gitignore"
+            else
+              echo "⚠️ node_modules not in .gitignore"
+            fi
+          else
+            echo "⚠️ No .gitignore file found"
+          fi
+
+  license-check:
+    name: License Compliance
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check project license
+        run: |
+          if [ -f LICENSE ]; then
+            echo "✅ LICENSE file exists"
+            echo "License content:"
+            head -5 LICENSE
+          else
+            echo "⚠️ No LICENSE file found"
+          fi
+
+      - name: List dependency licenses
+        run: |
+          echo "### Dependency Licenses"
+          npm list --depth=0 2>/dev/null || true
+
+  code-scanning:
+    name: CodeQL Analysis
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      actions: read
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript, typescript
+
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v3
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3

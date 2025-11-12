@@ -1,0 +1,5119 @@
+{
+  "project_name": "KooDTX - React Native Local-First Architecture",
+  "version": "2.0.0",
+  "created_at": "2025-11-11",
+  "total_phases": 300,
+  "estimated_duration_weeks": 30,
+  "server_type": "온프레미스 우분투 서버",
+  "data_format": "JSON",
+  "audio_collection": true,
+  "description": "React Native 센서 데이터 수집 앱 (오디오 포함) - Local-First 아키텍처 + Flask 동기화 (온프레미스 우분투 서버)",
+  "phases": [
+    {
+      "phase_id": 1,
+      "phase_group": "프로젝트 셋업 및 기본 인프라",
+      "phase_name": "개발 환경 준비 - Git 설정",
+      "duration_hours": 2,
+      "priority": "critical",
+      "dependencies": [],
+      "tasks": [
+        "Git 설치 확인 및 최신 버전 업데이트",
+        "GitHub 저장소 생성 (KooDTX)",
+        ".gitignore 파일 생성 (Node.js, React Native 템플릿)",
+        "README.md 초기 작성",
+        "Git 브랜치 전략 수립 (main, develop, feature/*)"
+      ],
+      "deliverables": ["Git 저장소", ".gitignore", "README.md"],
+      "verification": "git status 실행 및 원격 저장소 연결 확인"
+    },
+    {
+      "phase_id": 2,
+      "phase_group": "프로젝트 셋업 및 기본 인프라",
+      "phase_name": "Node.js 및 개발 도구 설치",
+      "duration_hours": 3,
+      "priority": "critical",
+      "dependencies": [1],
+      "tasks": [
+        "Node.js LTS 버전 설치 (v20.x)",
+        "npm 또는 yarn 패키지 매니저 설정",
+        "React Native CLI 설치: npm install -g react-native-cli",
+        "Android Studio 설치 및 SDK 설정",
+        "Java JDK 17 설치",
+        "환경 변수 설정 (ANDROID_HOME, JAVA_HOME)"
+      ],
+      "deliverables": ["Node.js 환경", "React Native CLI", "Android Studio"],
+      "verification": "node --version, react-native --version, java --version 확인"
+    },
+    {
+      "phase_id": 3,
+      "phase_group": "프로젝트 셋업 및 기본 인프라",
+      "phase_name": "React Native 프로젝트 초기화",
+      "duration_hours": 2,
+      "priority": "critical",
+      "dependencies": [2],
+      "tasks": [
+        "프로젝트 생성: npx react-native init KooDTX --template react-native-template-typescript",
+        "프로젝트 디렉토리 구조 확인",
+        "기본 앱 실행 테스트 (Android Emulator)",
+        "Metro Bundler 실행 확인",
+        "초기 빌드 성공 확인"
+      ],
+      "deliverables": ["React Native 프로젝트", "실행 가능한 기본 앱"],
+      "verification": "npx react-native run-android 성공"
+    },
+    {
+      "phase_id": 4,
+      "phase_group": "프로젝트 셋업 및 기본 인프라",
+      "phase_name": "TypeScript 설정 강화",
+      "duration_hours": 2,
+      "priority": "high",
+      "dependencies": [3],
+      "tasks": [
+        "tsconfig.json strict 모드 활성화",
+        "타입 체크 룰 강화 (noImplicitAny, strictNullChecks)",
+        "경로 별칭 설정 (@components, @services, @utils)",
+        "타입 정의 파일 구조 생성 (src/types/)",
+        "TypeScript 컴파일 테스트"
+      ],
+      "deliverables": ["tsconfig.json", "타입 정의 구조"],
+      "verification": "tsc --noEmit 실행하여 타입 에러 없음 확인"
+    },
+    {
+      "phase_id": 5,
+      "phase_group": "프로젝트 셋업 및 기본 인프라",
+      "phase_name": "ESLint 및 Prettier 설정",
+      "duration_hours": 3,
+      "priority": "high",
+      "dependencies": [4],
+      "tasks": [
+        "ESLint 설치: npm install --save-dev eslint @typescript-eslint/parser",
+        ".eslintrc.js 설정 파일 생성",
+        "Prettier 설치 및 설정",
+        ".prettierrc 파일 생성 (탭 2칸, 세미콜론, 작은따옴표)",
+        "ESLint + Prettier 통합 설정",
+        "pre-commit hook 설정 (husky + lint-staged)"
+      ],
+      "deliverables": [".eslintrc.js", ".prettierrc", "husky 설정"],
+      "verification": "npm run lint 실행 및 자동 포맷팅 확인"
+    },
+    {
+      "phase_id": 6,
+      "phase_group": "프로젝트 셋업 및 기본 인프라",
+      "phase_name": "프로젝트 폴더 구조 생성",
+      "duration_hours": 2,
+      "priority": "high",
+      "dependencies": [5],
+      "tasks": [
+        "src/ 폴더 생성 및 하위 구조 구성",
+        "api/, components/, database/, hooks/, native/ 폴더 생성",
+        "navigation/, screens/, services/, store/, types/, utils/ 폴더 생성",
+        "각 폴더에 index.ts 파일 생성",
+        "폴더별 README.md 작성 (용도 설명)"
+      ],
+      "deliverables": ["표준화된 폴더 구조", "각 폴더 설명 문서"],
+      "verification": "폴더 구조 tree 명령어로 확인"
+    },
+    {
+      "phase_id": 7,
+      "phase_group": "프로젝트 셋업 및 기본 인프라",
+      "phase_name": "React Navigation 설치 및 설정",
+      "duration_hours": 4,
+      "priority": "high",
+      "dependencies": [6],
+      "tasks": [
+        "React Navigation 패키지 설치: @react-navigation/native",
+        "필수 의존성 설치: react-native-screens, react-native-safe-area-context",
+        "@react-navigation/stack, @react-navigation/bottom-tabs 설치",
+        "Android native 설정 (MainActivity.java)",
+        "기본 네비게이터 구조 생성 (AppNavigator.tsx)",
+        "네비게이션 타입 정의 (NavigationTypes.ts)"
+      ],
+      "deliverables": ["React Navigation 설정", "AppNavigator.tsx"],
+      "verification": "기본 화면 전환 동작 확인"
+    },
+    {
+      "phase_id": 8,
+      "phase_group": "프로젝트 셋업 및 기본 인프라",
+      "phase_name": "상태 관리 라이브러리 설치 (Zustand)",
+      "duration_hours": 3,
+      "priority": "high",
+      "dependencies": [6],
+      "tasks": [
+        "Zustand 설치: npm install zustand",
+        "store 폴더 구조 설계",
+        "기본 스토어 생성 (useAppStore.ts)",
+        "스토어 타입 정의",
+        "미들웨어 설정 (persist, devtools)",
+        "스토어 테스트 코드 작성"
+      ],
+      "deliverables": ["Zustand 설정", "기본 스토어"],
+      "verification": "스토어 상태 변경 및 구독 테스트"
+    },
+    {
+      "phase_id": 9,
+      "phase_group": "프로젝트 셋업 및 기본 인프라",
+      "phase_name": "UI 컴포넌트 라이브러리 설치 (React Native Paper)",
+      "duration_hours": 3,
+      "priority": "medium",
+      "dependencies": [7],
+      "tasks": [
+        "React Native Paper 설치",
+        "React Native Vector Icons 설치 및 링크",
+        "테마 설정 (colors, fonts)",
+        "Provider 설정 (App.tsx)",
+        "기본 컴포넌트 테스트 (Button, Card, TextInput)"
+      ],
+      "deliverables": ["UI 라이브러리 설정", "커스텀 테마"],
+      "verification": "샘플 화면에서 UI 컴포넌트 렌더링 확인"
+    },
+    {
+      "phase_id": 10,
+      "phase_group": "프로젝트 셋업 및 기본 인프라",
+      "phase_name": "유틸리티 라이브러리 설치",
+      "duration_hours": 2,
+      "priority": "medium",
+      "dependencies": [6],
+      "tasks": [
+        "date-fns 설치 (날짜 처리)",
+        "lodash 설치 (유틸리티 함수)",
+        "uuid 설치 (고유 ID 생성)",
+        "유틸리티 함수 모음 생성 (src/utils/)",
+        "타입스크립트 타입 정의"
+      ],
+      "deliverables": ["유틸리티 라이브러리", "공통 함수"],
+      "verification": "유틸리티 함수 단위 테스트"
+    },
+    {
+      "phase_id": 11,
+      "phase_group": "온프레미스 서버 설정",
+      "phase_name": "우분투 서버 초기 설정",
+      "duration_hours": 4,
+      "priority": "critical",
+      "dependencies": [],
+      "tasks": [
+        "우분투 서버 22.04 LTS 설치",
+        "기본 패키지 업데이트: sudo apt update && sudo apt upgrade",
+        "방화벽 설정 (ufw): 22, 80, 443, 5000 포트 오픈",
+        "타임존 설정: sudo timedatectl set-timezone Asia/Seoul",
+        "호스트명 설정",
+        "SSH 보안 강화 (키 기반 인증)"
+      ],
+      "deliverables": ["우분투 서버 환경"],
+      "verification": "SSH 접속 및 시스템 정보 확인"
+    },
+    {
+      "phase_id": 12,
+      "phase_group": "온프레미스 서버 설정",
+      "phase_name": "Python 환경 설정",
+      "duration_hours": 3,
+      "priority": "critical",
+      "dependencies": [11],
+      "tasks": [
+        "Python 3.11 설치: sudo apt install python3.11",
+        "python3-pip 설치",
+        "python3-venv 설치",
+        "pyenv 설치 (버전 관리)",
+        "Python 버전 확인 및 기본 설정",
+        "가상환경 생성 테스트"
+      ],
+      "deliverables": ["Python 3.11 환경"],
+      "verification": "python3 --version, pip --version 확인"
+    },
+    {
+      "phase_id": 13,
+      "phase_group": "온프레미스 서버 설정",
+      "phase_name": "PostgreSQL 설치 및 설정",
+      "duration_hours": 5,
+      "priority": "critical",
+      "dependencies": [12],
+      "tasks": [
+        "PostgreSQL 15 설치: sudo apt install postgresql-15",
+        "PostgreSQL 서비스 시작 및 자동 시작 설정",
+        "postgres 사용자 비밀번호 설정",
+        "데이터베이스 생성: CREATE DATABASE koodtx_db",
+        "애플리케이션 사용자 생성 및 권한 부여",
+        "pg_hba.conf 원격 접속 설정",
+        "postgresql.conf 최적화 (shared_buffers, work_mem)"
+      ],
+      "deliverables": ["PostgreSQL 데이터베이스"],
+      "verification": "psql로 데이터베이스 접속 확인"
+    },
+    {
+      "phase_id": 14,
+      "phase_group": "온프레미스 서버 설정",
+      "phase_name": "Redis 설치 및 설정",
+      "duration_hours": 3,
+      "priority": "high",
+      "dependencies": [12],
+      "tasks": [
+        "Redis 설치: sudo apt install redis-server",
+        "redis.conf 설정 (bind 주소, maxmemory)",
+        "Redis 비밀번호 설정",
+        "Redis 서비스 시작 및 자동 시작 설정",
+        "Redis CLI 테스트"
+      ],
+      "deliverables": ["Redis 캐시 서버"],
+      "verification": "redis-cli ping 명령 확인"
+    },
+    {
+      "phase_id": 15,
+      "phase_group": "온프레미스 서버 설정",
+      "phase_name": "Nginx 설치 및 기본 설정",
+      "duration_hours": 4,
+      "priority": "high",
+      "dependencies": [11],
+      "tasks": [
+        "Nginx 설치: sudo apt install nginx",
+        "기본 설정 파일 백업",
+        "사이트 설정 파일 생성 (/etc/nginx/sites-available/koodtx)",
+        "심볼릭 링크 생성 (sites-enabled)",
+        "Nginx 문법 검사: sudo nginx -t",
+        "Nginx 서비스 시작"
+      ],
+      "deliverables": ["Nginx 웹 서버"],
+      "verification": "curl http://localhost 응답 확인"
+    },
+    {
+      "phase_id": 16,
+      "phase_group": "온프레미스 서버 설정",
+      "phase_name": "Let's Encrypt SSL 인증서 설정",
+      "duration_hours": 3,
+      "priority": "high",
+      "dependencies": [15],
+      "tasks": [
+        "certbot 설치: sudo apt install certbot python3-certbot-nginx",
+        "도메인 DNS A 레코드 설정 확인",
+        "SSL 인증서 발급: sudo certbot --nginx -d api.koodtx.com",
+        "자동 갱신 설정 확인",
+        "HTTPS 리다이렉션 설정",
+        "SSL 설정 테스트"
+      ],
+      "deliverables": ["SSL 인증서", "HTTPS 설정"],
+      "verification": "https://api.koodtx.com 접속 확인"
+    },
+    {
+      "phase_id": 17,
+      "phase_group": "온프레미스 서버 설정",
+      "phase_name": "서버 모니터링 도구 설치",
+      "duration_hours": 4,
+      "priority": "medium",
+      "dependencies": [11],
+      "tasks": [
+        "htop 설치 (프로세스 모니터링)",
+        "nethogs 설치 (네트워크 모니터링)",
+        "iotop 설치 (디스크 I/O 모니터링)",
+        "fail2ban 설치 (보안)",
+        "logrotate 설정 (로그 관리)"
+      ],
+      "deliverables": ["모니터링 도구"],
+      "verification": "각 도구 실행 확인"
+    },
+    {
+      "phase_id": 18,
+      "phase_group": "Flask 백엔드 - 프로젝트 셋업",
+      "phase_name": "Flask 프로젝트 생성",
+      "duration_hours": 3,
+      "priority": "critical",
+      "dependencies": [12],
+      "tasks": [
+        "프로젝트 디렉토리 생성: mkdir koodtx-server",
+        "가상환경 생성: python3 -m venv venv",
+        "가상환경 활성화",
+        "Flask 설치: pip install Flask==3.0.0",
+        "프로젝트 폴더 구조 생성",
+        "app/__init__.py 파일 생성"
+      ],
+      "deliverables": ["Flask 프로젝트"],
+      "verification": "Flask 앱 실행 테스트"
+    },
+    {
+      "phase_id": 19,
+      "phase_group": "Flask 백엔드 - 프로젝트 셋업",
+      "phase_name": "Flask 의존성 설치",
+      "duration_hours": 2,
+      "priority": "critical",
+      "dependencies": [18],
+      "tasks": [
+        "requirements.txt 파일 작성",
+        "Flask-SQLAlchemy 설치",
+        "Flask-JWT-Extended 설치",
+        "Flask-CORS 설치",
+        "Flask-Limiter 설치",
+        "psycopg2-binary 설치",
+        "python-dotenv 설치",
+        "marshmallow 설치"
+      ],
+      "deliverables": ["requirements.txt"],
+      "verification": "pip list로 패키지 설치 확인"
+    },
+    {
+      "phase_id": 20,
+      "phase_group": "Flask 백엔드 - 프로젝트 셋업",
+      "phase_name": "Flask 환경 설정 파일",
+      "duration_hours": 3,
+      "priority": "high",
+      "dependencies": [19],
+      "tasks": [
+        ".env 파일 생성",
+        "데이터베이스 연결 정보 설정",
+        "SECRET_KEY 생성",
+        "JWT_SECRET_KEY 설정",
+        "config.py 파일 작성 (개발/프로덕션 설정)",
+        ".env.example 파일 작성"
+      ],
+      "deliverables": ["config.py", ".env"],
+      "verification": "환경 변수 로드 테스트"
+    },
+    {
+      "phase_id": 21,
+      "phase_group": "Flask 백엔드 - 데이터베이스",
+      "phase_name": "SQLAlchemy 설정",
+      "duration_hours": 3,
+      "priority": "critical",
+      "dependencies": [20],
+      "tasks": [
+        "extensions.py 파일 생성",
+        "SQLAlchemy 인스턴스 초기화",
+        "Flask 앱에 SQLAlchemy 연결",
+        "데이터베이스 URI 설정",
+        "연결 테스트"
+      ],
+      "deliverables": ["extensions.py", "DB 연결"],
+      "verification": "db.create_all() 실행 확인"
+    },
+    {
+      "phase_id": 22,
+      "phase_group": "Flask 백엔드 - 데이터베이스",
+      "phase_name": "User 모델 생성",
+      "duration_hours": 4,
+      "priority": "critical",
+      "dependencies": [21],
+      "tasks": [
+        "models/user.py 파일 생성",
+        "User 클래스 정의 (id, username, email, password_hash)",
+        "created_at, updated_at 필드 추가",
+        "비밀번호 해싱 메서드 구현",
+        "to_dict() 메서드 구현",
+        "유니크 제약조건 설정"
+      ],
+      "deliverables": ["User 모델"],
+      "verification": "모델 생성 및 쿼리 테스트"
+    },
+    {
+      "phase_id": 23,
+      "phase_group": "Flask 백엔드 - 데이터베이스",
+      "phase_name": "Session 모델 생성",
+      "duration_hours": 4,
+      "priority": "critical",
+      "dependencies": [22],
+      "tasks": [
+        "models/session.py 파일 생성",
+        "Session 클래스 정의",
+        "필드: id, user_id, device_id, start_time, end_time, status",
+        "외래 키 관계 설정 (User)",
+        "인덱스 설정 (user_id, start_time)",
+        "JSON 직렬화 메서드"
+      ],
+      "deliverables": ["Session 모델"],
+      "verification": "Session 생성 및 관계 테스트"
+    },
+    {
+      "phase_id": 24,
+      "phase_group": "Flask 백엔드 - 데이터베이스",
+      "phase_name": "SensorData 모델 생성",
+      "duration_hours": 5,
+      "priority": "critical",
+      "dependencies": [23],
+      "tasks": [
+        "models/sensor_data.py 파일 생성",
+        "SensorData 클래스 정의",
+        "필드: id, session_id, sensor_type, data (JSONB), timestamp",
+        "JSONB 컬럼 설정",
+        "인덱스 설정 (session_id, sensor_type, timestamp)",
+        "복합 인덱스 생성"
+      ],
+      "deliverables": ["SensorData 모델"],
+      "verification": "JSONB 데이터 저장 및 쿼리 테스트"
+    },
+    {
+      "phase_id": 25,
+      "phase_group": "Flask 백엔드 - 데이터베이스",
+      "phase_name": "File 모델 생성",
+      "duration_hours": 3,
+      "priority": "high",
+      "dependencies": [23],
+      "tasks": [
+        "models/file.py 파일 생성",
+        "File 클래스 정의",
+        "필드: id, session_id, file_path, file_size, mime_type, uploaded_at",
+        "파일 타입 enum 정의 (sensor_data, audio, metadata)",
+        "외래 키 관계 설정"
+      ],
+      "deliverables": ["File 모델"],
+      "verification": "파일 메타데이터 저장 테스트"
+    },
+    {
+      "phase_id": 26,
+      "phase_group": "Flask 백엔드 - 데이터베이스",
+      "phase_name": "SyncLog 모델 생성",
+      "duration_hours": 3,
+      "priority": "high",
+      "dependencies": [23],
+      "tasks": [
+        "models/sync_log.py 파일 생성",
+        "SyncLog 클래스 정의",
+        "필드: id, session_id, sync_time, status, error_message, items_synced",
+        "동기화 상태 enum (pending, success, failed)",
+        "인덱스 설정"
+      ],
+      "deliverables": ["SyncLog 모델"],
+      "verification": "동기화 로그 저장 테스트"
+    },
+    {
+      "phase_id": 27,
+      "phase_group": "Flask 백엔드 - 데이터베이스",
+      "phase_name": "Alembic 마이그레이션 초기화",
+      "duration_hours": 3,
+      "priority": "high",
+      "dependencies": [26],
+      "tasks": [
+        "Alembic 설치: pip install alembic",
+        "Alembic 초기화: alembic init migrations",
+        "alembic.ini 설정",
+        "env.py 설정 (모델 import)",
+        "첫 마이그레이션 생성: alembic revision --autogenerate",
+        "마이그레이션 적용: alembic upgrade head"
+      ],
+      "deliverables": ["Alembic 마이그레이션"],
+      "verification": "데이터베이스 스키마 생성 확인"
+    },
+    {
+      "phase_id": 28,
+      "phase_group": "Flask 백엔드 - 인증",
+      "phase_name": "Flask-JWT-Extended 설정",
+      "duration_hours": 3,
+      "priority": "critical",
+      "dependencies": [20],
+      "tasks": [
+        "JWT 설정 추가 (config.py)",
+        "JWTManager 초기화",
+        "토큰 만료 시간 설정",
+        "Refresh 토큰 설정",
+        "JWT 에러 핸들러 등록"
+      ],
+      "deliverables": ["JWT 설정"],
+      "verification": "토큰 생성 및 검증 테스트"
+    },
+    {
+      "phase_id": 29,
+      "phase_group": "Flask 백엔드 - 인증",
+      "phase_name": "회원가입 API 구현",
+      "duration_hours": 4,
+      "priority": "critical",
+      "dependencies": [28],
+      "tasks": [
+        "routes/auth.py 파일 생성",
+        "POST /auth/register 엔드포인트 구현",
+        "요청 데이터 검증 (username, email, password)",
+        "비밀번호 강도 검증",
+        "이메일 중복 체크",
+        "사용자 생성 및 저장",
+        "에러 처리"
+      ],
+      "deliverables": ["회원가입 API"],
+      "verification": "Postman으로 회원가입 테스트"
+    },
+    {
+      "phase_id": 30,
+      "phase_group": "Flask 백엔드 - 인증",
+      "phase_name": "로그인 API 구현",
+      "duration_hours": 4,
+      "priority": "critical",
+      "dependencies": [29],
+      "tasks": [
+        "POST /auth/login 엔드포인트 구현",
+        "사용자 인증 (username/email + password)",
+        "비밀번호 검증",
+        "액세스 토큰 발급",
+        "리프레시 토큰 발급",
+        "로그인 실패 처리",
+        "응답 형식 표준화"
+      ],
+      "deliverables": ["로그인 API"],
+      "verification": "로그인 및 토큰 발급 테스트"
+    },
+    {
+      "phase_id": 31,
+      "phase_group": "Flask 백엔드 - 인증",
+      "phase_name": "토큰 갱신 API 구현",
+      "duration_hours": 3,
+      "priority": "high",
+      "dependencies": [30],
+      "tasks": [
+        "POST /auth/refresh 엔드포인트 구현",
+        "리프레시 토큰 검증",
+        "새로운 액세스 토큰 발급",
+        "토큰 만료 처리",
+        "에러 핸들링"
+      ],
+      "deliverables": ["토큰 갱신 API"],
+      "verification": "토큰 갱신 플로우 테스트"
+    },
+    {
+      "phase_id": 32,
+      "phase_group": "Flask 백엔드 - 인증",
+      "phase_name": "로그아웃 API 구현",
+      "duration_hours": 2,
+      "priority": "medium",
+      "dependencies": [30],
+      "tasks": [
+        "POST /auth/logout 엔드포인트 구현",
+        "토큰 블랙리스트 구현 (Redis)",
+        "로그아웃 상태 관리",
+        "응답 포맷 정의"
+      ],
+      "deliverables": ["로그아웃 API"],
+      "verification": "로그아웃 후 토큰 무효화 확인"
+    },
+    {
+      "phase_id": 33,
+      "phase_group": "Flask 백엔드 - 파일 저장소",
+      "phase_name": "로컬 파일 저장소 설정",
+      "duration_hours": 4,
+      "priority": "critical",
+      "dependencies": [18],
+      "tasks": [
+        "/var/www/koodtx/uploads 디렉토리 생성",
+        "디렉토리 권한 설정 (www-data)",
+        "파일 저장 경로 구조 설계 (user_id/session_id/)",
+        "파일 네이밍 규칙 정의",
+        "최대 파일 크기 설정",
+        "저장소 용량 체크 로직"
+      ],
+      "deliverables": ["로컬 파일 저장소"],
+      "verification": "파일 저장 및 읽기 테스트"
+    },
+    {
+      "phase_id": 34,
+      "phase_group": "Flask 백엔드 - 파일 저장소",
+      "phase_name": "파일 업로드 API 구현",
+      "duration_hours": 6,
+      "priority": "critical",
+      "dependencies": [33],
+      "tasks": [
+        "routes/upload.py 파일 생성",
+        "POST /upload 엔드포인트 구현",
+        "multipart/form-data 파싱",
+        "파일 타입 검증 (JSON, audio)",
+        "파일 크기 검증",
+        "안전한 파일명 생성 (werkzeug.utils.secure_filename)",
+        "파일 저장 및 DB 레코드 생성",
+        "업로드 진행률 지원 (청크 업로드)"
+      ],
+      "deliverables": ["파일 업로드 API"],
+      "verification": "대용량 파일 업로드 테스트"
+    },
+    {
+      "phase_id": 35,
+      "phase_group": "Flask 백엔드 - 파일 저장소",
+      "phase_name": "파일 다운로드 API 구현",
+      "duration_hours": 4,
+      "priority": "high",
+      "dependencies": [34],
+      "tasks": [
+        "GET /download/<file_id> 엔드포인트 구현",
+        "파일 권한 체크 (소유자 확인)",
+        "파일 스트리밍 응답",
+        "Content-Type 헤더 설정",
+        "파일 다운로드 로그 기록"
+      ],
+      "deliverables": ["파일 다운로드 API"],
+      "verification": "파일 다운로드 및 권한 체크 테스트"
+    },
+    {
+      "phase_id": 36,
+      "phase_group": "Flask 백엔드 - 세션 관리",
+      "phase_name": "세션 생성 API 구현",
+      "duration_hours": 5,
+      "priority": "critical",
+      "dependencies": [30],
+      "tasks": [
+        "routes/sessions.py 파일 생성",
+        "POST /sessions 엔드포인트 구현",
+        "세션 데이터 검증 (schemas/session_schema.py)",
+        "UUID 생성 및 저장",
+        "타임스탬프 처리",
+        "에러 처리"
+      ],
+      "deliverables": ["세션 생성 API"],
+      "verification": "세션 생성 및 DB 저장 확인"
+    },
+    {
+      "phase_id": 37,
+      "phase_group": "Flask 백엔드 - 세션 관리",
+      "phase_name": "세션 목록 조회 API 구현",
+      "duration_hours": 4,
+      "priority": "high",
+      "dependencies": [36],
+      "tasks": [
+        "GET /sessions 엔드포인트 구현",
+        "페이지네이션 구현 (offset, limit)",
+        "필터링 (날짜 범위, 상태)",
+        "정렬 (최신순, 오래된순)",
+        "응답 포맷 표준화"
+      ],
+      "deliverables": ["세션 목록 API"],
+      "verification": "다양한 필터 조건으로 조회 테스트"
+    },
+    {
+      "phase_id": 38,
+      "phase_group": "Flask 백엔드 - 세션 관리",
+      "phase_name": "세션 상세 조회 API 구현",
+      "duration_hours": 3,
+      "priority": "high",
+      "dependencies": [36],
+      "tasks": [
+        "GET /sessions/<session_id> 엔드포인트 구현",
+        "세션 권한 체크",
+        "관련 센서 데이터 포함",
+        "파일 목록 포함",
+        "통계 정보 포함"
+      ],
+      "deliverables": ["세션 상세 API"],
+      "verification": "세션 상세 정보 조회 테스트"
+    },
+    {
+      "phase_id": 39,
+      "phase_group": "Flask 백엔드 - 세션 관리",
+      "phase_name": "세션 업데이트 API 구현",
+      "duration_hours": 3,
+      "priority": "medium",
+      "dependencies": [36],
+      "tasks": [
+        "PUT /sessions/<session_id> 엔드포인트 구현",
+        "부분 업데이트 지원 (PATCH)",
+        "세션 종료 처리 (end_time)",
+        "상태 변경 (recording -> stopped -> synced)",
+        "낙관적 동시성 제어 (updated_at 체크)"
+      ],
+      "deliverables": ["세션 업데이트 API"],
+      "verification": "세션 상태 업데이트 테스트"
+    },
+    {
+      "phase_id": 40,
+      "phase_group": "Flask 백엔드 - 세션 관리",
+      "phase_name": "세션 삭제 API 구현",
+      "duration_hours": 4,
+      "priority": "medium",
+      "dependencies": [36],
+      "tasks": [
+        "DELETE /sessions/<session_id> 엔드포인트 구현",
+        "소프트 삭제 vs 하드 삭제 선택",
+        "연관된 파일 삭제 처리",
+        "센서 데이터 삭제 (cascade)",
+        "삭제 로그 기록",
+        "권한 체크"
+      ],
+      "deliverables": ["세션 삭제 API"],
+      "verification": "세션 및 관련 데이터 삭제 확인"
+    },
+    {
+      "phase_id": 41,
+      "phase_group": "Flask 백엔드 - 동기화",
+      "phase_name": "동기화 Push API 구현",
+      "duration_hours": 6,
+      "priority": "critical",
+      "dependencies": [36],
+      "tasks": [
+        "routes/sync.py 파일 생성",
+        "POST /sync/push 엔드포인트 구현",
+        "클라이언트 데이터 수신",
+        "중복 체크 (session_id + timestamp)",
+        "Last-Write-Wins 충돌 해결",
+        "배치 처리 (bulk insert)",
+        "동기화 로그 기록"
+      ],
+      "deliverables": ["동기화 Push API"],
+      "verification": "동기화 성공 및 충돌 해결 테스트"
+    },
+    {
+      "phase_id": 42,
+      "phase_group": "Flask 백엔드 - 동기화",
+      "phase_name": "동기화 Pull API 구현",
+      "duration_hours": 5,
+      "priority": "high",
+      "dependencies": [41],
+      "tasks": [
+        "POST /sync/pull 엔드포인트 구현",
+        "last_sync_time 기반 델타 조회",
+        "변경된 세션만 반환",
+        "서버 타임스탬프 포함",
+        "페이지네이션 지원"
+      ],
+      "deliverables": ["동기화 Pull API"],
+      "verification": "델타 동기화 테스트"
+    },
+    {
+      "phase_id": 43,
+      "phase_group": "Flask 백엔드 - Celery",
+      "phase_name": "Celery 설치 및 설정",
+      "duration_hours": 5,
+      "priority": "high",
+      "dependencies": [19],
+      "tasks": [
+        "Celery 설치: pip install celery",
+        "celery_app.py 파일 생성",
+        "Redis 브로커 설정",
+        "결과 백엔드 설정",
+        "워커 설정",
+        "테스트 태스크 작성"
+      ],
+      "deliverables": ["Celery 설정"],
+      "verification": "Celery 워커 실행 및 태스크 테스트"
+    },
+    {
+      "phase_id": 44,
+      "phase_group": "Flask 백엔드 - Celery",
+      "phase_name": "센서 데이터 처리 태스크",
+      "duration_hours": 6,
+      "priority": "high",
+      "dependencies": [43],
+      "tasks": [
+        "tasks/process_data.py 파일 생성",
+        "센서 데이터 파싱 태스크",
+        "Pandas로 통계 계산",
+        "이상치 탐지",
+        "결과 DB 저장",
+        "에러 핸들링"
+      ],
+      "deliverables": ["데이터 처리 태스크"],
+      "verification": "비동기 데이터 처리 테스트"
+    },
+    {
+      "phase_id": 45,
+      "phase_group": "Flask 백엔드 - Celery",
+      "phase_name": "파일 정리 태스크",
+      "duration_hours": 4,
+      "priority": "medium",
+      "dependencies": [43],
+      "tasks": [
+        "tasks/cleanup.py 파일 생성",
+        "오래된 파일 삭제 로직",
+        "임시 파일 정리",
+        "스케줄 설정 (Celery Beat)",
+        "로그 기록"
+      ],
+      "deliverables": ["정리 태스크"],
+      "verification": "스케줄 정리 작업 테스트"
+    },
+    {
+      "phase_id": 46,
+      "phase_group": "Flask 백엔드 - API 문서",
+      "phase_name": "Swagger/OpenAPI 설정",
+      "duration_hours": 4,
+      "priority": "medium",
+      "dependencies": [30],
+      "tasks": [
+        "Flask-RESTX 설치 또는 flasgger 설치",
+        "API 문서 자동 생성 설정",
+        "엔드포인트 문서화",
+        "스키마 정의",
+        "Swagger UI 활성화"
+      ],
+      "deliverables": ["API 문서"],
+      "verification": "Swagger UI 접속 및 문서 확인"
+    },
+    {
+      "phase_id": 47,
+      "phase_group": "Flask 백엔드 - 테스트",
+      "phase_name": "pytest 설정",
+      "duration_hours": 4,
+      "priority": "high",
+      "dependencies": [20],
+      "tasks": [
+        "pytest 설치: pip install pytest pytest-flask",
+        "conftest.py 파일 생성",
+        "테스트 픽스처 설정",
+        "테스트 데이터베이스 설정",
+        "첫 API 테스트 작성"
+      ],
+      "deliverables": ["pytest 설정"],
+      "verification": "pytest 실행 및 테스트 통과 확인"
+    },
+    {
+      "phase_id": 48,
+      "phase_group": "Flask 백엔드 - 테스트",
+      "phase_name": "인증 API 테스트",
+      "duration_hours": 5,
+      "priority": "high",
+      "dependencies": [47],
+      "tasks": [
+        "test_auth.py 파일 생성",
+        "회원가입 테스트",
+        "로그인 테스트",
+        "토큰 갱신 테스트",
+        "권한 체크 테스트",
+        "에지 케이스 테스트"
+      ],
+      "deliverables": ["인증 테스트"],
+      "verification": "전체 인증 플로우 테스트 통과"
+    },
+    {
+      "phase_id": 49,
+      "phase_group": "Flask 백엔드 - 프로덕션",
+      "phase_name": "Gunicorn 설정",
+      "duration_hours": 4,
+      "priority": "critical",
+      "dependencies": [20],
+      "tasks": [
+        "Gunicorn 설치: pip install gunicorn",
+        "gunicorn_config.py 작성",
+        "워커 수 설정",
+        "타임아웃 설정",
+        "로깅 설정",
+        "시작 스크립트 작성"
+      ],
+      "deliverables": ["Gunicorn 설정"],
+      "verification": "Gunicorn으로 앱 실행 테스트"
+    },
+    {
+      "phase_id": 50,
+      "phase_group": "Flask 백엔드 - 프로덕션",
+      "phase_name": "Supervisor 설정",
+      "duration_hours": 5,
+      "priority": "critical",
+      "dependencies": [49],
+      "tasks": [
+        "Supervisor 설치: sudo apt install supervisor",
+        "프로그램 설정 파일 작성 (/etc/supervisor/conf.d/koodtx.conf)",
+        "자동 재시작 설정",
+        "로그 설정",
+        "supervisorctl 명령 테스트"
+      ],
+      "deliverables": ["Supervisor 설정"],
+      "verification": "서버 재부팅 후 자동 시작 확인"
+    },
+    {
+      "phase_id": 51,
+      "phase_group": "앱 - 로컬 데이터베이스",
+      "phase_name": "WatermelonDB 설치",
+      "duration_hours": 3,
+      "priority": "critical",
+      "dependencies": [10],
+      "tasks": [
+        "@nozbe/watermelondb 설치",
+        "@nozbe/with-observables 설치",
+        "babel 플러그인 설정",
+        "Android/iOS 네이티브 링크",
+        "기본 설정 테스트"
+      ],
+      "deliverables": ["WatermelonDB"],
+      "verification": "WatermelonDB import 및 초기화 확인"
+    },
+    {
+      "phase_id": 52,
+      "phase_group": "앱 - 로컬 데이터베이스",
+      "phase_name": "데이터베이스 스키마 정의",
+      "duration_hours": 6,
+      "priority": "critical",
+      "dependencies": [51],
+      "tasks": [
+        "database/schema.ts 파일 생성",
+        "sessions 테이블 스키마",
+        "sensor_data 테이블 스키마",
+        "sync_queue 테이블 스키마",
+        "files 테이블 스키마",
+        "인덱스 정의",
+        "관계 정의"
+      ],
+      "deliverables": ["데이터베이스 스키마"],
+      "verification": "스키마 검증"
+    },
+    {
+      "phase_id": 53,
+      "phase_group": "앱 - 로컬 데이터베이스",
+      "phase_name": "Session 모델 생성",
+      "duration_hours": 5,
+      "priority": "critical",
+      "dependencies": [52],
+      "tasks": [
+        "database/models/Session.ts 파일 생성",
+        "@field 데코레이터 사용",
+        "타입 정의",
+        "@relation 설정",
+        "메서드 구현 (isCompleted 등)"
+      ],
+      "deliverables": ["Session 모델"],
+      "verification": "모델 생성 및 쿼리 테스트"
+    },
+    {
+      "phase_id": 54,
+      "phase_group": "앱 - 로컬 데이터베이스",
+      "phase_name": "SensorData 모델 생성",
+      "duration_hours": 4,
+      "priority": "critical",
+      "dependencies": [52],
+      "tasks": [
+        "database/models/SensorData.ts 파일 생성",
+        "필드 정의",
+        "Session 관계 설정",
+        "타입 정의"
+      ],
+      "deliverables": ["SensorData 모델"],
+      "verification": "센서 데이터 저장 테스트"
+    },
+    {
+      "phase_id": 55,
+      "phase_group": "앱 - 로컬 데이터베이스",
+      "phase_name": "SyncQueue 모델 생성",
+      "duration_hours": 4,
+      "priority": "critical",
+      "dependencies": [52],
+      "tasks": [
+        "database/models/SyncQueue.ts 파일 생성",
+        "sync_status 필드",
+        "retry_count 필드",
+        "Session 관계",
+        "우선순위 정렬 쿼리"
+      ],
+      "deliverables": ["SyncQueue 모델"],
+      "verification": "동기화 큐 저장 테스트"
+    },
+    {
+      "phase_id": 56,
+      "phase_group": "앱 - 로컬 데이터베이스",
+      "phase_name": "Database 인스턴스 설정",
+      "duration_hours": 5,
+      "priority": "critical",
+      "dependencies": [55],
+      "tasks": [
+        "database/index.ts 파일 생성",
+        "Database 인스턴스 생성",
+        "SQLite 어댑터 설정",
+        "스키마 연결",
+        "마이그레이션 설정",
+        "전역 export"
+      ],
+      "deliverables": ["Database 인스턴스"],
+      "verification": "데이터베이스 초기화 확인"
+    },
+    {
+      "phase_id": 57,
+      "phase_group": "앱 - 로컬 데이터베이스",
+      "phase_name": "마이그레이션 시스템",
+      "duration_hours": 4,
+      "priority": "high",
+      "dependencies": [56],
+      "tasks": [
+        "database/migrations.ts 파일 생성",
+        "버전 관리 시스템",
+        "스키마 변경 마이그레이션",
+        "addColumns, createTable 등",
+        "마이그레이션 테스트"
+      ],
+      "deliverables": ["마이그레이션"],
+      "verification": "스키마 변경 마이그레이션 테스트"
+    },
+    {
+      "phase_id": 58,
+      "phase_group": "앱 - 파일 시스템",
+      "phase_name": "react-native-fs 설치",
+      "duration_hours": 3,
+      "priority": "critical",
+      "dependencies": [10],
+      "tasks": [
+        "react-native-fs 설치",
+        "Android/iOS 링크",
+        "권한 설정 (AndroidManifest.xml)",
+        "기본 경로 설정"
+      ],
+      "deliverables": ["파일 시스템 라이브러리"],
+      "verification": "파일 읽기/쓰기 테스트"
+    },
+    {
+      "phase_id": 59,
+      "phase_group": "앱 - 파일 시스템",
+      "phase_name": "파일 저장 서비스 구현",
+      "duration_hours": 6,
+      "priority": "critical",
+      "dependencies": [58],
+      "tasks": [
+        "services/StorageService.ts 파일 생성",
+        "파일 저장 경로 설정",
+        "파일 쓰기 메서드",
+        "파일 읽기 메서드",
+        "파일 삭제 메서드",
+        "용량 체크 메서드",
+        "에러 핸들링"
+      ],
+      "deliverables": ["StorageService"],
+      "verification": "센서 데이터 파일 저장 테스트"
+    },
+    {
+      "phase_id": 60,
+      "phase_group": "앱 - 파일 시스템",
+      "phase_name": "JSON Lines 파일 핸들러",
+      "duration_hours": 5,
+      "priority": "high",
+      "dependencies": [59],
+      "tasks": [
+        "utils/jsonl.ts 파일 생성",
+        "JSONL 형식 쓰기",
+        "청크 단위 쓰기",
+        "스트리밍 읽기",
+        "파일 압축 (선택)"
+      ],
+      "deliverables": ["JSONL 핸들러"],
+      "verification": "JSONL 파일 쓰기/읽기 테스트"
+    },
+    {
+      "phase_id": 61,
+      "phase_group": "앱 - 타입 정의",
+      "phase_name": "센서 타입 정의",
+      "duration_hours": 4,
+      "priority": "high",
+      "dependencies": [10],
+      "tasks": [
+        "types/sensor.ts 파일 생성",
+        "SensorType enum",
+        "SensorSample interface",
+        "SensorConfig interface",
+        "타임스탬프 타입",
+        "에러 타입"
+      ],
+      "deliverables": ["센서 타입"],
+      "verification": "타입 체크 확인"
+    },
+    {
+      "phase_id": 62,
+      "phase_group": "앱 - 타입 정의",
+      "phase_name": "세션 타입 정의",
+      "duration_hours": 3,
+      "priority": "high",
+      "dependencies": [61],
+      "tasks": [
+        "types/session.ts 파일 생성",
+        "Session interface",
+        "SessionStatus enum",
+        "SessionMetadata interface"
+      ],
+      "deliverables": ["세션 타입"],
+      "verification": "타입 체크 확인"
+    },
+    {
+      "phase_id": 63,
+      "phase_group": "앱 - 타입 정의",
+      "phase_name": "동기화 타입 정의",
+      "duration_hours": 3,
+      "priority": "high",
+      "dependencies": [61],
+      "tasks": [
+        "types/sync.ts 파일 생성",
+        "SyncStatus enum",
+        "SyncQueueItem interface",
+        "SyncResult interface"
+      ],
+      "deliverables": ["동기화 타입"],
+      "verification": "타입 체크 확인"
+    },
+    {
+      "phase_id": 64,
+      "phase_group": "앱 - 권한 관리",
+      "phase_name": "react-native-permissions 설치",
+      "duration_hours": 3,
+      "priority": "critical",
+      "dependencies": [10],
+      "tasks": [
+        "react-native-permissions 설치",
+        "Android/iOS 설정",
+        "AndroidManifest.xml 권한 추가",
+        "Info.plist 권한 추가"
+      ],
+      "deliverables": ["권한 라이브러리"],
+      "verification": "권한 라이브러리 import 확인"
+    },
+    {
+      "phase_id": 65,
+      "phase_group": "앱 - 권한 관리",
+      "phase_name": "센서 권한 요청 구현",
+      "duration_hours": 5,
+      "priority": "critical",
+      "dependencies": [64],
+      "tasks": [
+        "utils/permissions.ts 파일 생성",
+        "권한 체크 함수",
+        "권한 요청 함수",
+        "ACTIVITY_RECOGNITION 권한",
+        "BODY_SENSORS 권한",
+        "권한 거부 처리",
+        "UI 안내 메시지"
+      ],
+      "deliverables": ["권한 관리"],
+      "verification": "권한 요청 플로우 테스트"
+    },
+    {
+      "phase_id": 66,
+      "phase_group": "앱 - 권한 관리",
+      "phase_name": "위치 권한 요청 구현",
+      "duration_hours": 4,
+      "priority": "high",
+      "dependencies": [65],
+      "tasks": [
+        "ACCESS_FINE_LOCATION 권한",
+        "ACCESS_COARSE_LOCATION 권한",
+        "백그라운드 위치 권한 (Android 10+)",
+        "권한 상태 추적"
+      ],
+      "deliverables": ["위치 권한"],
+      "verification": "위치 권한 요청 테스트"
+    },
+    {
+      "phase_id": 67,
+      "phase_group": "앱 - 권한 관리",
+      "phase_name": "오디오 권한 요청 구현",
+      "duration_hours": 4,
+      "priority": "critical",
+      "dependencies": [65],
+      "tasks": [
+        "RECORD_AUDIO 권한",
+        "마이크 접근 권한",
+        "권한 거부 시 안내",
+        "재요청 로직"
+      ],
+      "deliverables": ["오디오 권한"],
+      "verification": "마이크 권한 요청 테스트"
+    },
+    {
+      "phase_id": 68,
+      "phase_group": "앱 - 권한 관리",
+      "phase_name": "저장소 권한 요청 구현",
+      "duration_hours": 4,
+      "priority": "high",
+      "dependencies": [65],
+      "tasks": [
+        "WRITE_EXTERNAL_STORAGE 권한 (Android 9 이하)",
+        "MANAGE_EXTERNAL_STORAGE 권한 (Android 11+)",
+        "Scoped Storage 처리",
+        "권한 설명 다이얼로그"
+      ],
+      "deliverables": ["저장소 권한"],
+      "verification": "파일 저장 권한 테스트"
+    },
+    {
+      "phase_id": 69,
+      "phase_group": "앱 - 권한 관리",
+      "phase_name": "권한 상태 관리 스토어",
+      "duration_hours": 4,
+      "priority": "high",
+      "dependencies": [65],
+      "tasks": [
+        "store/usePermissionStore.ts 파일 생성",
+        "권한 상태 저장",
+        "권한 체크 액션",
+        "권한 요청 액션",
+        "UI 연동"
+      ],
+      "deliverables": ["권한 스토어"],
+      "verification": "권한 상태 관리 테스트"
+    },
+    {
+      "phase_id": 70,
+      "phase_group": "앱 - 네트워크",
+      "phase_name": "@react-native-community/netinfo 설치",
+      "duration_hours": 3,
+      "priority": "critical",
+      "dependencies": [10],
+      "tasks": [
+        "@react-native-community/netinfo 설치",
+        "Android/iOS 링크",
+        "네트워크 상태 리스너 설정",
+        "기본 테스트"
+      ],
+      "deliverables": ["NetInfo"],
+      "verification": "네트워크 상태 감지 테스트"
+    },
+    {
+      "phase_id": 71,
+      "phase_group": "앱 - Native Module",
+      "phase_name": "Android 센서 프로젝트 구조",
+      "duration_hours": 4,
+      "priority": "critical",
+      "dependencies": [3],
+      "tasks": [
+        "android/app/src/main/java/com/koodtx 폴더 확인",
+        "SensorModule.kt 파일 생성",
+        "SensorPackage.kt 파일 생성",
+        "MainApplication.kt에 패키지 등록",
+        "기본 구조 설정"
+      ],
+      "deliverables": ["Native Module 구조"],
+      "verification": "Native Module 등록 확인"
+    },
+    {
+      "phase_id": 72,
+      "phase_group": "앱 - Native Module",
+      "phase_name": "가속도계 센서 구현 (Kotlin)",
+      "duration_hours": 8,
+      "priority": "critical",
+      "dependencies": [71],
+      "tasks": [
+        "SensorManager 초기화",
+        "TYPE_ACCELEROMETER 센서 등록",
+        "SensorEventListener 구현",
+        "고주파 샘플링 (200Hz) 설정",
+        "데이터 버퍼링 (50ms)",
+        "RN Bridge로 배치 전송",
+        "시작/중지 메서드",
+        "에러 핸들링"
+      ],
+      "deliverables": ["가속도계 Native Module"],
+      "verification": "가속도계 데이터 수집 테스트"
+    },
+    {
+      "phase_id": 73,
+      "phase_group": "앱 - Native Module",
+      "phase_name": "자이로스코프 센서 구현 (Kotlin)",
+      "duration_hours": 7,
+      "priority": "critical",
+      "dependencies": [72],
+      "tasks": [
+        "TYPE_GYROSCOPE 센서 등록",
+        "회전 속도 데이터 수집",
+        "샘플링율 설정",
+        "배치 전송",
+        "calibration 지원"
+      ],
+      "deliverables": ["자이로스코프 Native Module"],
+      "verification": "자이로스코프 데이터 수집 테스트"
+    },
+    {
+      "phase_id": 74,
+      "phase_group": "앱 - Native Module",
+      "phase_name": "지자기 센서 구현 (Kotlin)",
+      "duration_hours": 5,
+      "priority": "high",
+      "dependencies": [72],
+      "tasks": [
+        "TYPE_MAGNETIC_FIELD 센서 등록",
+        "자기장 데이터 수집",
+        "나침반 방향 계산",
+        "데이터 전송"
+      ],
+      "deliverables": ["지자기 Native Module"],
+      "verification": "자기장 데이터 수집 테스트"
+    },
+    {
+      "phase_id": 75,
+      "phase_group": "앱 - Native Module",
+      "phase_name": "TypeScript Bridge 구현",
+      "duration_hours": 6,
+      "priority": "critical",
+      "dependencies": [72],
+      "tasks": [
+        "native/SensorBridge.ts 파일 생성",
+        "NativeModules import",
+        "NativeEventEmitter 설정",
+        "startAccelerometer 함수",
+        "startGyroscope 함수",
+        "stopAllSensors 함수",
+        "타입 정의",
+        "에러 핸들링"
+      ],
+      "deliverables": ["Sensor Bridge"],
+      "verification": "TypeScript에서 센서 제어 테스트"
+    },
+    {
+      "phase_id": 76,
+      "phase_group": "앱 - Native Module",
+      "phase_name": "센서 데이터 스트림 처리",
+      "duration_hours": 6,
+      "priority": "critical",
+      "dependencies": [75],
+      "tasks": [
+        "RxJS 또는 이벤트 스트림 설정",
+        "센서 데이터 구독",
+        "실시간 처리",
+        "버퍼 오버플로우 방지",
+        "스트림 종료 처리"
+      ],
+      "deliverables": ["데이터 스트림"],
+      "verification": "센서 데이터 스트림 테스트"
+    },
+    {
+      "phase_id": 77,
+      "phase_group": "앱 - 센서 서비스",
+      "phase_name": "SensorService 구조 설계",
+      "duration_hours": 5,
+      "priority": "critical",
+      "dependencies": [75],
+      "tasks": [
+        "services/SensorService.ts 파일 생성",
+        "싱글톤 패턴",
+        "센서 상태 관리",
+        "녹음 세션 관리",
+        "인터페이스 정의"
+      ],
+      "deliverables": ["SensorService 구조"],
+      "verification": "서비스 초기화 확인"
+    },
+    {
+      "phase_id": 78,
+      "phase_group": "앱 - 센서 서비스",
+      "phase_name": "센서 시작 로직 구현",
+      "duration_hours": 7,
+      "priority": "critical",
+      "dependencies": [77],
+      "tasks": [
+        "startRecording 메서드 구현",
+        "세션 ID 생성",
+        "모든 센서 시작",
+        "데이터 버퍼 초기화",
+        "타임스탬프 동기화",
+        "에러 처리",
+        "상태 업데이트"
+      ],
+      "deliverables": ["센서 시작 로직"],
+      "verification": "센서 녹음 시작 테스트"
+    },
+    {
+      "phase_id": 79,
+      "phase_group": "앱 - 센서 서비스",
+      "phase_name": "센서 중지 로직 구현",
+      "duration_hours": 5,
+      "priority": "critical",
+      "dependencies": [78],
+      "tasks": [
+        "stopRecording 메서드 구현",
+        "모든 센서 중지",
+        "버퍼 플러시",
+        "세션 종료 처리",
+        "파일 저장 완료 확인"
+      ],
+      "deliverables": ["센서 중지 로직"],
+      "verification": "센서 녹음 중지 테스트"
+    },
+    {
+      "phase_id": 80,
+      "phase_group": "앱 - 센서 서비스",
+      "phase_name": "데이터 버퍼링 시스템",
+      "duration_hours": 7,
+      "priority": "critical",
+      "dependencies": [78],
+      "tasks": [
+        "메모리 버퍼 구현",
+        "배치 크기 설정 (100 샘플)",
+        "플러시 조건 (시간/크기)",
+        "백프레셔 처리",
+        "버퍼 오버플로우 방지",
+        "성능 최적화"
+      ],
+      "deliverables": ["버퍼링 시스템"],
+      "verification": "고주파 데이터 버퍼링 테스트"
+    },
+    {
+      "phase_id": 81,
+      "phase_group": "앱 - 센서 서비스",
+      "phase_name": "데이터 저장 로직",
+      "duration_hours": 8,
+      "priority": "critical",
+      "dependencies": [80],
+      "tasks": [
+        "버퍼 데이터 파일로 저장",
+        "JSONL 형식 쓰기",
+        "청크 파일 생성 (1분 단위)",
+        "WatermelonDB 메타데이터 저장",
+        "SyncQueue에 추가",
+        "원자적 쓰기 보장",
+        "디스크 I/O 최적화"
+      ],
+      "deliverables": ["데이터 저장"],
+      "verification": "센서 데이터 파일 저장 테스트"
+    },
+    {
+      "phase_id": 82,
+      "phase_group": "앱 - 센서 서비스",
+      "phase_name": "타임스탬프 유틸리티",
+      "duration_hours": 5,
+      "priority": "high",
+      "dependencies": [78],
+      "tasks": [
+        "utils/timestamp.ts 파일 생성",
+        "UTC epoch 타임스탬프",
+        "Elapsed time (performance.now())",
+        "타임존 정보",
+        "서버 시간 동기화 (선택)",
+        "NTP 클라이언트 (선택)"
+      ],
+      "deliverables": ["타임스탬프 유틸"],
+      "verification": "정확한 타임스탬프 생성 확인"
+    },
+    {
+      "phase_id": 83,
+      "phase_group": "앱 - GPS",
+      "phase_name": "@react-native-community/geolocation 설치",
+      "duration_hours": 3,
+      "priority": "high",
+      "dependencies": [10],
+      "tasks": [
+        "@react-native-community/geolocation 설치",
+        "Android/iOS 설정",
+        "위치 권한 연동",
+        "기본 테스트"
+      ],
+      "deliverables": ["Geolocation"],
+      "verification": "GPS 라이브러리 설치 확인"
+    },
+    {
+      "phase_id": 84,
+      "phase_group": "앱 - GPS",
+      "phase_name": "GPS 서비스 구현",
+      "duration_hours": 7,
+      "priority": "high",
+      "dependencies": [83],
+      "tasks": [
+        "services/GPSService.ts 파일 생성",
+        "현재 위치 조회",
+        "위치 추적 (watchPosition)",
+        "정확도 설정",
+        "배터리 최적화 (distanceFilter)",
+        "위치 데이터 저장",
+        "에러 처리"
+      ],
+      "deliverables": ["GPSService"],
+      "verification": "GPS 위치 수집 테스트"
+    },
+    {
+      "phase_id": 85,
+      "phase_group": "앱 - GPS",
+      "phase_name": "GPS 데이터 저장",
+      "duration_hours": 5,
+      "priority": "high",
+      "dependencies": [84],
+      "tasks": [
+        "GPS 데이터 포맷 정의",
+        "위도/경도/고도/정확도",
+        "타임스탬프 동기화",
+        "파일 저장 (JSONL)",
+        "WatermelonDB 메타데이터"
+      ],
+      "deliverables": ["GPS 저장"],
+      "verification": "GPS 데이터 파일 저장 테스트"
+    },
+    {
+      "phase_id": 86,
+      "phase_group": "앱 - 센서 서비스",
+      "phase_name": "센서 스토어 생성",
+      "duration_hours": 6,
+      "priority": "high",
+      "dependencies": [78],
+      "tasks": [
+        "store/useSensorStore.ts 파일 생성",
+        "녹음 상태 관리",
+        "센서 활성화 상태",
+        "실시간 센서 값",
+        "세션 정보",
+        "에러 상태",
+        "액션 정의"
+      ],
+      "deliverables": ["Sensor Store"],
+      "verification": "센서 상태 관리 테스트"
+    },
+    {
+      "phase_id": 87,
+      "phase_group": "앱 - 센서 서비스",
+      "phase_name": "커스텀 Hook (useSensor)",
+      "duration_hours": 5,
+      "priority": "high",
+      "dependencies": [86],
+      "tasks": [
+        "hooks/useSensor.ts 파일 생성",
+        "센서 시작 Hook",
+        "센서 중지 Hook",
+        "실시간 센서 데이터 구독",
+        "생명주기 관리",
+        "클린업"
+      ],
+      "deliverables": ["useSensor Hook"],
+      "verification": "Hook 사용 테스트"
+    },
+    {
+      "phase_id": 88,
+      "phase_group": "앱 - 센서 서비스",
+      "phase_name": "센서 설정 관리",
+      "duration_hours": 5,
+      "priority": "medium",
+      "dependencies": [86],
+      "tasks": [
+        "센서 샘플링율 설정",
+        "활성화할 센서 선택",
+        "GPS 정확도 설정",
+        "배터리 절약 모드",
+        "AsyncStorage에 설정 저장",
+        "설정 UI 연동"
+      ],
+      "deliverables": ["센서 설정"],
+      "verification": "설정 변경 및 적용 테스트"
+    },
+    {
+      "phase_id": 89,
+      "phase_group": "앱 - 오디오 준비",
+      "phase_name": "react-native-audio-record 설치",
+      "duration_hours": 3,
+      "priority": "critical",
+      "dependencies": [10],
+      "tasks": [
+        "react-native-audio-record 설치",
+        "Android/iOS 링크",
+        "오디오 권한 연동",
+        "기본 녹음 테스트"
+      ],
+      "deliverables": ["오디오 라이브러리"],
+      "verification": "오디오 라이브러리 설치 확인"
+    },
+    {
+      "phase_id": 90,
+      "phase_group": "앱 - 오디오 준비",
+      "phase_name": "Native Audio Module 구조",
+      "duration_hours": 5,
+      "priority": "critical",
+      "dependencies": [89],
+      "tasks": [
+        "AudioRecorderModule.kt 파일 생성",
+        "AudioRecord 초기화",
+        "샘플링율 설정 (44100Hz)",
+        "오디오 포맷 (PCM_16BIT)",
+        "버퍼 크기 계산",
+        "패키지 등록"
+      ],
+      "deliverables": ["Audio Native Module"],
+      "verification": "Native Audio 모듈 등록 확인"
+    },
+    {
+      "phase_id": 91,
+      "phase_group": "앱 - 오디오 수집",
+      "phase_name": "오디오 녹음 구현 (Kotlin)",
+      "duration_hours": 10,
+      "priority": "critical",
+      "dependencies": [90],
+      "tasks": [
+        "AudioRecord 시작/중지",
+        "백그라운드 스레드 녹음",
+        "PCM 데이터 읽기",
+        "RMS 레벨 계산",
+        "dB 변환",
+        "무음 감지",
+        "데이터 버퍼링",
+        "RN Bridge 전송"
+      ],
+      "deliverables": ["오디오 녹음"],
+      "verification": "오디오 녹음 및 데이터 전송 테스트"
+    },
+    {
+      "phase_id": 92,
+      "phase_group": "앱 - 오디오 수집",
+      "phase_name": "오디오 데이터 처리",
+      "duration_hours": 6,
+      "priority": "critical",
+      "dependencies": [91],
+      "tasks": [
+        "PCM 데이터 처리",
+        "오디오 청크 저장",
+        "WAV 헤더 추가 (선택)",
+        "압축 (Opus/AAC, 선택)",
+        "메타데이터 저장",
+        "파일 저장"
+      ],
+      "deliverables": ["오디오 처리"],
+      "verification": "오디오 파일 저장 테스트"
+    },
+    {
+      "phase_id": 93,
+      "phase_group": "앱 - 오디오 서비스",
+      "phase_name": "AudioService 구현",
+      "duration_hours": 8,
+      "priority": "critical",
+      "dependencies": [92],
+      "tasks": [
+        "services/AudioService.ts 파일 생성",
+        "오디오 시작/중지",
+        "실시간 dB 레벨 모니터링",
+        "오디오 설정 (샘플링율, 채널)",
+        "파일 저장 경로",
+        "버퍼 관리",
+        "에러 핸들링"
+      ],
+      "deliverables": ["AudioService"],
+      "verification": "오디오 서비스 통합 테스트"
+    },
+    {
+      "phase_id": 94,
+      "phase_group": "앱 - 오디오 서비스",
+      "phase_name": "오디오 스토어",
+      "duration_hours": 5,
+      "priority": "high",
+      "dependencies": [93],
+      "tasks": [
+        "store/useAudioStore.ts 파일 생성",
+        "녹음 상태",
+        "현재 dB 레벨",
+        "녹음 시간",
+        "오디오 설정",
+        "에러 상태"
+      ],
+      "deliverables": ["Audio Store"],
+      "verification": "오디오 상태 관리 테스트"
+    },
+    {
+      "phase_id": 95,
+      "phase_group": "앱 - 오디오 서비스",
+      "phase_name": "오디오 시각화 컴포넌트",
+      "duration_hours": 6,
+      "priority": "medium",
+      "dependencies": [94],
+      "tasks": [
+        "components/AudioVisualizer.tsx 파일 생성",
+        "실시간 dB 레벨 표시",
+        "파형 그래프 (선택)",
+        "녹음 타이머",
+        "애니메이션",
+        "스타일링"
+      ],
+      "deliverables": ["오디오 시각화"],
+      "verification": "오디오 시각화 UI 확인"
+    },
+    {
+      "phase_id": 96,
+      "phase_group": "앱 - 통합",
+      "phase_name": "센서 + 오디오 동시 녹음",
+      "duration_hours": 8,
+      "priority": "critical",
+      "dependencies": [93, 78],
+      "tasks": [
+        "SensorService와 AudioService 통합",
+        "동시 시작/중지 제어",
+        "타임스탬프 동기화",
+        "세션 ID 공유",
+        "데이터 일관성 보장",
+        "에러 동기화",
+        "성능 최적화"
+      ],
+      "deliverables": ["통합 녹음"],
+      "verification": "센서+오디오 동시 녹음 테스트"
+    },
+    {
+      "phase_id": 97,
+      "phase_group": "앱 - 배터리 최적화",
+      "phase_name": "Wake Lock 관리",
+      "duration_hours": 5,
+      "priority": "high",
+      "dependencies": [96],
+      "tasks": [
+        "react-native-keep-awake 설치",
+        "녹음 중 화면 켜짐 유지",
+        "배터리 영향 최소화",
+        "설정 옵션 (선택적 Wake Lock)",
+        "백그라운드 모드 지원"
+      ],
+      "deliverables": ["Wake Lock"],
+      "verification": "Wake Lock 동작 테스트"
+    },
+    {
+      "phase_id": 98,
+      "phase_group": "앱 - 배터리 최적화",
+      "phase_name": "센서 샘플링 동적 조정",
+      "duration_hours": 6,
+      "priority": "medium",
+      "dependencies": [97],
+      "tasks": [
+        "배터리 레벨 감지",
+        "저전력 모드 감지",
+        "샘플링율 자동 조정 (200Hz -> 50Hz)",
+        "사용자 설정 존중",
+        "상태 알림"
+      ],
+      "deliverables": ["동적 샘플링"],
+      "verification": "저전력 모드 샘플링 테스트"
+    },
+    {
+      "phase_id": 99,
+      "phase_group": "앱 - 배터리 최적화",
+      "phase_name": "백그라운드 실행 최적화",
+      "duration_hours": 6,
+      "priority": "high",
+      "dependencies": [97],
+      "tasks": [
+        "Foreground Service 설정 (Android)",
+        "알림 표시 (녹음 중)",
+        "배터리 최적화 예외 요청",
+        "백그라운드 제한 처리",
+        "Doze 모드 대응"
+      ],
+      "deliverables": ["백그라운드 최적화"],
+      "verification": "백그라운드 녹음 테스트"
+    },
+    {
+      "phase_id": 100,
+      "phase_group": "앱 - 디바이스 정보",
+      "phase_name": "react-native-device-info 설치",
+      "duration_hours": 3,
+      "priority": "medium",
+      "dependencies": [10],
+      "tasks": [
+        "react-native-device-info 설치",
+        "디바이스 정보 수집",
+        "모델명, OS 버전, 배터리 상태",
+        "메타데이터에 포함",
+        "프라이버시 고려"
+      ],
+      "deliverables": ["Device Info"],
+      "verification": "디바이스 정보 수집 테스트"
+    },
+    {
+      "phase_id": 101,
+      "phase_group": "앱 - API 클라이언트",
+      "phase_name": "Axios 설치 및 설정",
+      "duration_hours": 4,
+      "priority": "critical",
+      "dependencies": [10],
+      "tasks": [
+        "axios 설치",
+        "api/client.ts 파일 생성",
+        "baseURL 설정",
+        "타임아웃 설정",
+        "헤더 설정",
+        "인터셉터 준비"
+      ],
+      "deliverables": ["Axios 클라이언트"],
+      "verification": "Axios 인스턴스 생성 확인"
+    },
+    {
+      "phase_id": 102,
+      "phase_group": "앱 - API 클라이언트",
+      "phase_name": "인증 인터셉터 구현",
+      "duration_hours": 6,
+      "priority": "critical",
+      "dependencies": [101],
+      "tasks": [
+        "요청 인터셉터: JWT 토큰 자동 추가",
+        "응답 인터셉터: 401 처리",
+        "토큰 갱신 로직",
+        "토큰 만료 감지",
+        "재시도 로직",
+        "에러 핸들링"
+      ],
+      "deliverables": ["인증 인터셉터"],
+      "verification": "토큰 자동 추가 및 갱신 테스트"
+    },
+    {
+      "phase_id": 103,
+      "phase_group": "앱 - API 클라이언트",
+      "phase_name": "재시도 및 오프라인 큐 인터셉터",
+      "duration_hours": 7,
+      "priority": "critical",
+      "dependencies": [102],
+      "tasks": [
+        "네트워크 에러 재시도",
+        "Exponential Backoff",
+        "최대 재시도 횟수",
+        "오프라인 요청 큐잉",
+        "온라인 복구 시 재전송",
+        "요청 우선순위"
+      ],
+      "deliverables": ["재시도 로직"],
+      "verification": "네트워크 실패 재시도 테스트"
+    },
+    {
+      "phase_id": 104,
+      "phase_group": "앱 - API 클라이언트",
+      "phase_name": "인증 API 함수",
+      "duration_hours": 5,
+      "priority": "critical",
+      "dependencies": [102],
+      "tasks": [
+        "api/auth.ts 파일 생성",
+        "register()",
+        "login()",
+        "refreshToken()",
+        "logout()",
+        "타입 정의",
+        "에러 처리"
+      ],
+      "deliverables": ["인증 API"],
+      "verification": "회원가입/로그인 API 호출 테스트"
+    },
+    {
+      "phase_id": 105,
+      "phase_group": "앱 - API 클라이언트",
+      "phase_name": "세션 API 함수",
+      "duration_hours": 5,
+      "priority": "critical",
+      "dependencies": [102],
+      "tasks": [
+        "api/sessions.ts 파일 생성",
+        "createSession()",
+        "getSessions()",
+        "getSessionDetail()",
+        "updateSession()",
+        "deleteSession()",
+        "타입 정의"
+      ],
+      "deliverables": ["세션 API"],
+      "verification": "세션 CRUD API 테스트"
+    },
+    {
+      "phase_id": 106,
+      "phase_group": "앱 - API 클라이언트",
+      "phase_name": "파일 업로드 API 함수",
+      "duration_hours": 8,
+      "priority": "critical",
+      "dependencies": [102],
+      "tasks": [
+        "api/upload.ts 파일 생성",
+        "uploadFile() multipart",
+        "청크 업로드 지원",
+        "업로드 진행률 콜백",
+        "파일 메타데이터 전송",
+        "재개 가능 업로드 (선택)",
+        "취소 지원",
+        "에러 처리"
+      ],
+      "deliverables": ["파일 업로드 API"],
+      "verification": "파일 업로드 및 진행률 테스트"
+    },
+    {
+      "phase_id": 107,
+      "phase_group": "앱 - API 클라이언트",
+      "phase_name": "동기화 API 함수",
+      "duration_hours": 6,
+      "priority": "critical",
+      "dependencies": [102],
+      "tasks": [
+        "api/sync.ts 파일 생성",
+        "syncPush()",
+        "syncPull()",
+        "배치 동기화",
+        "델타 동기화 파라미터",
+        "타입 정의",
+        "에러 처리"
+      ],
+      "deliverables": ["동기화 API"],
+      "verification": "동기화 API 호출 테스트"
+    },
+    {
+      "phase_id": 108,
+      "phase_group": "앱 - 동기화 서비스",
+      "phase_name": "SyncService 구조 설계",
+      "duration_hours": 6,
+      "priority": "critical",
+      "dependencies": [107],
+      "tasks": [
+        "services/SyncService.ts 파일 생성",
+        "싱글톤 패턴",
+        "동기화 상태 관리",
+        "큐 관리",
+        "인터페이스 정의",
+        "이벤트 발행"
+      ],
+      "deliverables": ["SyncService 구조"],
+      "verification": "동기화 서비스 초기화"
+    },
+    {
+      "phase_id": 109,
+      "phase_group": "앱 - 동기화 서비스",
+      "phase_name": "동기화 큐 관리",
+      "duration_hours": 7,
+      "priority": "critical",
+      "dependencies": [108],
+      "tasks": [
+        "SyncQueue 조회",
+        "우선순위 정렬",
+        "pending 항목 필터링",
+        "동시 업로드 수 제한",
+        "재시도 로직",
+        "실패 항목 관리"
+      ],
+      "deliverables": ["큐 관리"],
+      "verification": "동기화 큐 처리 테스트"
+    },
+    {
+      "phase_id": 110,
+      "phase_group": "앱 - 동기화 서비스",
+      "phase_name": "세션 메타데이터 동기화",
+      "duration_hours": 6,
+      "priority": "critical",
+      "dependencies": [109],
+      "tasks": [
+        "세션 정보 Push",
+        "서버 응답 처리",
+        "로컬 상태 업데이트",
+        "충돌 해결 (LWW)",
+        "동기화 로그 기록"
+      ],
+      "deliverables": ["메타데이터 동기화"],
+      "verification": "세션 동기화 테스트"
+    },
+    {
+      "phase_id": 111,
+      "phase_group": "앱 - 동기화 서비스",
+      "phase_name": "파일 업로드 동기화",
+      "duration_hours": 8,
+      "priority": "critical",
+      "dependencies": [110],
+      "tasks": [
+        "센서 데이터 파일 업로드",
+        "오디오 파일 업로드",
+        "파일 청크 처리",
+        "업로드 진행률 추적",
+        "실패 시 재시도",
+        "성공 시 SyncQueue 업데이트",
+        "로컬 파일 정리 (선택)"
+      ],
+      "deliverables": ["파일 동기화"],
+      "verification": "파일 업로드 동기화 테스트"
+    },
+    {
+      "phase_id": 112,
+      "phase_group": "앱 - 동기화 서비스",
+      "phase_name": "Pull 동기화 (서버 -> 클라이언트)",
+      "duration_hours": 7,
+      "priority": "high",
+      "dependencies": [110],
+      "tasks": [
+        "last_sync_time 관리",
+        "서버 변경사항 조회",
+        "로컬 데이터베이스 업데이트",
+        "충돌 해결",
+        "마지막 동기화 시간 갱신"
+      ],
+      "deliverables": ["Pull 동기화"],
+      "verification": "서버 데이터 Pull 테스트"
+    },
+    {
+      "phase_id": 113,
+      "phase_group": "앱 - 동기화 서비스",
+      "phase_name": "동기화 스토어",
+      "duration_hours": 6,
+      "priority": "high",
+      "dependencies": [108],
+      "tasks": [
+        "store/useSyncStore.ts 파일 생성",
+        "동기화 상태",
+        "진행률",
+        "큐 크기",
+        "마지막 동기화 시간",
+        "에러 상태",
+        "액션"
+      ],
+      "deliverables": ["Sync Store"],
+      "verification": "동기화 상태 관리 테스트"
+    },
+    {
+      "phase_id": 114,
+      "phase_group": "앱 - 동기화 서비스",
+      "phase_name": "네트워크 상태 감지 통합",
+      "duration_hours": 5,
+      "priority": "critical",
+      "dependencies": [70, 108],
+      "tasks": [
+        "NetInfo 리스너 연동",
+        "WiFi 연결 감지",
+        "자동 동기화 트리거",
+        "배터리 상태 체크",
+        "설정 기반 동기화 (WiFi만, 충전 중)"
+      ],
+      "deliverables": ["네트워크 감지"],
+      "verification": "네트워크 복구 시 자동 동기화"
+    },
+    {
+      "phase_id": 115,
+      "phase_group": "앱 - 동기화 서비스",
+      "phase_name": "백그라운드 동기화",
+      "duration_hours": 7,
+      "priority": "high",
+      "dependencies": [114],
+      "tasks": [
+        "react-native-background-fetch 설치",
+        "백그라운드 작업 설정",
+        "15분 주기 체크",
+        "동기화 실행",
+        "완료 콜백",
+        "에러 처리"
+      ],
+      "deliverables": ["백그라운드 동기화"],
+      "verification": "백그라운드 동기화 테스트"
+    },
+    {
+      "phase_id": 116,
+      "phase_group": "앱 - 동기화 서비스",
+      "phase_name": "수동 동기화 기능",
+      "duration_hours": 4,
+      "priority": "medium",
+      "dependencies": [113],
+      "tasks": [
+        "사용자 트리거 동기화",
+        "즉시 실행",
+        "진행률 UI 업데이트",
+        "완료 알림"
+      ],
+      "deliverables": ["수동 동기화"],
+      "verification": "수동 동기화 버튼 테스트"
+    },
+    {
+      "phase_id": 117,
+      "phase_group": "앱 - 동기화 서비스",
+      "phase_name": "동기화 충돌 해결",
+      "duration_hours": 6,
+      "priority": "high",
+      "dependencies": [110],
+      "tasks": [
+        "Last-Write-Wins 구현",
+        "타임스탬프 비교",
+        "충돌 로그 기록",
+        "사용자 알림 (선택)",
+        "충돌 통계"
+      ],
+      "deliverables": ["충돌 해결"],
+      "verification": "동기화 충돌 시나리오 테스트"
+    },
+    {
+      "phase_id": 118,
+      "phase_group": "앱 - 동기화 서비스",
+      "phase_name": "동기화 통계 및 로그",
+      "duration_hours": 5,
+      "priority": "medium",
+      "dependencies": [113],
+      "tasks": [
+        "동기화 성공/실패 카운트",
+        "전송 데이터 크기",
+        "평균 동기화 시간",
+        "로그 기록",
+        "UI 표시"
+      ],
+      "deliverables": ["동기화 통계"],
+      "verification": "동기화 통계 확인"
+    },
+    {
+      "phase_id": 119,
+      "phase_group": "앱 - 동기화 서비스",
+      "phase_name": "선택적 동기화",
+      "duration_hours": 5,
+      "priority": "medium",
+      "dependencies": [116],
+      "tasks": [
+        "특정 세션만 동기화",
+        "오디오 제외 동기화",
+        "센서 타입별 동기화",
+        "사용자 선택 UI"
+      ],
+      "deliverables": ["선택적 동기화"],
+      "verification": "선택적 동기화 테스트"
+    },
+    {
+      "phase_id": 120,
+      "phase_group": "앱 - 동기화 서비스",
+      "phase_name": "동기화 Hook (useSync)",
+      "duration_hours": 4,
+      "priority": "high",
+      "dependencies": [113],
+      "tasks": [
+        "hooks/useSync.ts 파일 생성",
+        "동기화 상태 구독",
+        "동기화 트리거 함수",
+        "생명주기 관리"
+      ],
+      "deliverables": ["useSync Hook"],
+      "verification": "Hook 사용 테스트"
+    },
+    {
+      "phase_id": 121,
+      "phase_group": "앱 - UI",
+      "phase_name": "기본 화면 구조 설정",
+      "duration_hours": 4,
+      "priority": "high",
+      "dependencies": [7],
+      "tasks": [
+        "screens/ 폴더 확인",
+        "HomeScreen.tsx 생성",
+        "RecordingScreen.tsx 생성",
+        "SessionsScreen.tsx 생성",
+        "SettingsScreen.tsx 생성",
+        "SyncScreen.tsx 생성"
+      ],
+      "deliverables": ["화면 파일"],
+      "verification": "화면 파일 생성 확인"
+    },
+    {
+      "phase_id": 122,
+      "phase_group": "앱 - UI",
+      "phase_name": "Bottom Tab Navigator 설정",
+      "duration_hours": 5,
+      "priority": "high",
+      "dependencies": [121],
+      "tasks": [
+        "Bottom Tabs Navigator 생성",
+        "탭 화면 연결",
+        "아이콘 설정",
+        "탭 스타일링",
+        "활성 탭 표시"
+      ],
+      "deliverables": ["Bottom Tabs"],
+      "verification": "탭 네비게이션 동작 확인"
+    },
+    {
+      "phase_id": 123,
+      "phase_group": "앱 - UI",
+      "phase_name": "HomeScreen 기본 UI",
+      "duration_hours": 6,
+      "priority": "high",
+      "dependencies": [122],
+      "tasks": [
+        "앱 로고 및 제목",
+        "현재 상태 표시",
+        "녹음 시작 버튼",
+        "최근 세션 요약",
+        "동기화 상태 표시",
+        "스타일링"
+      ],
+      "deliverables": ["HomeScreen UI"],
+      "verification": "HomeScreen 렌더링 확인"
+    },
+    {
+      "phase_id": 124,
+      "phase_group": "앱 - UI",
+      "phase_name": "RecordingScreen 기본 UI",
+      "duration_hours": 8,
+      "priority": "critical",
+      "dependencies": [123],
+      "tasks": [
+        "녹음 시작/중지 버튼",
+        "녹음 타이머",
+        "실시간 센서 값 표시",
+        "오디오 dB 레벨",
+        "세션 메타데이터 입력",
+        "상태 표시",
+        "애니메이션"
+      ],
+      "deliverables": ["RecordingScreen UI"],
+      "verification": "녹음 화면 렌더링 확인"
+    },
+    {
+      "phase_id": 125,
+      "phase_group": "앱 - UI",
+      "phase_name": "실시간 센서 데이터 표시 컴포넌트",
+      "duration_hours": 7,
+      "priority": "high",
+      "dependencies": [124],
+      "tasks": [
+        "components/SensorCard.tsx 생성",
+        "센서 타입별 카드",
+        "실시간 값 표시 (X, Y, Z)",
+        "그래프 (선택)",
+        "단위 표시",
+        "스타일링",
+        "애니메이션"
+      ],
+      "deliverables": ["SensorCard"],
+      "verification": "센서 카드 컴포넌트 렌더링"
+    },
+    {
+      "phase_id": 126,
+      "phase_group": "앱 - UI",
+      "phase_name": "녹음 제어 로직 연동",
+      "duration_hours": 6,
+      "priority": "critical",
+      "dependencies": [124, 96],
+      "tasks": [
+        "녹음 시작 버튼 → SensorService.startRecording()",
+        "녹음 중지 버튼 → SensorService.stopRecording()",
+        "상태 업데이트",
+        "에러 처리",
+        "권한 체크"
+      ],
+      "deliverables": ["녹음 제어"],
+      "verification": "녹음 시작/중지 동작 테스트"
+    },
+    {
+      "phase_id": 127,
+      "phase_group": "앱 - UI",
+      "phase_name": "SessionsScreen 기본 UI",
+      "duration_hours": 7,
+      "priority": "high",
+      "dependencies": [122],
+      "tasks": [
+        "세션 리스트 (FlatList)",
+        "세션 아이템 카드",
+        "세션 정보 (이름, 날짜, 시간)",
+        "동기화 상태 아이콘",
+        "필터/정렬 버튼",
+        "검색 기능",
+        "스타일링"
+      ],
+      "deliverables": ["SessionsScreen UI"],
+      "verification": "세션 리스트 렌더링 확인"
+    },
+    {
+      "phase_id": 128,
+      "phase_group": "앱 - UI",
+      "phase_name": "세션 리스트 데이터 연동",
+      "duration_hours": 6,
+      "priority": "critical",
+      "dependencies": [127, 56],
+      "tasks": [
+        "WatermelonDB 세션 쿼리",
+        "observe() 사용",
+        "실시간 업데이트",
+        "정렬 (최신순)",
+        "필터링",
+        "FlatList 최적화"
+      ],
+      "deliverables": ["세션 리스트 데이터"],
+      "verification": "세션 리스트 동적 업데이트 확인"
+    },
+    {
+      "phase_id": 129,
+      "phase_group": "앱 - UI",
+      "phase_name": "세션 상세 화면",
+      "duration_hours": 8,
+      "priority": "high",
+      "dependencies": [128],
+      "tasks": [
+        "SessionDetailScreen.tsx 생성",
+        "세션 정보 표시",
+        "센서 데이터 요약",
+        "파일 목록",
+        "그래프/차트 (선택)",
+        "내보내기 버튼",
+        "삭제 버튼",
+        "스타일링"
+      ],
+      "deliverables": ["세션 상세 화면"],
+      "verification": "세션 상세 화면 렌더링"
+    },
+    {
+      "phase_id": 130,
+      "phase_group": "앱 - UI",
+      "phase_name": "세션 삭제 기능",
+      "duration_hours": 5,
+      "priority": "medium",
+      "dependencies": [129],
+      "tasks": [
+        "삭제 확인 다이얼로그",
+        "WatermelonDB 삭제",
+        "파일 삭제",
+        "UI 업데이트",
+        "Undo 기능 (선택)"
+      ],
+      "deliverables": ["세션 삭제"],
+      "verification": "세션 삭제 동작 테스트"
+    },
+    {
+      "phase_id": 131,
+      "phase_group": "앱 - UI",
+      "phase_name": "세션 내보내기 기능",
+      "duration_hours": 6,
+      "priority": "medium",
+      "dependencies": [129],
+      "tasks": [
+        "데이터 내보내기 포맷 (JSON, CSV)",
+        "파일 생성",
+        "Share API 사용",
+        "이메일/저장소 공유",
+        "진행률 표시"
+      ],
+      "deliverables": ["데이터 내보내기"],
+      "verification": "세션 내보내기 테스트"
+    },
+    {
+      "phase_id": 132,
+      "phase_group": "앱 - UI",
+      "phase_name": "SettingsScreen 기본 UI",
+      "duration_hours": 7,
+      "priority": "high",
+      "dependencies": [122],
+      "tasks": [
+        "설정 섹션 구분",
+        "센서 설정",
+        "동기화 설정",
+        "서버 설정",
+        "데이터 관리",
+        "앱 정보",
+        "스타일링"
+      ],
+      "deliverables": ["SettingsScreen UI"],
+      "verification": "설정 화면 렌더링"
+    },
+    {
+      "phase_id": 133,
+      "phase_group": "앱 - UI",
+      "phase_name": "센서 설정 UI",
+      "duration_hours": 6,
+      "priority": "high",
+      "dependencies": [132],
+      "tasks": [
+        "샘플링율 슬라이더",
+        "활성 센서 체크박스",
+        "GPS 정확도 선택",
+        "배터리 절약 모드 토글",
+        "설정 저장",
+        "기본값 복원"
+      ],
+      "deliverables": ["센서 설정 UI"],
+      "verification": "센서 설정 변경 테스트"
+    },
+    {
+      "phase_id": 134,
+      "phase_group": "앱 - UI",
+      "phase_name": "동기화 설정 UI",
+      "duration_hours": 5,
+      "priority": "high",
+      "dependencies": [132],
+      "tasks": [
+        "자동 동기화 토글",
+        "WiFi 전용 모드 토글",
+        "충전 중에만 동기화 토글",
+        "동기화 주기 설정",
+        "설정 저장"
+      ],
+      "deliverables": ["동기화 설정 UI"],
+      "verification": "동기화 설정 변경 테스트"
+    },
+    {
+      "phase_id": 135,
+      "phase_group": "앱 - UI",
+      "phase_name": "서버 설정 UI",
+      "duration_hours": 5,
+      "priority": "medium",
+      "dependencies": [132],
+      "tasks": [
+        "서버 URL 입력",
+        "연결 테스트 버튼",
+        "로그인 상태 표시",
+        "로그아웃 버튼",
+        "계정 정보"
+      ],
+      "deliverables": ["서버 설정 UI"],
+      "verification": "서버 설정 변경 테스트"
+    },
+    {
+      "phase_id": 136,
+      "phase_group": "앱 - UI",
+      "phase_name": "데이터 관리 UI",
+      "duration_hours": 6,
+      "priority": "medium",
+      "dependencies": [132],
+      "tasks": [
+        "로컬 데이터 크기 표시",
+        "캐시 삭제 버튼",
+        "모든 데이터 삭제 버튼",
+        "확인 다이얼로그",
+        "진행률 표시"
+      ],
+      "deliverables": ["데이터 관리 UI"],
+      "verification": "데이터 삭제 동작 테스트"
+    },
+    {
+      "phase_id": 137,
+      "phase_group": "앱 - UI",
+      "phase_name": "SyncScreen 기본 UI",
+      "duration_hours": 7,
+      "priority": "high",
+      "dependencies": [122],
+      "tasks": [
+        "동기화 상태 표시",
+        "동기화 진행률",
+        "수동 동기화 버튼",
+        "동기화 큐 리스트",
+        "동기화 로그",
+        "통계 표시",
+        "스타일링"
+      ],
+      "deliverables": ["SyncScreen UI"],
+      "verification": "동기화 화면 렌더링"
+    },
+    {
+      "phase_id": 138,
+      "phase_group": "앱 - UI",
+      "phase_name": "동기화 진행률 컴포넌트",
+      "duration_hours": 6,
+      "priority": "high",
+      "dependencies": [137],
+      "tasks": [
+        "components/SyncProgress.tsx 생성",
+        "프로그레스 바",
+        "현재/전체 항목 표시",
+        "업로드 속도",
+        "남은 시간 추정",
+        "애니메이션"
+      ],
+      "deliverables": ["동기화 진행률"],
+      "verification": "진행률 컴포넌트 렌더링"
+    },
+    {
+      "phase_id": 139,
+      "phase_group": "앱 - UI",
+      "phase_name": "동기화 로그 표시",
+      "duration_hours": 5,
+      "priority": "medium",
+      "dependencies": [137],
+      "tasks": [
+        "로그 리스트",
+        "타임스탬프",
+        "상태 (성공/실패)",
+        "에러 메시지",
+        "필터링"
+      ],
+      "deliverables": ["동기화 로그"],
+      "verification": "로그 표시 확인"
+    },
+    {
+      "phase_id": 140,
+      "phase_group": "앱 - UI",
+      "phase_name": "로그인 화면",
+      "duration_hours": 7,
+      "priority": "critical",
+      "dependencies": [7],
+      "tasks": [
+        "screens/LoginScreen.tsx 생성",
+        "이메일/비밀번호 입력",
+        "로그인 버튼",
+        "회원가입 링크",
+        "에러 표시",
+        "로딩 상태",
+        "스타일링"
+      ],
+      "deliverables": ["LoginScreen"],
+      "verification": "로그인 화면 렌더링"
+    },
+    {
+      "phase_id": 141,
+      "phase_group": "앱 - UI",
+      "phase_name": "회원가입 화면",
+      "duration_hours": 7,
+      "priority": "high",
+      "dependencies": [140],
+      "tasks": [
+        "screens/RegisterScreen.tsx 생성",
+        "사용자명, 이메일, 비밀번호 입력",
+        "비밀번호 확인",
+        "회원가입 버튼",
+        "유효성 검증",
+        "에러 표시",
+        "스타일링"
+      ],
+      "deliverables": ["RegisterScreen"],
+      "verification": "회원가입 화면 렌더링"
+    },
+    {
+      "phase_id": 142,
+      "phase_group": "앱 - UI",
+      "phase_name": "인증 플로우 연동",
+      "duration_hours": 8,
+      "priority": "critical",
+      "dependencies": [141, 104],
+      "tasks": [
+        "로그인 API 호출",
+        "토큰 저장 (Keychain)",
+        "사용자 정보 저장",
+        "네비게이션 (로그인 후 Home)",
+        "자동 로그인",
+        "토큰 만료 처리",
+        "로그아웃"
+      ],
+      "deliverables": ["인증 플로우"],
+      "verification": "로그인/로그아웃 플로우 테스트"
+    },
+    {
+      "phase_id": 143,
+      "phase_group": "앱 - UI",
+      "phase_name": "토큰 저장 (Keychain)",
+      "duration_hours": 5,
+      "priority": "critical",
+      "dependencies": [142],
+      "tasks": [
+        "react-native-keychain 설치",
+        "토큰 저장 함수",
+        "토큰 조회 함수",
+        "토큰 삭제 함수",
+        "보안 설정"
+      ],
+      "deliverables": ["Keychain"],
+      "verification": "토큰 안전 저장 테스트"
+    },
+    {
+      "phase_id": 144,
+      "phase_group": "앱 - UI",
+      "phase_name": "인증 상태 관리",
+      "duration_hours": 5,
+      "priority": "critical",
+      "dependencies": [142],
+      "tasks": [
+        "store/useAuthStore.ts 파일 생성",
+        "사용자 정보",
+        "토큰",
+        "로그인 상태",
+        "로그인/로그아웃 액션"
+      ],
+      "deliverables": ["Auth Store"],
+      "verification": "인증 상태 관리 테스트"
+    },
+    {
+      "phase_id": 145,
+      "phase_group": "앱 - UI",
+      "phase_name": "보호된 라우트 (Auth Guard)",
+      "duration_hours": 5,
+      "priority": "high",
+      "dependencies": [144],
+      "tasks": [
+        "인증 체크 컴포넌트",
+        "로그인 여부 확인",
+        "미인증 시 로그인 화면으로",
+        "자동 리다이렉션"
+      ],
+      "deliverables": ["Auth Guard"],
+      "verification": "보호된 라우트 동작 테스트"
+    },
+    {
+      "phase_id": 146,
+      "phase_group": "앱 - UI",
+      "phase_name": "Splash Screen",
+      "duration_hours": 5,
+      "priority": "medium",
+      "dependencies": [7],
+      "tasks": [
+        "react-native-splash-screen 설치",
+        "스플래시 이미지 설정",
+        "초기화 로직",
+        "자동 숨김",
+        "애니메이션 (선택)"
+      ],
+      "deliverables": ["Splash Screen"],
+      "verification": "앱 시작 시 스플래시 확인"
+    },
+    {
+      "phase_id": 147,
+      "phase_group": "앱 - UI",
+      "phase_name": "로딩 인디케이터 컴포넌트",
+      "duration_hours": 4,
+      "priority": "medium",
+      "dependencies": [9],
+      "tasks": [
+        "components/LoadingIndicator.tsx 생성",
+        "ActivityIndicator",
+        "오버레이",
+        "로딩 메시지",
+        "스타일링"
+      ],
+      "deliverables": ["Loading"],
+      "verification": "로딩 표시 컴포넌트"
+    },
+    {
+      "phase_id": 148,
+      "phase_group": "앱 - UI",
+      "phase_name": "에러 표시 컴포넌트",
+      "duration_hours": 4,
+      "priority": "medium",
+      "dependencies": [9],
+      "tasks": [
+        "components/ErrorMessage.tsx 생성",
+        "에러 메시지 표시",
+        "재시도 버튼",
+        "닫기 버튼",
+        "스타일링"
+      ],
+      "deliverables": ["Error Message"],
+      "verification": "에러 메시지 컴포넌트"
+    },
+    {
+      "phase_id": 149,
+      "phase_group": "앱 - UI",
+      "phase_name": "알림 (Toast) 컴포넌트",
+      "duration_hours": 5,
+      "priority": "medium",
+      "dependencies": [9],
+      "tasks": [
+        "react-native-toast-message 설치",
+        "Toast 설정",
+        "성공/에러/정보 메시지",
+        "커스텀 스타일",
+        "자동 숨김"
+      ],
+      "deliverables": ["Toast"],
+      "verification": "Toast 알림 표시 테스트"
+    },
+    {
+      "phase_id": 150,
+      "phase_group": "앱 - UI",
+      "phase_name": "다이얼로그 컴포넌트",
+      "duration_hours": 5,
+      "priority": "medium",
+      "dependencies": [9],
+      "tasks": [
+        "components/Dialog.tsx 생성",
+        "제목, 내용, 버튼",
+        "확인/취소 다이얼로그",
+        "커스텀 액션",
+        "스타일링"
+      ],
+      "deliverables": ["Dialog"],
+      "verification": "다이얼로그 표시 테스트"
+    },
+    {
+      "phase_id": 151,
+      "phase_group": "앱 - UI",
+      "phase_name": "차트 라이브러리 (선택)",
+      "duration_hours": 6,
+      "priority": "low",
+      "dependencies": [9],
+      "tasks": [
+        "react-native-chart-kit 또는 victory-native 설치",
+        "라인 차트 컴포넌트",
+        "센서 데이터 시각화",
+        "실시간 업데이트",
+        "스타일링"
+      ],
+      "deliverables": ["차트"],
+      "verification": "차트 렌더링 확인"
+    },
+    {
+      "phase_id": 152,
+      "phase_group": "앱 - UI",
+      "phase_name": "아이콘 및 이미지 에셋",
+      "duration_hours": 4,
+      "priority": "medium",
+      "dependencies": [9],
+      "tasks": [
+        "assets/ 폴더 정리",
+        "아이콘 파일 추가",
+        "이미지 최적화",
+        "다양한 해상도 지원",
+        "Android/iOS 에셋 설정"
+      ],
+      "deliverables": ["에셋"],
+      "verification": "아이콘 및 이미지 표시 확인"
+    },
+    {
+      "phase_id": 153,
+      "phase_group": "앱 - UI",
+      "phase_name": "다크 모드 지원 (선택)",
+      "duration_hours": 5,
+      "priority": "low",
+      "dependencies": [9],
+      "tasks": [
+        "테마 시스템 구현",
+        "라이트/다크 색상 정의",
+        "시스템 설정 감지",
+        "테마 전환",
+        "모든 화면 적용"
+      ],
+      "deliverables": ["다크 모드"],
+      "verification": "다크 모드 전환 테스트"
+    },
+    {
+      "phase_id": 154,
+      "phase_group": "앱 - UI",
+      "phase_name": "다국어 지원 (i18n, 선택)",
+      "duration_hours": 5,
+      "priority": "low",
+      "dependencies": [9],
+      "tasks": [
+        "react-i18next 설치",
+        "번역 파일 생성 (ko, en)",
+        "언어 전환",
+        "모든 텍스트 번역",
+        "설정 UI"
+      ],
+      "deliverables": ["다국어"],
+      "verification": "언어 전환 테스트"
+    },
+    {
+      "phase_id": 155,
+      "phase_group": "앱 - UI",
+      "phase_name": "접근성 (Accessibility) 개선",
+      "duration_hours": 5,
+      "priority": "low",
+      "dependencies": [9],
+      "tasks": [
+        "스크린 리더 지원",
+        "accessibilityLabel 추가",
+        "accessibilityHint 추가",
+        "포커스 관리",
+        "테스트"
+      ],
+      "deliverables": ["접근성"],
+      "verification": "TalkBack/VoiceOver 테스트"
+    },
+    {
+      "phase_id": 156,
+      "phase_group": "앱 - UI",
+      "phase_name": "앱 아이콘 및 이름 설정",
+      "duration_hours": 3,
+      "priority": "medium",
+      "dependencies": [3],
+      "tasks": [
+        "앱 아이콘 디자인",
+        "Android (mipmap) 아이콘 설정",
+        "iOS 아이콘 설정",
+        "앱 이름 변경",
+        "빌드 확인"
+      ],
+      "deliverables": ["앱 아이콘"],
+      "verification": "앱 아이콘 표시 확인"
+    },
+    {
+      "phase_id": 157,
+      "phase_group": "앱 - UI",
+      "phase_name": "UI 테스트 (컴포넌트)",
+      "duration_hours": 6,
+      "priority": "medium",
+      "dependencies": [127],
+      "tasks": [
+        "@testing-library/react-native 설치",
+        "컴포넌트 단위 테스트",
+        "render, fireEvent 테스트",
+        "스냅샷 테스트",
+        "주요 컴포넌트 테스트 작성"
+      ],
+      "deliverables": ["UI 테스트"],
+      "verification": "컴포넌트 테스트 통과"
+    },
+    {
+      "phase_id": 158,
+      "phase_group": "앱 - UI",
+      "phase_name": "성능 최적화 - React.memo",
+      "duration_hours": 5,
+      "priority": "medium",
+      "dependencies": [127],
+      "tasks": [
+        "불필요한 리렌더링 체크",
+        "React.memo 적용",
+        "useMemo, useCallback 사용",
+        "성능 프로파일링"
+      ],
+      "deliverables": ["성능 최적화"],
+      "verification": "리렌더링 최적화 확인"
+    },
+    {
+      "phase_id": 159,
+      "phase_group": "앱 - UI",
+      "phase_name": "성능 최적화 - FlatList",
+      "duration_hours": 5,
+      "priority": "medium",
+      "dependencies": [128],
+      "tasks": [
+        "windowSize 설정",
+        "initialNumToRender 최적화",
+        "maxToRenderPerBatch 설정",
+        "removeClippedSubviews",
+        "keyExtractor 최적화"
+      ],
+      "deliverables": ["FlatList 최적화"],
+      "verification": "리스트 스크롤 성능 확인"
+    },
+    {
+      "phase_id": 160,
+      "phase_group": "앱 - UI",
+      "phase_name": "메모리 누수 체크",
+      "duration_hours": 5,
+      "priority": "medium",
+      "dependencies": [158],
+      "tasks": [
+        "useEffect 클린업 확인",
+        "이벤트 리스너 해제",
+        "타이머 정리",
+        "구독 해제",
+        "Hermes Profiler 사용"
+      ],
+      "deliverables": ["메모리 관리"],
+      "verification": "메모리 누수 없음 확인"
+    },
+    {
+      "phase_id": 161,
+      "phase_group": "앱 - 테스트",
+      "phase_name": "Jest 설정 확인",
+      "duration_hours": 3,
+      "priority": "high",
+      "dependencies": [3],
+      "tasks": [
+        "jest.config.js 확인",
+        "테스트 환경 설정",
+        "Mock 설정",
+        "커버리지 설정"
+      ],
+      "deliverables": ["Jest 설정"],
+      "verification": "npm test 실행 확인"
+    },
+    {
+      "phase_id": 162,
+      "phase_group": "앱 - 테스트",
+      "phase_name": "유틸리티 함수 테스트",
+      "duration_hours": 5,
+      "priority": "high",
+      "dependencies": [161],
+      "tasks": [
+        "__tests__/utils/ 폴더 생성",
+        "timestamp 테스트",
+        "validation 테스트",
+        "compression 테스트",
+        "커버리지 80% 이상"
+      ],
+      "deliverables": ["유틸 테스트"],
+      "verification": "유틸 함수 테스트 통과"
+    },
+    {
+      "phase_id": 163,
+      "phase_group": "앱 - 테스트",
+      "phase_name": "데이터베이스 모델 테스트",
+      "duration_hours": 6,
+      "priority": "high",
+      "dependencies": [56, 161],
+      "tasks": [
+        "WatermelonDB mock 설정",
+        "Session 모델 테스트",
+        "SensorData 모델 테스트",
+        "SyncQueue 모델 테스트",
+        "관계 테스트",
+        "쿼리 테스트"
+      ],
+      "deliverables": ["DB 테스트"],
+      "verification": "데이터베이스 테스트 통과"
+    },
+    {
+      "phase_id": 164,
+      "phase_group": "앱 - 테스트",
+      "phase_name": "API 클라이언트 테스트",
+      "duration_hours": 6,
+      "priority": "high",
+      "dependencies": [104, 161],
+      "tasks": [
+        "Axios mock 설정",
+        "인증 API 테스트",
+        "세션 API 테스트",
+        "파일 업로드 테스트",
+        "에러 처리 테스트"
+      ],
+      "deliverables": ["API 테스트"],
+      "verification": "API 클라이언트 테스트 통과"
+    },
+    {
+      "phase_id": 165,
+      "phase_group": "앱 - 테스트",
+      "phase_name": "동기화 서비스 테스트",
+      "duration_hours": 7,
+      "priority": "high",
+      "dependencies": [108, 161],
+      "tasks": [
+        "SyncService mock 설정",
+        "동기화 로직 테스트",
+        "충돌 해결 테스트",
+        "재시도 로직 테스트",
+        "오프라인 시나리오 테스트"
+      ],
+      "deliverables": ["동기화 테스트"],
+      "verification": "동기화 서비스 테스트 통과"
+    },
+    {
+      "phase_id": 166,
+      "phase_group": "앱 - 테스트",
+      "phase_name": "센서 서비스 테스트",
+      "duration_hours": 7,
+      "priority": "high",
+      "dependencies": [78, 161],
+      "tasks": [
+        "Native Module mock",
+        "센서 시작/중지 테스트",
+        "데이터 버퍼링 테스트",
+        "파일 저장 테스트",
+        "에러 처리 테스트"
+      ],
+      "deliverables": ["센서 테스트"],
+      "verification": "센서 서비스 테스트 통과"
+    },
+    {
+      "phase_id": 167,
+      "phase_group": "앱 - 최적화",
+      "phase_name": "번들 크기 분석",
+      "duration_hours": 4,
+      "priority": "medium",
+      "dependencies": [3],
+      "tasks": [
+        "react-native-bundle-visualizer 사용",
+        "큰 라이브러리 확인",
+        "중복 제거",
+        "코드 스플리팅 고려"
+      ],
+      "deliverables": ["번들 분석"],
+      "verification": "번들 크기 최적화"
+    },
+    {
+      "phase_id": 168,
+      "phase_group": "앱 - 최적화",
+      "phase_name": "이미지 최적화",
+      "duration_hours": 4,
+      "priority": "medium",
+      "dependencies": [152],
+      "tasks": [
+        "react-native-fast-image 설치",
+        "이미지 압축",
+        "WebP 포맷 사용",
+        "캐싱 설정",
+        "지연 로딩"
+      ],
+      "deliverables": ["이미지 최적화"],
+      "verification": "이미지 로딩 성능 확인"
+    },
+    {
+      "phase_id": 169,
+      "phase_group": "앱 - 최적화",
+      "phase_name": "Hermes 엔진 활성화",
+      "duration_hours": 4,
+      "priority": "high",
+      "dependencies": [3],
+      "tasks": [
+        "android/app/build.gradle 설정",
+        "enableHermes: true",
+        "앱 빌드",
+        "성능 비교",
+        "에러 확인"
+      ],
+      "deliverables": ["Hermes"],
+      "verification": "Hermes 엔진 동작 확인"
+    },
+    {
+      "phase_id": 170,
+      "phase_group": "앱 - 최적화",
+      "phase_name": "ProGuard/R8 난독화",
+      "duration_hours": 5,
+      "priority": "high",
+      "dependencies": [169],
+      "tasks": [
+        "proguard-rules.pro 설정",
+        "난독화 규칙 추가",
+        "릴리스 빌드",
+        "APK 크기 확인",
+        "동작 테스트"
+      ],
+      "deliverables": ["난독화"],
+      "verification": "난독화된 APK 동작 확인"
+    },
+    {
+      "phase_id": 171,
+      "phase_group": "앱 - 보안",
+      "phase_name": "SSL Pinning (선택)",
+      "duration_hours": 5,
+      "priority": "medium",
+      "dependencies": [102],
+      "tasks": [
+        "react-native-ssl-pinning 설치",
+        "인증서 핀 설정",
+        "Axios 통합",
+        "테스트",
+        "에러 처리"
+      ],
+      "deliverables": ["SSL Pinning"],
+      "verification": "SSL Pinning 동작 테스트"
+    },
+    {
+      "phase_id": 172,
+      "phase_group": "앱 - 보안",
+      "phase_name": "루팅/탈옥 감지",
+      "duration_hours": 4,
+      "priority": "medium",
+      "dependencies": [3],
+      "tasks": [
+        "jail-monkey 설치",
+        "루팅 감지 로직",
+        "경고 표시",
+        "기능 제한 (선택)"
+      ],
+      "deliverables": ["루팅 감지"],
+      "verification": "루팅 기기 감지 테스트"
+    },
+    {
+      "phase_id": 173,
+      "phase_group": "앱 - 보안",
+      "phase_name": "데이터 암호화 (선택)",
+      "duration_hours": 6,
+      "priority": "low",
+      "dependencies": [56],
+      "tasks": [
+        "react-native-crypto 설치",
+        "민감 데이터 암호화",
+        "AES-256 암호화",
+        "키 관리",
+        "암복호화 테스트"
+      ],
+      "deliverables": ["데이터 암호화"],
+      "verification": "암호화된 데이터 저장 테스트"
+    },
+    {
+      "phase_id": 174,
+      "phase_group": "앱 - 에러 추적",
+      "phase_name": "Sentry 설치",
+      "duration_hours": 5,
+      "priority": "high",
+      "dependencies": [3],
+      "tasks": [
+        "@sentry/react-native 설치",
+        "Sentry DSN 설정",
+        "에러 바운더리 설정",
+        "소스맵 업로드 설정",
+        "테스트 에러 전송"
+      ],
+      "deliverables": ["Sentry"],
+      "verification": "에러 추적 동작 확인"
+    },
+    {
+      "phase_id": 175,
+      "phase_group": "앱 - 에러 추적",
+      "phase_name": "커스텀 에러 로깅",
+      "duration_hours": 5,
+      "priority": "medium",
+      "dependencies": [174],
+      "tasks": [
+        "utils/logger.ts 파일 생성",
+        "로그 레벨",
+        "Sentry 통합",
+        "로컬 로그 파일 (디버그용)",
+        "구조화된 로깅"
+      ],
+      "deliverables": ["로거"],
+      "verification": "에러 로깅 동작 확인"
+    },
+    {
+      "phase_id": 176,
+      "phase_group": "앱 - 알림",
+      "phase_name": "@notifee/react-native 설치",
+      "duration_hours": 4,
+      "priority": "medium",
+      "dependencies": [3],
+      "tasks": [
+        "@notifee/react-native 설치",
+        "Android 설정",
+        "알림 채널 생성",
+        "기본 알림 테스트"
+      ],
+      "deliverables": ["알림 라이브러리"],
+      "verification": "알림 표시 확인"
+    },
+    {
+      "phase_id": 177,
+      "phase_group": "앱 - 알림",
+      "phase_name": "녹음 중 Foreground 알림",
+      "duration_hours": 5,
+      "priority": "medium",
+      "dependencies": [176, 99],
+      "tasks": [
+        "Foreground Service 알림 생성",
+        "녹음 시간 표시",
+        "중지 버튼 추가",
+        "알림 업데이트",
+        "알림 제거"
+      ],
+      "deliverables": ["Foreground 알림"],
+      "verification": "녹음 중 알림 표시 확인"
+    },
+    {
+      "phase_id": 178,
+      "phase_group": "앱 - 알림",
+      "phase_name": "동기화 완료 알림",
+      "duration_hours": 4,
+      "priority": "low",
+      "dependencies": [176, 116],
+      "tasks": [
+        "동기화 완료 시 알림",
+        "성공/실패 메시지",
+        "통계 표시",
+        "클릭 시 앱 열기"
+      ],
+      "deliverables": ["동기화 알림"],
+      "verification": "동기화 알림 표시 확인"
+    },
+    {
+      "phase_id": 179,
+      "phase_group": "앱 - 문서",
+      "phase_name": "앱 README 작성",
+      "duration_hours": 3,
+      "priority": "low",
+      "dependencies": [3],
+      "tasks": [
+        "앱 설명",
+        "기능 목록",
+        "설치 방법",
+        "개발 환경 설정",
+        "빌드 방법",
+        "라이선스"
+      ],
+      "deliverables": ["README"],
+      "verification": "README 문서 확인"
+    },
+    {
+      "phase_id": 180,
+      "phase_group": "앱 - 문서",
+      "phase_name": "코드 주석 및 문서화",
+      "duration_hours": 5,
+      "priority": "low",
+      "dependencies": [179],
+      "tasks": [
+        "주요 함수 주석",
+        "복잡한 로직 설명",
+        "TODO 정리",
+        "TypeDoc (선택)"
+      ],
+      "deliverables": ["코드 문서"],
+      "verification": "코드 주석 확인"
+    },
+    {
+      "phase_id": 181,
+      "phase_group": "배포 - 빌드",
+      "phase_name": "Android Release 키 생성",
+      "duration_hours": 3,
+      "priority": "critical",
+      "dependencies": [3],
+      "tasks": [
+        "keytool로 키스토어 생성",
+        "키 정보 기록",
+        "android/gradle.properties 설정",
+        "키 보안 관리"
+      ],
+      "deliverables": ["Release 키"],
+      "verification": "키스토어 파일 생성 확인"
+    },
+    {
+      "phase_id": 182,
+      "phase_group": "배포 - 빌드",
+      "phase_name": "Android Release 빌드 설정",
+      "duration_hours": 5,
+      "priority": "critical",
+      "dependencies": [181],
+      "tasks": [
+        "android/app/build.gradle signingConfigs 설정",
+        "buildTypes release 설정",
+        "minifyEnabled true",
+        "shrinkResources true",
+        "proguard 설정"
+      ],
+      "deliverables": ["Release 설정"],
+      "verification": "설정 파일 확인"
+    },
+    {
+      "phase_id": 183,
+      "phase_group": "배포 - 빌드",
+      "phase_name": "Android AAB 빌드",
+      "duration_hours": 4,
+      "priority": "critical",
+      "dependencies": [182],
+      "tasks": [
+        "cd android && ./gradlew bundleRelease",
+        "AAB 파일 생성 확인",
+        "크기 확인",
+        "서명 확인"
+      ],
+      "deliverables": ["AAB 파일"],
+      "verification": "AAB 빌드 성공"
+    },
+    {
+      "phase_id": 184,
+      "phase_group": "배포 - 빌드",
+      "phase_name": "Android APK 테스트 빌드",
+      "duration_hours": 3,
+      "priority": "high",
+      "dependencies": [182],
+      "tasks": [
+        "./gradlew assembleRelease",
+        "APK 설치 테스트",
+        "동작 확인",
+        "크래시 체크"
+      ],
+      "deliverables": ["APK 파일"],
+      "verification": "APK 설치 및 동작 확인"
+    },
+    {
+      "phase_id": 185,
+      "phase_group": "배포 - 스토어",
+      "phase_name": "Google Play Console 설정",
+      "duration_hours": 4,
+      "priority": "critical",
+      "dependencies": [183],
+      "tasks": [
+        "개발자 계정 등록",
+        "앱 등록",
+        "스토어 등록 정보",
+        "스크린샷 준비",
+        "앱 설명 작성"
+      ],
+      "deliverables": ["Play Console"],
+      "verification": "앱 등록 완료"
+    },
+    {
+      "phase_id": 186,
+      "phase_group": "배포 - 스토어",
+      "phase_name": "개인정보 처리방침 작성",
+      "duration_hours": 3,
+      "priority": "critical",
+      "dependencies": [185],
+      "tasks": [
+        "수집 데이터 명시",
+        "사용 목적",
+        "저장 기간",
+        "사용자 권리",
+        "연락처",
+        "웹페이지 호스팅"
+      ],
+      "deliverables": ["개인정보처리방침"],
+      "verification": "정책 문서 확인"
+    },
+    {
+      "phase_id": 187,
+      "phase_group": "배포 - 스토어",
+      "phase_name": "앱 콘텐츠 등급 설정",
+      "duration_hours": 2,
+      "priority": "high",
+      "dependencies": [185],
+      "tasks": ["콘텐츠 등급 설문 작성", "등급 확인", "적용"],
+      "deliverables": ["콘텐츠 등급"],
+      "verification": "등급 설정 완료"
+    },
+    {
+      "phase_id": 188,
+      "phase_group": "배포 - 스토어",
+      "phase_name": "내부 테스트 트랙 배포",
+      "duration_hours": 4,
+      "priority": "critical",
+      "dependencies": [185],
+      "tasks": ["AAB 업로드", "내부 테스터 추가", "배포", "테스트 링크 공유"],
+      "deliverables": ["내부 테스트"],
+      "verification": "내부 테스터 설치 확인"
+    },
+    {
+      "phase_id": 189,
+      "phase_group": "서버 - 관리",
+      "phase_name": "Nginx 리버스 프록시 설정 완료",
+      "duration_hours": 5,
+      "priority": "critical",
+      "dependencies": [49],
+      "tasks": [
+        "upstream 설정 (Gunicorn)",
+        "proxy_pass 설정",
+        "헤더 전달",
+        "타임아웃 설정",
+        "Nginx reload"
+      ],
+      "deliverables": ["Nginx 프록시"],
+      "verification": "프록시 동작 확인"
+    },
+    {
+      "phase_id": 190,
+      "phase_group": "서버 - 관리",
+      "phase_name": "로그 로테이션 설정",
+      "duration_hours": 4,
+      "priority": "medium",
+      "dependencies": [17],
+      "tasks": [
+        "/etc/logrotate.d/koodtx 설정",
+        "로그 파일 크기 제한",
+        "압축 설정",
+        "보관 기간",
+        "테스트"
+      ],
+      "deliverables": ["로그 로테이션"],
+      "verification": "로그 로테이션 동작 확인"
+    },
+    {
+      "phase_id": 191,
+      "phase_group": "서버 - 관리",
+      "phase_name": "자동 백업 스크립트",
+      "duration_hours": 6,
+      "priority": "high",
+      "dependencies": [13],
+      "tasks": [
+        "PostgreSQL 백업 스크립트",
+        "pg_dump 사용",
+        "파일 저장소 백업",
+        "백업 파일 압축",
+        "원격 저장 (선택)",
+        "cron 설정 (일일 백업)"
+      ],
+      "deliverables": ["백업 스크립트"],
+      "verification": "백업 스크립트 실행 확인"
+    },
+    {
+      "phase_id": 192,
+      "phase_group": "서버 - 관리",
+      "phase_name": "모니터링 대시보드 (선택)",
+      "duration_hours": 8,
+      "priority": "low",
+      "dependencies": [17],
+      "tasks": [
+        "Prometheus 설치",
+        "Flask exporter 설정",
+        "Grafana 설치",
+        "대시보드 생성",
+        "메트릭 수집 확인"
+      ],
+      "deliverables": ["모니터링"],
+      "verification": "대시보드 접속 확인"
+    },
+    {
+      "phase_id": 193,
+      "phase_group": "서버 - 관리",
+      "phase_name": "서버 보안 강화",
+      "duration_hours": 6,
+      "priority": "high",
+      "dependencies": [11],
+      "tasks": [
+        "불필요한 포트 닫기",
+        "fail2ban 룰 설정",
+        "SSH 포트 변경 (선택)",
+        "root 로그인 비활성화",
+        "정기 업데이트 설정"
+      ],
+      "deliverables": ["보안 강화"],
+      "verification": "보안 설정 확인"
+    },
+    {
+      "phase_id": 194,
+      "phase_group": "서버 - 성능",
+      "phase_name": "PostgreSQL 성능 튜닝",
+      "duration_hours": 5,
+      "priority": "medium",
+      "dependencies": [13],
+      "tasks": [
+        "shared_buffers 조정",
+        "work_mem 조정",
+        "effective_cache_size 설정",
+        "인덱스 최적화",
+        "VACUUM 스케줄"
+      ],
+      "deliverables": ["DB 튜닝"],
+      "verification": "쿼리 성능 확인"
+    },
+    {
+      "phase_id": 195,
+      "phase_group": "서버 - 성능",
+      "phase_name": "Redis 캐싱 최적화",
+      "duration_hours": 4,
+      "priority": "medium",
+      "dependencies": [14],
+      "tasks": [
+        "maxmemory-policy 설정",
+        "LRU 설정",
+        "persistence 설정 조정",
+        "캐시 hit rate 모니터링"
+      ],
+      "deliverables": ["Redis 최적화"],
+      "verification": "캐시 성능 확인"
+    },
+    {
+      "phase_id": 196,
+      "phase_group": "서버 - 테스트",
+      "phase_name": "부하 테스트 (선택)",
+      "duration_hours": 6,
+      "priority": "low",
+      "dependencies": [49],
+      "tasks": [
+        "Apache Bench 또는 locust 설치",
+        "부하 시나리오 작성",
+        "동시 접속 테스트",
+        "병목 지점 파악",
+        "최적화"
+      ],
+      "deliverables": ["부하 테스트"],
+      "verification": "서버 성능 확인"
+    },
+    {
+      "phase_id": 197,
+      "phase_group": "서버 - 문서",
+      "phase_name": "서버 운영 매뉴얼",
+      "duration_hours": 4,
+      "priority": "medium",
+      "dependencies": [11],
+      "tasks": [
+        "서버 구조 문서화",
+        "배포 프로세스",
+        "장애 대응",
+        "백업/복구",
+        "연락처"
+      ],
+      "deliverables": ["운영 매뉴얼"],
+      "verification": "문서 확인"
+    },
+    {
+      "phase_id": 198,
+      "phase_group": "CI/CD",
+      "phase_name": "GitHub Actions 워크플로우",
+      "duration_hours": 8,
+      "priority": "medium",
+      "dependencies": [3],
+      "tasks": [
+        ".github/workflows/ci.yml 작성",
+        "테스트 자동 실행",
+        "빌드 자동화",
+        "린트 체크",
+        "커버리지 리포트"
+      ],
+      "deliverables": ["CI/CD"],
+      "verification": "워크플로우 실행 확인"
+    },
+    {
+      "phase_id": 199,
+      "phase_group": "CI/CD",
+      "phase_name": "자동 배포 스크립트 (선택)",
+      "duration_hours": 6,
+      "priority": "low",
+      "dependencies": [198],
+      "tasks": [
+        "Fastlane 설치 및 설정",
+        "자동 빌드",
+        "Play Store 자동 업로드",
+        "베타 트랙 배포"
+      ],
+      "deliverables": ["자동 배포"],
+      "verification": "자동 배포 동작 확인"
+    },
+    {
+      "phase_id": 200,
+      "phase_group": "CI/CD",
+      "phase_name": "버전 관리 및 태깅",
+      "duration_hours": 3,
+      "priority": "medium",
+      "dependencies": [198],
+      "tasks": [
+        "Semantic Versioning 사용",
+        "Git 태그 생성",
+        "CHANGELOG 작성",
+        "릴리스 노트"
+      ],
+      "deliverables": ["버전 관리"],
+      "verification": "버전 태그 확인"
+    },
+    {
+      "phase_id": 201,
+      "phase_group": "E2E 테스트",
+      "phase_name": "Detox 설치 및 설정",
+      "duration_hours": 6,
+      "priority": "medium",
+      "dependencies": [3],
+      "tasks": [
+        "detox 설치",
+        "detox-cli 설치",
+        "package.json detox 설정",
+        "Android 설정",
+        ".detoxrc.json 작성",
+        "첫 테스트 실행"
+      ],
+      "deliverables": ["Detox"],
+      "verification": "Detox 테스트 실행 확인"
+    },
+    {
+      "phase_id": 202,
+      "phase_group": "E2E 테스트",
+      "phase_name": "로그인 플로우 E2E 테스트",
+      "duration_hours": 5,
+      "priority": "medium",
+      "dependencies": [201],
+      "tasks": [
+        "e2e/login.test.ts 작성",
+        "회원가입 시나리오",
+        "로그인 시나리오",
+        "로그아웃 시나리오",
+        "에러 케이스"
+      ],
+      "deliverables": ["로그인 테스트"],
+      "verification": "E2E 테스트 통과"
+    },
+    {
+      "phase_id": 203,
+      "phase_group": "E2E 테스트",
+      "phase_name": "센서 녹음 플로우 E2E 테스트",
+      "duration_hours": 7,
+      "priority": "high",
+      "dependencies": [201],
+      "tasks": [
+        "e2e/recording.test.ts 작성",
+        "권한 요청 시나리오",
+        "녹음 시작 시나리오",
+        "녹음 중지 시나리오",
+        "데이터 저장 확인"
+      ],
+      "deliverables": ["녹음 테스트"],
+      "verification": "녹음 E2E 테스트 통과"
+    },
+    {
+      "phase_id": 204,
+      "phase_group": "E2E 테스트",
+      "phase_name": "동기화 플로우 E2E 테스트",
+      "duration_hours": 7,
+      "priority": "high",
+      "dependencies": [201],
+      "tasks": [
+        "e2e/sync.test.ts 작성",
+        "수동 동기화 시나리오",
+        "오프라인 시나리오",
+        "온라인 복구 시나리오",
+        "동기화 완료 확인"
+      ],
+      "deliverables": ["동기화 테스트"],
+      "verification": "동기화 E2E 테스트 통과"
+    },
+    {
+      "phase_id": 205,
+      "phase_group": "E2E 테스트",
+      "phase_name": "세션 관리 플로우 E2E 테스트",
+      "duration_hours": 6,
+      "priority": "medium",
+      "dependencies": [201],
+      "tasks": [
+        "e2e/sessions.test.ts 작성",
+        "세션 리스트 조회",
+        "세션 상세 조회",
+        "세션 삭제",
+        "세션 내보내기"
+      ],
+      "deliverables": ["세션 테스트"],
+      "verification": "세션 E2E 테스트 통과"
+    },
+    {
+      "phase_id": 206,
+      "phase_group": "E2E 테스트",
+      "phase_name": "설정 변경 E2E 테스트",
+      "duration_hours": 5,
+      "priority": "medium",
+      "dependencies": [201],
+      "tasks": [
+        "e2e/settings.test.ts 작성",
+        "센서 설정 변경",
+        "동기화 설정 변경",
+        "서버 설정 변경",
+        "설정 저장 확인"
+      ],
+      "deliverables": ["설정 테스트"],
+      "verification": "설정 E2E 테스트 통과"
+    },
+    {
+      "phase_id": 207,
+      "phase_group": "통합 테스트",
+      "phase_name": "센서 + 파일 저장 통합 테스트",
+      "duration_hours": 6,
+      "priority": "high",
+      "dependencies": [166],
+      "tasks": [
+        "고주파 센서 데이터 생성",
+        "버퍼링 동작 확인",
+        "파일 저장 확인",
+        "파일 포맷 검증",
+        "성능 확인"
+      ],
+      "deliverables": ["통합 테스트 1"],
+      "verification": "센서-파일 통합 테스트 통과"
+    },
+    {
+      "phase_id": 208,
+      "phase_group": "통합 테스트",
+      "phase_name": "파일 저장 + 동기화 통합 테스트",
+      "duration_hours": 7,
+      "priority": "high",
+      "dependencies": [207],
+      "tasks": [
+        "파일 생성",
+        "SyncQueue 추가 확인",
+        "동기화 실행",
+        "서버 업로드 확인",
+        "상태 업데이트 확인"
+      ],
+      "deliverables": ["통합 테스트 2"],
+      "verification": "파일-동기화 통합 테스트 통과"
+    },
+    {
+      "phase_id": 209,
+      "phase_group": "통합 테스트",
+      "phase_name": "오프라인 -> 온라인 복구 테스트",
+      "duration_hours": 7,
+      "priority": "critical",
+      "dependencies": [208],
+      "tasks": [
+        "오프라인 상태에서 녹음",
+        "데이터 로컬 저장 확인",
+        "네트워크 복구 시뮬레이션",
+        "자동 동기화 확인",
+        "모든 데이터 업로드 확인"
+      ],
+      "deliverables": ["복구 테스트"],
+      "verification": "오프라인 복구 테스트 통과"
+    },
+    {
+      "phase_id": 210,
+      "phase_group": "통합 테스트",
+      "phase_name": "장시간 녹음 테스트",
+      "duration_hours": 8,
+      "priority": "high",
+      "dependencies": [207],
+      "tasks": [
+        "1시간 이상 녹음",
+        "메모리 사용량 모니터링",
+        "파일 크기 확인",
+        "배터리 소모 확인",
+        "안정성 확인"
+      ],
+      "deliverables": ["장시간 테스트"],
+      "verification": "장시간 녹음 안정성 확인"
+    },
+    {
+      "phase_id": 211,
+      "phase_group": "통합 테스트",
+      "phase_name": "대용량 데이터 동기화 테스트",
+      "duration_hours": 7,
+      "priority": "high",
+      "dependencies": [209],
+      "tasks": [
+        "100개 이상 세션 생성",
+        "대용량 파일 업로드",
+        "네트워크 속도 제한 테스트",
+        "재시도 로직 확인",
+        "완료 확인"
+      ],
+      "deliverables": ["대용량 테스트"],
+      "verification": "대용량 동기화 테스트 통과"
+    },
+    {
+      "phase_id": 212,
+      "phase_group": "통합 테스트",
+      "phase_name": "동시 센서 수집 테스트",
+      "duration_hours": 6,
+      "priority": "high",
+      "dependencies": [96],
+      "tasks": [
+        "모든 센서 동시 활성화",
+        "가속도계, 자이로, GPS, 오디오",
+        "데이터 무결성 확인",
+        "타임스탬프 동기화 확인",
+        "성능 확인"
+      ],
+      "deliverables": ["동시 수집 테스트"],
+      "verification": "다중 센서 동시 수집 확인"
+    },
+    {
+      "phase_id": 213,
+      "phase_group": "성능 테스트",
+      "phase_name": "앱 시작 시간 측정",
+      "duration_hours": 4,
+      "priority": "medium",
+      "dependencies": [169],
+      "tasks": [
+        "Cold start 시간 측정",
+        "Warm start 시간 측정",
+        "Time to Interactive 측정",
+        "최적화 포인트 파악"
+      ],
+      "deliverables": ["시작 시간"],
+      "verification": "시작 시간 최적화"
+    },
+    {
+      "phase_id": 214,
+      "phase_group": "성능 테스트",
+      "phase_name": "메모리 사용량 프로파일링",
+      "duration_hours": 5,
+      "priority": "medium",
+      "dependencies": [160],
+      "tasks": [
+        "Hermes Profiler 사용",
+        "메모리 힙 분석",
+        "메모리 누수 체크",
+        "피크 메모리 확인",
+        "최적화"
+      ],
+      "deliverables": ["메모리 프로파일"],
+      "verification": "메모리 최적화 완료"
+    },
+    {
+      "phase_id": 215,
+      "phase_group": "성능 테스트",
+      "phase_name": "CPU 사용량 측정",
+      "duration_hours": 5,
+      "priority": "medium",
+      "dependencies": [213],
+      "tasks": [
+        "센서 수집 시 CPU 사용량",
+        "백그라운드 CPU 사용량",
+        "최적화 필요 부분 파악",
+        "개선"
+      ],
+      "deliverables": ["CPU 프로파일"],
+      "verification": "CPU 사용량 최적화"
+    },
+    {
+      "phase_id": 216,
+      "phase_group": "성능 테스트",
+      "phase_name": "배터리 소모 테스트",
+      "duration_hours": 6,
+      "priority": "high",
+      "dependencies": [210],
+      "tasks": [
+        "1시간 녹음 시 배터리 소모율",
+        "백그라운드 소모율",
+        "센서별 소모율 분석",
+        "최적화 적용",
+        "개선 확인"
+      ],
+      "deliverables": ["배터리 테스트"],
+      "verification": "배터리 최적화 완료"
+    },
+    {
+      "phase_id": 217,
+      "phase_group": "성능 테스트",
+      "phase_name": "네트워크 사용량 측정",
+      "duration_hours": 5,
+      "priority": "medium",
+      "dependencies": [211],
+      "tasks": [
+        "동기화 시 네트워크 사용량",
+        "압축 효과 확인",
+        "데이터 요금 영향 분석",
+        "최적화"
+      ],
+      "deliverables": ["네트워크 테스트"],
+      "verification": "네트워크 사용량 최적화"
+    },
+    {
+      "phase_id": 218,
+      "phase_group": "성능 테스트",
+      "phase_name": "디스크 I/O 성능 테스트",
+      "duration_hours": 5,
+      "priority": "medium",
+      "dependencies": [210],
+      "tasks": [
+        "파일 쓰기 성능 측정",
+        "대용량 파일 처리",
+        "동시 쓰기 테스트",
+        "최적화"
+      ],
+      "deliverables": ["디스크 I/O"],
+      "verification": "디스크 I/O 최적화"
+    },
+    {
+      "phase_id": 219,
+      "phase_group": "보안 테스트",
+      "phase_name": "취약점 스캔",
+      "duration_hours": 5,
+      "priority": "high",
+      "dependencies": [172],
+      "tasks": [
+        "OWASP Mobile 체크리스트",
+        "민감 정보 노출 체크",
+        "암호화 확인",
+        "권한 체크",
+        "개선"
+      ],
+      "deliverables": ["보안 스캔"],
+      "verification": "보안 취약점 제거"
+    },
+    {
+      "phase_id": 220,
+      "phase_group": "보안 테스트",
+      "phase_name": "API 보안 테스트",
+      "duration_hours": 6,
+      "priority": "high",
+      "dependencies": [104],
+      "tasks": [
+        "인증 우회 시도",
+        "권한 체크",
+        "SQL Injection 테스트",
+        "XSS 테스트",
+        "Rate Limiting 확인"
+      ],
+      "deliverables": ["API 보안"],
+      "verification": "API 보안 확인"
+    },
+    {
+      "phase_id": 221,
+      "phase_group": "베타 준비",
+      "phase_name": "베타 테스터 모집",
+      "duration_hours": 3,
+      "priority": "high",
+      "dependencies": [188],
+      "tasks": [
+        "테스터 그룹 구성",
+        "초대 링크 발송",
+        "테스트 가이드 작성",
+        "피드백 채널 준비"
+      ],
+      "deliverables": ["테스터 모집"],
+      "verification": "테스터 등록 완료"
+    },
+    {
+      "phase_id": 222,
+      "phase_group": "베타 준비",
+      "phase_name": "피드백 수집 시스템",
+      "duration_hours": 4,
+      "priority": "medium",
+      "dependencies": [221],
+      "tasks": [
+        "Google Forms 또는 설문 도구",
+        "버그 리포트 템플릿",
+        "기능 요청 템플릿",
+        "연락처 공유"
+      ],
+      "deliverables": ["피드백 시스템"],
+      "verification": "피드백 수집 준비"
+    },
+    {
+      "phase_id": 223,
+      "phase_group": "베타 테스트",
+      "phase_name": "내부 베타 (Week 1)",
+      "duration_hours": 20,
+      "priority": "critical",
+      "dependencies": [221],
+      "tasks": [
+        "5-10명 내부 테스터",
+        "집중 테스트",
+        "매일 피드백 수집",
+        "긴급 버그 수정",
+        "안정성 확인"
+      ],
+      "deliverables": ["내부 베타"],
+      "verification": "내부 베타 완료"
+    },
+    {
+      "phase_id": 224,
+      "phase_group": "베타 테스트",
+      "phase_name": "버그 수정 Iteration 1",
+      "duration_hours": 12,
+      "priority": "critical",
+      "dependencies": [223],
+      "tasks": [
+        "크래시 버그 수정",
+        "UI 버그 수정",
+        "동기화 이슈 수정",
+        "성능 개선",
+        "새 빌드 배포"
+      ],
+      "deliverables": ["버그 수정 1"],
+      "verification": "주요 버그 수정 완료"
+    },
+    {
+      "phase_id": 225,
+      "phase_group": "베타 테스트",
+      "phase_name": "오픈 베타 (Week 2-4)",
+      "duration_hours": 60,
+      "priority": "critical",
+      "dependencies": [224],
+      "tasks": [
+        "오픈 베타 트랙 배포",
+        "50-100명 테스터",
+        "피드백 수집",
+        "분석",
+        "개선"
+      ],
+      "deliverables": ["오픈 베타"],
+      "verification": "오픈 베타 진행"
+    },
+    {
+      "phase_id": 226,
+      "phase_group": "베타 테스트",
+      "phase_name": "버그 수정 Iteration 2",
+      "duration_hours": 16,
+      "priority": "critical",
+      "dependencies": [225],
+      "tasks": [
+        "사용자 리포트 버그 수정",
+        "UX 개선",
+        "기능 개선",
+        "테스트",
+        "배포"
+      ],
+      "deliverables": ["버그 수정 2"],
+      "verification": "추가 버그 수정 완료"
+    },
+    {
+      "phase_id": 227,
+      "phase_group": "베타 테스트",
+      "phase_name": "충돌 로그 분석",
+      "duration_hours": 6,
+      "priority": "high",
+      "dependencies": [225],
+      "tasks": ["Sentry 로그 분석", "충돌 패턴 파악", "재현 및 수정", "검증"],
+      "deliverables": ["충돌 분석"],
+      "verification": "충돌율 1% 미만"
+    },
+    {
+      "phase_id": 228,
+      "phase_group": "베타 테스트",
+      "phase_name": "성능 이슈 개선",
+      "duration_hours": 8,
+      "priority": "high",
+      "dependencies": [225],
+      "tasks": [
+        "느린 화면 개선",
+        "메모리 최적화",
+        "배터리 개선",
+        "동기화 속도 개선"
+      ],
+      "deliverables": ["성능 개선"],
+      "verification": "성능 이슈 해결"
+    },
+    {
+      "phase_id": 229,
+      "phase_group": "베타 테스트",
+      "phase_name": "UX 개선",
+      "duration_hours": 10,
+      "priority": "medium",
+      "dependencies": [225],
+      "tasks": ["사용자 피드백 반영", "UI 개선", "직관성 향상", "도움말 추가"],
+      "deliverables": ["UX 개선"],
+      "verification": "UX 개선 완료"
+    },
+    {
+      "phase_id": 230,
+      "phase_group": "베타 테스트",
+      "phase_name": "최종 베타 검증",
+      "duration_hours": 12,
+      "priority": "critical",
+      "dependencies": [229],
+      "tasks": [
+        "모든 기능 재테스트",
+        "회귀 테스트",
+        "출시 체크리스트 확인",
+        "최종 승인"
+      ],
+      "deliverables": ["최종 검증"],
+      "verification": "출시 준비 완료"
+    },
+    {
+      "phase_id": 231,
+      "phase_group": "출시 준비",
+      "phase_name": "Play Store 스크린샷 최종화",
+      "duration_hours": 4,
+      "priority": "high",
+      "dependencies": [230],
+      "tasks": [
+        "고품질 스크린샷 촬영",
+        "다양한 화면 구성",
+        "Feature Graphic 제작",
+        "업로드"
+      ],
+      "deliverables": ["스크린샷"],
+      "verification": "스크린샷 준비 완료"
+    },
+    {
+      "phase_id": 232,
+      "phase_group": "출시 준비",
+      "phase_name": "앱 설명 및 키워드 최적화",
+      "duration_hours": 4,
+      "priority": "high",
+      "dependencies": [231],
+      "tasks": [
+        "앱 제목 최적화",
+        "짧은 설명 작성",
+        "긴 설명 작성",
+        "키워드 리서치",
+        "적용"
+      ],
+      "deliverables": ["앱 설명"],
+      "verification": "앱 설명 완료"
+    },
+    {
+      "phase_id": 233,
+      "phase_group": "출시 준비",
+      "phase_name": "출시 노트 작성",
+      "duration_hours": 2,
+      "priority": "medium",
+      "dependencies": [232],
+      "tasks": [
+        "버전 1.0.0 출시 노트",
+        "주요 기능 나열",
+        "알려진 이슈",
+        "다음 업데이트 예고"
+      ],
+      "deliverables": ["출시 노트"],
+      "verification": "출시 노트 완료"
+    },
+    {
+      "phase_id": 234,
+      "phase_group": "출시 준비",
+      "phase_name": "프로모션 비디오 (선택)",
+      "duration_hours": 8,
+      "priority": "low",
+      "dependencies": [231],
+      "tasks": [
+        "비디오 스크립트 작성",
+        "화면 녹화",
+        "편집",
+        "음악 추가",
+        "업로드"
+      ],
+      "deliverables": ["프로모션 비디오"],
+      "verification": "비디오 완료"
+    },
+    {
+      "phase_id": 235,
+      "phase_group": "출시 준비",
+      "phase_name": "최종 빌드 생성",
+      "duration_hours": 4,
+      "priority": "critical",
+      "dependencies": [230],
+      "tasks": [
+        "버전 번호 업데이트 (1.0.0)",
+        "AAB 빌드",
+        "서명 확인",
+        "테스트 설치",
+        "검증"
+      ],
+      "deliverables": ["최종 빌드"],
+      "verification": "출시 빌드 준비 완료"
+    },
+    {
+      "phase_id": 236,
+      "phase_group": "프로덕션 출시",
+      "phase_name": "Production 트랙 배포",
+      "duration_hours": 6,
+      "priority": "critical",
+      "dependencies": [235],
+      "tasks": [
+        "AAB 업로드",
+        "출시 노트 입력",
+        "Production 트랙 선택",
+        "단계적 출시 설정 (10%)",
+        "검토 제출"
+      ],
+      "deliverables": ["출시 제출"],
+      "verification": "Play Store 검토 제출"
+    },
+    {
+      "phase_id": 237,
+      "phase_group": "프로덕션 출시",
+      "phase_name": "Play Store 검토 대기",
+      "duration_hours": 24,
+      "priority": "critical",
+      "dependencies": [236],
+      "tasks": ["검토 진행 모니터링", "추가 정보 요청 대응", "승인 대기"],
+      "deliverables": ["검토 대기"],
+      "verification": "검토 승인"
+    },
+    {
+      "phase_id": 238,
+      "phase_group": "프로덕션 출시",
+      "phase_name": "단계적 출시 모니터링",
+      "duration_hours": 12,
+      "priority": "critical",
+      "dependencies": [237],
+      "tasks": [
+        "10% 출시 모니터링",
+        "충돌율 체크",
+        "사용자 리뷰 확인",
+        "문제 없으면 50%로 확대",
+        "최종 100% 출시"
+      ],
+      "deliverables": ["단계적 출시"],
+      "verification": "100% 출시 완료"
+    },
+    {
+      "phase_id": 239,
+      "phase_group": "프로덕션 출시",
+      "phase_name": "출시 공지",
+      "duration_hours": 3,
+      "priority": "medium",
+      "dependencies": [238],
+      "tasks": [
+        "소셜 미디어 게시",
+        "블로그 포스트",
+        "이메일 발송 (테스터)",
+        "커뮤니티 공지"
+      ],
+      "deliverables": ["출시 공지"],
+      "verification": "출시 알림 완료"
+    },
+    {
+      "phase_id": 240,
+      "phase_group": "프로덕션 출시",
+      "phase_name": "초기 사용자 모니터링",
+      "duration_hours": 24,
+      "priority": "critical",
+      "dependencies": [238],
+      "tasks": [
+        "Sentry 모니터링",
+        "충돌 로그 확인",
+        "Play Console 리뷰 모니터링",
+        "긴급 대응 준비"
+      ],
+      "deliverables": ["초기 모니터링"],
+      "verification": "안정적 운영 확인"
+    },
+    {
+      "phase_id": 241,
+      "phase_group": "마케팅 (선택)",
+      "phase_name": "랜딩 페이지 제작",
+      "duration_hours": 12,
+      "priority": "low",
+      "dependencies": [232],
+      "tasks": [
+        "웹사이트 디자인",
+        "기능 소개",
+        "다운로드 링크",
+        "연락처",
+        "SEO 최적화"
+      ],
+      "deliverables": ["랜딩 페이지"],
+      "verification": "웹사이트 공개"
+    },
+    {
+      "phase_id": 242,
+      "phase_group": "마케팅 (선택)",
+      "phase_name": "소셜 미디어 전략",
+      "duration_hours": 6,
+      "priority": "low",
+      "dependencies": [241],
+      "tasks": [
+        "Twitter/X, Facebook, Instagram 계정",
+        "콘텐츠 계획",
+        "정기 포스팅",
+        "사용자 참여"
+      ],
+      "deliverables": ["소셜 미디어"],
+      "verification": "소셜 계정 운영"
+    },
+    {
+      "phase_id": 243,
+      "phase_group": "마케팅 (선택)",
+      "phase_name": "블로그 및 기술 문서",
+      "duration_hours": 8,
+      "priority": "low",
+      "dependencies": [241],
+      "tasks": [
+        "기술 블로그 작성",
+        "사용 사례 공유",
+        "튜토리얼 작성",
+        "개발 후기"
+      ],
+      "deliverables": ["콘텐츠"],
+      "verification": "블로그 게시"
+    },
+    {
+      "phase_id": 244,
+      "phase_group": "마케팅 (선택)",
+      "phase_name": "커뮤니티 구축",
+      "duration_hours": 6,
+      "priority": "low",
+      "dependencies": [242],
+      "tasks": [
+        "Discord 또는 Slack 서버",
+        "사용자 포럼",
+        "FAQ 작성",
+        "커뮤니티 관리"
+      ],
+      "deliverables": ["커뮤니티"],
+      "verification": "커뮤니티 활성화"
+    },
+    {
+      "phase_id": 245,
+      "phase_group": "운영 - 모니터링",
+      "phase_name": "일일 모니터링 루틴 확립",
+      "duration_hours": 4,
+      "priority": "high",
+      "dependencies": [240],
+      "tasks": [
+        "Sentry 에러 체크",
+        "Play Console 리뷰",
+        "서버 상태 확인",
+        "로그 확인",
+        "대응"
+      ],
+      "deliverables": ["일일 모니터링"],
+      "verification": "모니터링 루틴 확립"
+    },
+    {
+      "phase_id": 246,
+      "phase_group": "운영 - 지원",
+      "phase_name": "사용자 지원 체계",
+      "duration_hours": 5,
+      "priority": "medium",
+      "dependencies": [244],
+      "tasks": [
+        "고객 지원 이메일",
+        "FAQ 페이지",
+        "문제 해결 가이드",
+        "응답 템플릿"
+      ],
+      "deliverables": ["지원 체계"],
+      "verification": "지원 시스템 운영"
+    },
+    {
+      "phase_id": 247,
+      "phase_group": "운영 - 업데이트",
+      "phase_name": "핫픽스 프로세스 정립",
+      "duration_hours": 4,
+      "priority": "high",
+      "dependencies": [240],
+      "tasks": [
+        "긴급 버그 수정 프로세스",
+        "빠른 빌드/배포",
+        "긴급 패치 트랙",
+        "롤백 계획"
+      ],
+      "deliverables": ["핫픽스 프로세스"],
+      "verification": "긴급 대응 준비"
+    },
+    {
+      "phase_id": 248,
+      "phase_group": "운영 - 분석",
+      "phase_name": "사용자 분석 설정",
+      "duration_hours": 5,
+      "priority": "medium",
+      "dependencies": [240],
+      "tasks": [
+        "Firebase Analytics 또는 Amplitude",
+        "주요 이벤트 추적",
+        "사용자 흐름 분석",
+        "리텐션 측정"
+      ],
+      "deliverables": ["분석 도구"],
+      "verification": "사용자 분석 활성화"
+    },
+    {
+      "phase_id": 249,
+      "phase_group": "운영 - 피드백",
+      "phase_name": "피드백 루프 구축",
+      "duration_hours": 4,
+      "priority": "medium",
+      "dependencies": [246],
+      "tasks": [
+        "정기 사용자 설문",
+        "기능 요청 수집",
+        "우선순위 결정",
+        "로드맵 공유"
+      ],
+      "deliverables": ["피드백 루프"],
+      "verification": "피드백 시스템 운영"
+    },
+    {
+      "phase_id": 250,
+      "phase_group": "운영 - 개선",
+      "phase_name": "지속적 개선 계획",
+      "duration_hours": 6,
+      "priority": "medium",
+      "dependencies": [249],
+      "tasks": [
+        "월간 업데이트 계획",
+        "기능 추가",
+        "성능 개선",
+        "버그 수정",
+        "출시 주기"
+      ],
+      "deliverables": ["개선 계획"],
+      "verification": "업데이트 로드맵 수립"
+    },
+    {
+      "phase_id": 251,
+      "phase_group": "고급 기능",
+      "phase_name": "데이터 시각화 개선",
+      "duration_hours": 8,
+      "priority": "low",
+      "dependencies": [151],
+      "tasks": [
+        "고급 차트 구현",
+        "센서 데이터 그래프",
+        "통계 분석 화면",
+        "인터랙티브 차트",
+        "내보내기 기능"
+      ],
+      "deliverables": ["데이터 시각화"],
+      "verification": "시각화 기능 완료"
+    },
+    {
+      "phase_id": 252,
+      "phase_group": "고급 기능",
+      "phase_name": "센서 데이터 분석 기능",
+      "duration_hours": 10,
+      "priority": "low",
+      "dependencies": [251],
+      "tasks": [
+        "기본 통계 (평균, 표준편차)",
+        "FFT 분석 (선택)",
+        "이상치 탐지",
+        "패턴 인식",
+        "리포트 생성"
+      ],
+      "deliverables": ["데이터 분석"],
+      "verification": "분석 기능 완료"
+    },
+    {
+      "phase_id": 253,
+      "phase_group": "고급 기능",
+      "phase_name": "머신러닝 모델 통합 (선택)",
+      "duration_hours": 16,
+      "priority": "low",
+      "dependencies": [252],
+      "tasks": [
+        "TensorFlow Lite 통합",
+        "활동 인식 모델",
+        "추론 엔진",
+        "결과 표시",
+        "최적화"
+      ],
+      "deliverables": ["ML 모델"],
+      "verification": "ML 기능 완료"
+    },
+    {
+      "phase_id": 254,
+      "phase_group": "고급 기능",
+      "phase_name": "웹 대시보드 (선택)",
+      "duration_hours": 20,
+      "priority": "low",
+      "dependencies": [41],
+      "tasks": [
+        "React 웹 앱 생성",
+        "데이터 시각화",
+        "세션 관리",
+        "사용자 관리",
+        "배포"
+      ],
+      "deliverables": ["웹 대시보드"],
+      "verification": "대시보드 공개"
+    },
+    {
+      "phase_id": 255,
+      "phase_group": "고급 기능",
+      "phase_name": "API 공개 (선택)",
+      "duration_hours": 12,
+      "priority": "low",
+      "dependencies": [46],
+      "tasks": [
+        "공개 API 문서",
+        "API 키 시스템",
+        "Rate Limiting",
+        "개발자 포털",
+        "예제 코드"
+      ],
+      "deliverables": ["공개 API"],
+      "verification": "API 공개"
+    },
+    {
+      "phase_id": 256,
+      "phase_group": "고급 기능",
+      "phase_name": "데이터 내보내기 포맷 확장",
+      "duration_hours": 6,
+      "priority": "low",
+      "dependencies": [131],
+      "tasks": [
+        "CSV 내보내기",
+        "HDF5 내보내기 (과학 데이터)",
+        "MAT 파일 (MATLAB)",
+        "커스텀 포맷"
+      ],
+      "deliverables": ["내보내기 확장"],
+      "verification": "다양한 포맷 지원"
+    },
+    {
+      "phase_id": 257,
+      "phase_group": "고급 기능",
+      "phase_name": "클라우드 백업 (선택)",
+      "duration_hours": 10,
+      "priority": "low",
+      "dependencies": [111],
+      "tasks": [
+        "Google Drive 연동",
+        "자동 백업 설정",
+        "백업 복원",
+        "동기화 충돌 방지"
+      ],
+      "deliverables": ["클라우드 백업"],
+      "verification": "클라우드 백업 기능"
+    },
+    {
+      "phase_id": 258,
+      "phase_group": "고급 기능",
+      "phase_name": "멀티 디바이스 동기화",
+      "duration_hours": 12,
+      "priority": "low",
+      "dependencies": [112],
+      "tasks": [
+        "같은 계정 여러 기기",
+        "디바이스 관리",
+        "선택적 동기화",
+        "충돌 해결",
+        "테스트"
+      ],
+      "deliverables": ["멀티 디바이스"],
+      "verification": "여러 기기 동기화"
+    },
+    {
+      "phase_id": 259,
+      "phase_group": "고급 기능",
+      "phase_name": "협업 기능 (선택)",
+      "duration_hours": 14,
+      "priority": "low",
+      "dependencies": [258],
+      "tasks": ["세션 공유", "팀 관리", "권한 설정", "공동 분석", "댓글 기능"],
+      "deliverables": ["협업"],
+      "verification": "협업 기능 완료"
+    },
+    {
+      "phase_id": 260,
+      "phase_group": "고급 기능",
+      "phase_name": "자동화 및 트리거",
+      "duration_hours": 10,
+      "priority": "low",
+      "dependencies": [88],
+      "tasks": [
+        "특정 조건 시 자동 녹음",
+        "위치 기반 트리거",
+        "시간 기반 스케줄",
+        "알림",
+        "테스트"
+      ],
+      "deliverables": ["자동화"],
+      "verification": "자동화 기능 완료"
+    },
+    {
+      "phase_id": 261,
+      "phase_group": "플랫폼 확장",
+      "phase_name": "iOS 지원 계획",
+      "duration_hours": 8,
+      "priority": "low",
+      "dependencies": [3],
+      "tasks": [
+        "iOS 개발 환경 설정",
+        "요구사항 분석",
+        "일정 계획",
+        "리소스 할당"
+      ],
+      "deliverables": ["iOS 계획"],
+      "verification": "iOS 개발 계획 수립"
+    },
+    {
+      "phase_id": 262,
+      "phase_group": "플랫폼 확장",
+      "phase_name": "iOS Native Module 개발",
+      "duration_hours": 20,
+      "priority": "low",
+      "dependencies": [261],
+      "tasks": [
+        "Swift 센서 모듈",
+        "CoreMotion 사용",
+        "AVFoundation (오디오)",
+        "데이터 수집",
+        "테스트"
+      ],
+      "deliverables": ["iOS Native"],
+      "verification": "iOS 센서 수집 완료"
+    },
+    {
+      "phase_id": 263,
+      "phase_group": "플랫폼 확장",
+      "phase_name": "iOS UI 조정",
+      "duration_hours": 12,
+      "priority": "low",
+      "dependencies": [262],
+      "tasks": [
+        "iOS 디자인 가이드라인",
+        "Safe Area 처리",
+        "iOS 특화 컴포넌트",
+        "애니메이션",
+        "테스트"
+      ],
+      "deliverables": ["iOS UI"],
+      "verification": "iOS UI 완료"
+    },
+    {
+      "phase_id": 264,
+      "phase_group": "플랫폼 확장",
+      "phase_name": "iOS 빌드 및 배포",
+      "duration_hours": 10,
+      "priority": "low",
+      "dependencies": [263],
+      "tasks": [
+        "Xcode 설정",
+        "코드 서명",
+        "App Store Connect",
+        "TestFlight 배포",
+        "출시"
+      ],
+      "deliverables": ["iOS 배포"],
+      "verification": "iOS 앱 출시"
+    },
+    {
+      "phase_id": 265,
+      "phase_group": "서버 확장",
+      "phase_name": "스케일링 전략",
+      "duration_hours": 8,
+      "priority": "low",
+      "dependencies": [196],
+      "tasks": [
+        "로드 밸런서 설정",
+        "수평 확장 계획",
+        "데이터베이스 읽기 복제",
+        "캐싱 전략",
+        "CDN 활용"
+      ],
+      "deliverables": ["스케일링"],
+      "verification": "스케일링 준비"
+    },
+    {
+      "phase_id": 266,
+      "phase_group": "서버 확장",
+      "phase_name": "마이크로서비스 분리 (선택)",
+      "duration_hours": 16,
+      "priority": "low",
+      "dependencies": [265],
+      "tasks": [
+        "인증 서비스 분리",
+        "파일 서비스 분리",
+        "동기화 서비스 분리",
+        "API Gateway",
+        "테스트"
+      ],
+      "deliverables": ["마이크로서비스"],
+      "verification": "서비스 분리 완료"
+    },
+    {
+      "phase_id": 267,
+      "phase_group": "서버 확장",
+      "phase_name": "실시간 기능 (WebSocket)",
+      "duration_hours": 12,
+      "priority": "low",
+      "dependencies": [41],
+      "tasks": [
+        "Flask-SocketIO 설정",
+        "실시간 동기화",
+        "실시간 알림",
+        "클라이언트 연동",
+        "테스트"
+      ],
+      "deliverables": ["실시간"],
+      "verification": "WebSocket 기능 완료"
+    },
+    {
+      "phase_id": 268,
+      "phase_group": "서버 확장",
+      "phase_name": "고급 분석 파이프라인",
+      "duration_hours": 14,
+      "priority": "low",
+      "dependencies": [44],
+      "tasks": [
+        "Apache Airflow 또는 Celery Beat",
+        "데이터 ETL",
+        "분석 작업",
+        "리포트 생성",
+        "스케줄링"
+      ],
+      "deliverables": ["분석 파이프라인"],
+      "verification": "분석 자동화 완료"
+    },
+    {
+      "phase_id": 269,
+      "phase_group": "서버 확장",
+      "phase_name": "AI/ML 백엔드 (선택)",
+      "duration_hours": 18,
+      "priority": "low",
+      "dependencies": [268],
+      "tasks": [
+        "Python ML 환경",
+        "TensorFlow/PyTorch",
+        "모델 학습 파이프라인",
+        "추론 API",
+        "모델 배포"
+      ],
+      "deliverables": ["AI 백엔드"],
+      "verification": "AI 서비스 완료"
+    },
+    {
+      "phase_id": 270,
+      "phase_group": "서버 확장",
+      "phase_name": "데이터 레이크 (선택)",
+      "duration_hours": 12,
+      "priority": "low",
+      "dependencies": [268],
+      "tasks": [
+        "S3 데이터 레이크",
+        "Parquet 포맷",
+        "데이터 카탈로그",
+        "쿼리 엔진 (Athena)",
+        "분석 도구 연동"
+      ],
+      "deliverables": ["데이터 레이크"],
+      "verification": "데이터 레이크 구축"
+    },
+    {
+      "phase_id": 271,
+      "phase_group": "문서화",
+      "phase_name": "사용자 가이드 작성",
+      "duration_hours": 8,
+      "priority": "medium",
+      "dependencies": [179],
+      "tasks": [
+        "시작 가이드",
+        "기능 설명",
+        "FAQ",
+        "문제 해결",
+        "스크린샷 포함"
+      ],
+      "deliverables": ["사용자 가이드"],
+      "verification": "가이드 문서 완료"
+    },
+    {
+      "phase_id": 272,
+      "phase_group": "문서화",
+      "phase_name": "개발자 문서 작성",
+      "duration_hours": 10,
+      "priority": "medium",
+      "dependencies": [179],
+      "tasks": [
+        "아키텍처 문서",
+        "API 문서",
+        "데이터베이스 스키마",
+        "개발 환경 설정",
+        "기여 가이드"
+      ],
+      "deliverables": ["개발자 문서"],
+      "verification": "개발 문서 완료"
+    },
+    {
+      "phase_id": 273,
+      "phase_group": "문서화",
+      "phase_name": "서버 관리 문서",
+      "duration_hours": 8,
+      "priority": "medium",
+      "dependencies": [197],
+      "tasks": [
+        "서버 설정 가이드",
+        "배포 프로세스",
+        "백업/복구",
+        "모니터링",
+        "트러블슈팅"
+      ],
+      "deliverables": ["관리 문서"],
+      "verification": "관리자 문서 완료"
+    },
+    {
+      "phase_id": 274,
+      "phase_group": "문서화",
+      "phase_name": "비디오 튜토리얼 (선택)",
+      "duration_hours": 12,
+      "priority": "low",
+      "dependencies": [271],
+      "tasks": [
+        "스크린 녹화",
+        "음성 해설",
+        "편집",
+        "YouTube 업로드",
+        "플레이리스트"
+      ],
+      "deliverables": ["비디오 튜토리얼"],
+      "verification": "튜토리얼 영상 완료"
+    },
+    {
+      "phase_id": 275,
+      "phase_group": "문서화",
+      "phase_name": "오픈소스 준비 (선택)",
+      "duration_hours": 8,
+      "priority": "low",
+      "dependencies": [272],
+      "tasks": [
+        "라이선스 선택 (MIT, Apache 2.0)",
+        "CONTRIBUTING.md",
+        "CODE_OF_CONDUCT.md",
+        "이슈 템플릿",
+        "PR 템플릿"
+      ],
+      "deliverables": ["오픈소스"],
+      "verification": "오픈소스 공개 준비"
+    },
+    {
+      "phase_id": 276,
+      "phase_group": "유지보수",
+      "phase_name": "코드 리팩토링",
+      "duration_hours": 16,
+      "priority": "medium",
+      "dependencies": [250],
+      "tasks": [
+        "기술 부채 정리",
+        "중복 코드 제거",
+        "명명 규칙 통일",
+        "주석 정리",
+        "테스트"
+      ],
+      "deliverables": ["리팩토링"],
+      "verification": "코드 품질 개선"
+    },
+    {
+      "phase_id": 277,
+      "phase_group": "유지보수",
+      "phase_name": "의존성 업데이트",
+      "duration_hours": 6,
+      "priority": "medium",
+      "dependencies": [276],
+      "tasks": [
+        "npm audit",
+        "패키지 버전 업데이트",
+        "Breaking changes 대응",
+        "테스트",
+        "배포"
+      ],
+      "deliverables": ["의존성 업데이트"],
+      "verification": "최신 버전 유지"
+    },
+    {
+      "phase_id": 278,
+      "phase_group": "유지보수",
+      "phase_name": "성능 프로파일링 정기 실행",
+      "duration_hours": 5,
+      "priority": "medium",
+      "dependencies": [215],
+      "tasks": ["월간 성능 체크", "병목 지점 파악", "최적화", "벤치마크 기록"],
+      "deliverables": ["정기 프로파일링"],
+      "verification": "성능 유지"
+    },
+    {
+      "phase_id": 279,
+      "phase_group": "유지보수",
+      "phase_name": "보안 업데이트",
+      "duration_hours": 6,
+      "priority": "high",
+      "dependencies": [219],
+      "tasks": [
+        "보안 취약점 스캔",
+        "패치 적용",
+        "의존성 보안 업데이트",
+        "테스트",
+        "배포"
+      ],
+      "deliverables": ["보안 유지"],
+      "verification": "보안 강화"
+    },
+    {
+      "phase_id": 280,
+      "phase_group": "유지보수",
+      "phase_name": "백업 복구 테스트",
+      "duration_hours": 5,
+      "priority": "high",
+      "dependencies": [191],
+      "tasks": [
+        "정기 백업 검증",
+        "복구 시뮬레이션",
+        "RTO/RPO 측정",
+        "프로세스 개선"
+      ],
+      "deliverables": ["백업 테스트"],
+      "verification": "백업 신뢰성 확보"
+    },
+    {
+      "phase_id": 281,
+      "phase_group": "미래 계획",
+      "phase_name": "버전 2.0 기능 계획",
+      "duration_hours": 8,
+      "priority": "low",
+      "dependencies": [250],
+      "tasks": [
+        "사용자 피드백 분석",
+        "시장 조사",
+        "새 기능 아이디어",
+        "우선순위 결정",
+        "로드맵 작성"
+      ],
+      "deliverables": ["v2.0 계획"],
+      "verification": "차기 버전 계획 수립"
+    },
+    {
+      "phase_id": 282,
+      "phase_group": "미래 계획",
+      "phase_name": "Wearable 디바이스 연동 (선택)",
+      "duration_hours": 12,
+      "priority": "low",
+      "dependencies": [281],
+      "tasks": [
+        "스마트워치 지원",
+        "Wear OS 앱",
+        "센서 데이터 수집",
+        "동기화",
+        "테스트"
+      ],
+      "deliverables": ["Wearable"],
+      "verification": "Wearable 연동 계획"
+    },
+    {
+      "phase_id": 283,
+      "phase_group": "미래 계획",
+      "phase_name": "IoT 디바이스 통합 (선택)",
+      "duration_hours": 14,
+      "priority": "low",
+      "dependencies": [281],
+      "tasks": [
+        "외부 센서 지원",
+        "블루투스/WiFi 연동",
+        "데이터 수집",
+        "통합 UI",
+        "테스트"
+      ],
+      "deliverables": ["IoT"],
+      "verification": "IoT 통합 계획"
+    },
+    {
+      "phase_id": 284,
+      "phase_group": "미래 계획",
+      "phase_name": "엔터프라이즈 버전 (선택)",
+      "duration_hours": 16,
+      "priority": "low",
+      "dependencies": [281],
+      "tasks": [
+        "대규모 조직 기능",
+        "SSO 인증",
+        "고급 권한 관리",
+        "감사 로그",
+        "SLA 지원"
+      ],
+      "deliverables": ["Enterprise"],
+      "verification": "엔터프라이즈 계획"
+    },
+    {
+      "phase_id": 285,
+      "phase_group": "미래 계획",
+      "phase_name": "연구 협업 (선택)",
+      "duration_hours": 10,
+      "priority": "low",
+      "dependencies": [281],
+      "tasks": [
+        "연구 기관 파트너십",
+        "데이터 공유 프로토콜",
+        "IRB 승인",
+        "논문 발표",
+        "커뮤니티 구축"
+      ],
+      "deliverables": ["연구 협업"],
+      "verification": "연구 협업 계획"
+    },
+    {
+      "phase_id": 286,
+      "phase_group": "비즈니스",
+      "phase_name": "수익 모델 검토 (선택)",
+      "duration_hours": 6,
+      "priority": "low",
+      "dependencies": [281],
+      "tasks": [
+        "무료 vs 유료 전략",
+        "구독 모델",
+        "프리미엄 기능",
+        "가격 책정",
+        "결제 연동"
+      ],
+      "deliverables": ["수익 모델"],
+      "verification": "비즈니스 모델 수립"
+    },
+    {
+      "phase_id": 287,
+      "phase_group": "비즈니스",
+      "phase_name": "법적 검토",
+      "duration_hours": 6,
+      "priority": "medium",
+      "dependencies": [186],
+      "tasks": [
+        "이용약관 검토",
+        "개인정보처리방침 갱신",
+        "GDPR/CCPA 준수",
+        "법률 자문",
+        "문서 업데이트"
+      ],
+      "deliverables": ["법적 검토"],
+      "verification": "법적 준비 완료"
+    },
+    {
+      "phase_id": 288,
+      "phase_group": "비즈니스",
+      "phase_name": "파트너십 탐색 (선택)",
+      "duration_hours": 8,
+      "priority": "low",
+      "dependencies": [286],
+      "tasks": ["관련 업체 조사", "제휴 협의", "B2B 기회", "MOU 체결"],
+      "deliverables": ["파트너십"],
+      "verification": "파트너십 체결"
+    },
+    {
+      "phase_id": 289,
+      "phase_group": "커뮤니티",
+      "phase_name": "오픈소스 커뮤니티 육성 (선택)",
+      "duration_hours": 12,
+      "priority": "low",
+      "dependencies": [275],
+      "tasks": [
+        "GitHub 저장소 활성화",
+        "이슈 관리",
+        "PR 리뷰",
+        "컨트리뷰터 환영",
+        "릴리스 관리"
+      ],
+      "deliverables": ["커뮤니티"],
+      "verification": "활발한 커뮤니티"
+    },
+    {
+      "phase_id": 290,
+      "phase_group": "커뮤니티",
+      "phase_name": "컨퍼런스 발표 (선택)",
+      "duration_hours": 10,
+      "priority": "low",
+      "dependencies": [289],
+      "tasks": [
+        "기술 컨퍼런스 제안",
+        "발표 자료 준비",
+        "데모 시연",
+        "네트워킹",
+        "피드백 수집"
+      ],
+      "deliverables": ["컨퍼런스"],
+      "verification": "컨퍼런스 발표 완료"
+    },
+    {
+      "phase_id": 291,
+      "phase_group": "회고",
+      "phase_name": "프로젝트 회고",
+      "duration_hours": 6,
+      "priority": "medium",
+      "dependencies": [250],
+      "tasks": ["팀 회고 미팅", "잘된 점", "개선할 점", "교훈 정리", "문서화"],
+      "deliverables": ["회고"],
+      "verification": "회고 문서 작성"
+    },
+    {
+      "phase_id": 292,
+      "phase_group": "회고",
+      "phase_name": "기술 블로그 포스트",
+      "duration_hours": 8,
+      "priority": "low",
+      "dependencies": [291],
+      "tasks": [
+        "개발 여정 정리",
+        "기술 선택 이유",
+        "어려웠던 점",
+        "해결 방법",
+        "게시"
+      ],
+      "deliverables": ["기술 블로그"],
+      "verification": "블로그 포스트 발행"
+    },
+    {
+      "phase_id": 293,
+      "phase_group": "회고",
+      "phase_name": "성과 측정",
+      "duration_hours": 5,
+      "priority": "medium",
+      "dependencies": [240],
+      "tasks": [
+        "다운로드 수",
+        "활성 사용자 수",
+        "리텐션율",
+        "평점",
+        "피드백 요약"
+      ],
+      "deliverables": ["성과 측정"],
+      "verification": "KPI 달성 확인"
+    },
+    {
+      "phase_id": 294,
+      "phase_group": "회고",
+      "phase_name": "데이터 기반 의사결정",
+      "duration_hours": 6,
+      "priority": "medium",
+      "dependencies": [293],
+      "tasks": [
+        "사용자 행동 분석",
+        "기능 사용률",
+        "이탈 원인 분석",
+        "개선 우선순위",
+        "액션 플랜"
+      ],
+      "deliverables": ["데이터 분석"],
+      "verification": "데이터 인사이트 확보"
+    },
+    {
+      "phase_id": 295,
+      "phase_group": "회고",
+      "phase_name": "기술 스택 평가",
+      "duration_hours": 5,
+      "priority": "medium",
+      "dependencies": [291],
+      "tasks": ["선택한 기술의 장단점", "대안 검토", "향후 개선", "권장사항"],
+      "deliverables": ["기술 평가"],
+      "verification": "기술 선택 평가 완료"
+    },
+    {
+      "phase_id": 296,
+      "phase_group": "지속 가능성",
+      "phase_name": "장기 유지보수 계획",
+      "duration_hours": 6,
+      "priority": "high",
+      "dependencies": [250],
+      "tasks": [
+        "유지보수 일정",
+        "업데이트 주기",
+        "지원 기간",
+        "EOL 정책",
+        "이관 계획"
+      ],
+      "deliverables": ["유지보수 계획"],
+      "verification": "장기 계획 수립"
+    },
+    {
+      "phase_id": 297,
+      "phase_group": "지속 가능성",
+      "phase_name": "재해 복구 계획",
+      "duration_hours": 7,
+      "priority": "high",
+      "dependencies": [280],
+      "tasks": [
+        "DR 시나리오",
+        "백업 전략",
+        "복구 절차",
+        "비상 연락망",
+        "정기 훈련"
+      ],
+      "deliverables": ["재해 복구"],
+      "verification": "DR 계획 수립"
+    },
+    {
+      "phase_id": 298,
+      "phase_group": "지속 가능성",
+      "phase_name": "지식 전달 및 온보딩",
+      "duration_hours": 6,
+      "priority": "medium",
+      "dependencies": [272],
+      "tasks": [
+        "신규 개발자 온보딩 자료",
+        "코드 워크스루",
+        "멘토링 프로그램",
+        "지식 베이스 구축"
+      ],
+      "deliverables": ["지식 전달"],
+      "verification": "온보딩 프로세스 완성"
+    },
+    {
+      "phase_id": 299,
+      "phase_group": "지속 가능성",
+      "phase_name": "비용 최적화",
+      "duration_hours": 6,
+      "priority": "medium",
+      "dependencies": [265],
+      "tasks": [
+        "서버 비용 분석",
+        "불필요한 리소스 제거",
+        "스토리지 정리",
+        "비용 절감 방안",
+        "예산 수립"
+      ],
+      "deliverables": ["비용 최적화"],
+      "verification": "비용 절감 완료"
+    },
+    {
+      "phase_id": 300,
+      "phase_group": "프로젝트 완료",
+      "phase_name": "최종 마일스톤 달성",
+      "duration_hours": 4,
+      "priority": "critical",
+      "dependencies": [299],
+      "tasks": [
+        "모든 Phase 완료 확인",
+        "체크리스트 검토",
+        "최종 보고서 작성",
+        "축하 및 감사",
+        "다음 여정 계획"
+      ],
+      "deliverables": ["프로젝트 완료"],
+      "verification": "프로젝트 성공적 완료! 🎉"
+    }
+  ]
+}

@@ -1,4 +1,5 @@
 # React Native 센서 데이터 수집 앱 개발 계획서
+
 ## Local-First Architecture + Flask 동기화 시스템
 
 **작성일**: 2025-11-11
@@ -27,9 +28,11 @@
 ## 프로젝트 개요
 
 ### 목적
+
 React Native로 크로스플랫폼 센서 데이터 수집 앱을 개발하고, **Local-First 원칙**에 따라 오프라인에서도 완전히 동작하며, 인터넷 연결 시 Flask 서버와 자동 동기화하는 시스템 구축.
 
 ### 핵심 요구사항
+
 - ✅ **Local-First**: 앱은 오프라인에서 완전히 동작
 - ✅ **자동 동기화**: 온라인 연결 시 Flask 서버로 데이터 업로드
 - ✅ **크로스플랫폼**: Android 우선, iOS 확장 가능
@@ -40,24 +43,26 @@ React Native로 크로스플랫폼 센서 데이터 수집 앱을 개발하고, 
 
 ### 기존 계획과의 차이점
 
-| 항목 | 기존 (Android Native) | 새 계획 (React Native + Flask) |
-|------|----------------------|-------------------------------|
-| 프론트엔드 | Kotlin + Jetpack Compose | React Native + TypeScript |
-| 백엔드 | 별도 서버 (명시 안됨) | Flask REST API |
-| 데이터 저장 | 로컬 파일 시스템 | SQLite (WatermelonDB) + Local Files |
-| 동기화 | 단방향 업로드 | 양방향 동기화 (Conflict Resolution) |
-| 오프라인 지원 | 제한적 | 완전한 오프라인 우선 |
-| 크로스플랫폼 | Android만 | Android + iOS |
-| UI 프레임워크 | Jetpack Compose | React Native (Expo 또는 bare) |
+| 항목          | 기존 (Android Native)    | 새 계획 (React Native + Flask)      |
+| ------------- | ------------------------ | ----------------------------------- |
+| 프론트엔드    | Kotlin + Jetpack Compose | React Native + TypeScript           |
+| 백엔드        | 별도 서버 (명시 안됨)    | Flask REST API                      |
+| 데이터 저장   | 로컬 파일 시스템         | SQLite (WatermelonDB) + Local Files |
+| 동기화        | 단방향 업로드            | 양방향 동기화 (Conflict Resolution) |
+| 오프라인 지원 | 제한적                   | 완전한 오프라인 우선                |
+| 크로스플랫폼  | Android만                | Android + iOS                       |
+| UI 프레임워크 | Jetpack Compose          | React Native (Expo 또는 bare)       |
 
 ---
 
 ## 아키텍처 철학
 
 ### Local-First란?
+
 > "소프트웨어는 네트워크 없이도 작동해야 하며, 데이터는 사용자 기기에서 먼저 생성되고 저장된다."
 
 #### Local-First 원칙
+
 1. **Fast**: 네트워크 지연 없이 즉시 반응
 2. **Multi-device**: 여러 기기에서 동기화
 3. **Offline**: 인터넷 없이 완전히 동작
@@ -67,6 +72,7 @@ React Native로 크로스플랫폼 센서 데이터 수집 앱을 개발하고, 
 7. **User Control**: 언제 동기화할지 사용자 결정
 
 ### 우리 앱의 Local-First 구현
+
 - **로컬 우선 저장**: 모든 센서 데이터는 먼저 SQLite + 로컬 파일에 저장
 - **백그라운드 동기화**: 네트워크 연결 시 자동으로 Flask 서버에 업로드
 - **충돌 해결**: 타임스탬프 기반 Last-Write-Wins (LWW) 전략
@@ -80,12 +86,14 @@ React Native로 크로스플랫폼 센서 데이터 수집 앱을 개발하고, 
 ### Frontend (React Native App)
 
 #### Core Framework
+
 - **React Native 0.73+**: 크로스플랫폼 프레임워크
 - **TypeScript 5.0+**: 타입 안전성
 - **Expo SDK 50+** (선택): 빠른 개발을 위해 Expo 사용 고려
   - 또는 **React Native CLI** (bare workflow): 더 많은 Native 제어 필요 시
 
 #### 상태 관리
+
 - **Zustand** 또는 **Redux Toolkit**: 전역 상태 관리
 - **React Query (TanStack Query)**: 서버 상태 관리 및 동기화
 - **WatermelonDB**: Local-First SQLite ORM
@@ -94,12 +102,14 @@ React Native로 크로스플랫폼 센서 데이터 수집 앱을 개발하고, 
   - 동기화 어댑터 내장
 
 #### UI Components
+
 - **React Native Paper** 또는 **NativeBase**: Material Design UI
 - **React Navigation 6**: 네비게이션
 - **React Native Reanimated 3**: 고성능 애니메이션
 - **React Native SVG**: 차트 및 아이콘
 
 #### 센서 및 Native Modules
+
 - **react-native-sensors**: 가속도계, 자이로스코프
 - **@react-native-community/geolocation**: GPS
 - **react-native-audio-record**: 오디오 녹음
@@ -109,18 +119,21 @@ React Native로 크로스플랫폼 센서 데이터 수집 앱을 개발하고, 
   - iOS: Swift
 
 #### 파일 및 저장소
+
 - **react-native-fs**: 파일 시스템 접근
 - **react-native-sqlite-storage**: SQLite (WatermelonDB 백엔드)
 - **AsyncStorage** 또는 **MMKV**: 키-값 저장소 (설정)
 - **react-native-zip-archive**: 압축 (선택)
 
 #### 네트워크 및 동기화
+
 - **Axios**: HTTP 클라이언트
 - **react-native-netinfo**: 네트워크 상태 감지
 - **react-native-background-fetch**: 백그라운드 동기화
 - **react-native-background-upload**: 대용량 파일 업로드
 
 #### 기타
+
 - **react-native-device-info**: 기기 정보
 - **react-native-permissions**: 권한 관리
 - **@notifee/react-native**: 푸시 알림
@@ -131,11 +144,13 @@ React Native로 크로스플랫폼 센서 데이터 수집 앱을 개발하고, 
 ### Backend (Flask Sync Server)
 
 #### Core Framework
+
 - **Flask 3.0+**: 경량 웹 프레임워크
 - **Python 3.11+**: 최신 Python
 - **Gunicorn** + **Nginx**: 프로덕션 서버
 
 #### 데이터베이스
+
 - **PostgreSQL 15+**: 메인 데이터베이스
   - JSONB 컬럼으로 유연한 센서 데이터 저장
   - 인덱싱 최적화
@@ -143,28 +158,33 @@ React Native로 크로스플랫폼 센서 데이터 수집 앱을 개발하고, 
 - **Alembic**: 마이그레이션
 
 #### 파일 저장소
+
 - **로컬 파일 시스템**: 개발/소규모
 - **AWS S3** 또는 **MinIO**: 프로덕션 파일 저장소
 - **Boto3**: S3 클라이언트
 
 #### 인증 및 보안
+
 - **Flask-JWT-Extended**: JWT 토큰 인증
 - **Flask-Bcrypt**: 비밀번호 해싱
 - **Flask-CORS**: CORS 처리
 - **Flask-Limiter**: Rate Limiting
 
 #### 데이터 처리
+
 - **Pandas**: 센서 데이터 분석
 - **NumPy**: 수치 연산
 - **Celery**: 비동기 작업 큐
 - **Redis**: Celery 브로커, 캐싱
 
 #### 동기화
+
 - **Flask-RESTful** 또는 **Flask-RESTX**: REST API
 - **Marshmallow**: 직렬화/검증
 - **WebSocket (Flask-SocketIO)**: 실시간 동기화 (선택)
 
 #### 모니터링
+
 - **Prometheus**: 메트릭 수집
 - **Grafana**: 대시보드
 - **Sentry Python**: 에러 추적
@@ -175,17 +195,20 @@ React Native로 크로스플랫폼 센서 데이터 수집 앱을 개발하고, 
 ### DevOps 및 인프라
 
 #### 개발 환경
+
 - **Docker** + **Docker Compose**: 컨테이너화
 - **Git**: 버전 관리
 - **GitHub Actions** 또는 **GitLab CI**: CI/CD
 
 #### 배포
+
 - **AWS EC2** 또는 **DigitalOcean Droplet**: 서버 호스팅
 - **AWS RDS PostgreSQL**: 관리형 데이터베이스
 - **AWS S3**: 파일 저장소
 - **Cloudflare**: CDN 및 DDoS 보호
 
 #### 앱 배포
+
 - **Google Play Console**: Android 배포
 - **Apple App Store Connect**: iOS 배포 (선택)
 - **Fastlane**: 자동 배포
@@ -272,6 +295,7 @@ React Native로 크로스플랫폼 센서 데이터 수집 앱을 개발하고, 
 ### 앱 내부 아키텍처 (React Native)
 
 #### 폴더 구조
+
 ```
 koodtx-app/
 ├── android/                    # Android Native 코드
@@ -344,6 +368,7 @@ koodtx-app/
 ### 서버 아키텍처 (Flask)
 
 #### 폴더 구조
+
 ```
 koodtx-server/
 ├── app/
@@ -503,6 +528,7 @@ koodtx-server/
 ### Phase 1: 프로젝트 셋업 및 기본 인프라 (2주)
 
 #### 1.1 프로젝트 초기화
+
 - [ ] React Native 프로젝트 생성
   - `npx react-native init KooDTX --template react-native-template-typescript`
   - 또는 Expo: `npx create-expo-app KooDTX --template`
@@ -512,12 +538,14 @@ koodtx-server/
 - [ ] 폴더 구조 생성
 
 #### 1.2 기본 의존성 설치
+
 - [ ] Navigation: `@react-navigation/native`, `@react-navigation/stack`
 - [ ] State: `zustand` 또는 `@reduxjs/toolkit`
 - [ ] UI: `react-native-paper`
 - [ ] Utils: `date-fns`, `lodash`
 
 #### 1.3 Flask 서버 셋업
+
 - [ ] Flask 프로젝트 생성
 - [ ] 가상환경 설정
 - [ ] requirements.txt 작성
@@ -534,6 +562,7 @@ koodtx-server/
 - [ ] 기본 라우트 테스트 (`/health`)
 
 #### 1.4 데이터베이스 설계
+
 - [ ] PostgreSQL 스키마 설계
   - `users`: id, username, email, password_hash, created_at
   - `sessions`: id, user_id, device_id, start_time, end_time, status
@@ -544,6 +573,7 @@ koodtx-server/
 - [ ] SQLAlchemy 모델 작성
 
 #### 1.5 인증 시스템
+
 - [ ] JWT 토큰 발급/검증
 - [ ] Flask-JWT-Extended 설정
 - [ ] 회원가입 API: `POST /auth/register`
@@ -556,8 +586,10 @@ koodtx-server/
 ### Phase 2: 로컬 데이터베이스 및 저장소 (2주)
 
 #### 2.1 WatermelonDB 설정
+
 - [ ] 설치: `@nozbe/watermelondb`, `@nozbe/with-observables`
 - [ ] 스키마 정의
+
   ```typescript
   // Session 테이블
   session: {
@@ -594,10 +626,12 @@ koodtx-server/
     error_message: string | null
   }
   ```
+
 - [ ] 모델 클래스 작성 (`@field`, `@relation`)
 - [ ] Database 인스턴스 생성
 
 #### 2.2 파일 시스템 설정
+
 - [ ] react-native-fs 설치
 - [ ] 저장 경로 설정
   ```typescript
@@ -616,6 +650,7 @@ koodtx-server/
 - [ ] 파일 저장 유틸리티 작성
 
 #### 2.3 타임스탬프 동기화
+
 - [ ] `timestamp.ts` 유틸리티
   ```typescript
   export const getTimestamp = () => ({
@@ -631,9 +666,11 @@ koodtx-server/
 ### Phase 3: Native Module 개발 - 센서 수집 (3주)
 
 #### 3.1 Android Sensor Native Module
+
 - [ ] Kotlin 파일 생성: `SensorModule.kt`
 - [ ] SensorManager 초기화
 - [ ] 센서 리스너 구현
+
   ```kotlin
   class SensorModule(reactContext: ReactApplicationContext) :
       ReactContextBaseJavaModule(reactContext), SensorEventListener {
@@ -661,14 +698,17 @@ koodtx-server/
       }
   }
   ```
+
 - [ ] React Native Package 등록
 
 #### 3.2 TypeScript Bridge
-- [ ] `SensorBridge.ts` 작성
-  ```typescript
-  import { NativeModules, NativeEventEmitter } from 'react-native';
 
-  const { SensorModule } = NativeModules;
+- [ ] `SensorBridge.ts` 작성
+
+  ```typescript
+  import {NativeModules, NativeEventEmitter} from 'react-native';
+
+  const {SensorModule} = NativeModules;
   const sensorEmitter = new NativeEventEmitter(SensorModule);
 
   export const startAccelerometer = (samplingRate: number) => {
@@ -681,7 +721,9 @@ koodtx-server/
   ```
 
 #### 3.3 센서 서비스 레이어
+
 - [ ] `SensorService.ts` 작성
+
   ```typescript
   class SensorService {
     private buffer: SensorSample[] = [];
@@ -691,7 +733,7 @@ koodtx-server/
       this.sessionId = sessionId;
       await startAccelerometer(200); // 200Hz
 
-      subscribeSensorData((data) => {
+      subscribeSensorData(data => {
         this.buffer.push({
           ...data,
           session_id: sessionId,
@@ -726,6 +768,7 @@ koodtx-server/
   ```
 
 #### 3.4 다중 센서 지원
+
 - [ ] Accelerometer (가속도계)
 - [ ] Gyroscope (자이로스코프)
 - [ ] Magnetometer (자기장)
@@ -737,6 +780,7 @@ koodtx-server/
 ### Phase 4: UI 개발 - 녹음 화면 (2주)
 
 #### 4.1 Recording Screen
+
 - [ ] 녹음 시작/중지 버튼
 - [ ] 실시간 센서 값 표시
   - 가속도계: X, Y, Z 그래프
@@ -745,6 +789,7 @@ koodtx-server/
 - [ ] 세션 메타데이터 입력 (이름, 설명)
 
 #### 4.2 Sessions Screen
+
 - [ ] 세션 리스트 (FlatList)
   - 세션명, 시작 시간, 지속 시간
   - 동기화 상태 아이콘
@@ -755,12 +800,14 @@ koodtx-server/
 - [ ] 세션 삭제 기능
 
 #### 4.3 Sync Screen
+
 - [ ] 동기화 큐 표시
 - [ ] 수동 동기화 버튼
 - [ ] 네트워크 상태 표시
 - [ ] 동기화 로그
 
 #### 4.4 Settings Screen
+
 - [ ] 센서 설정
   - 샘플링율 조정
   - 활성화할 센서 선택
@@ -780,7 +827,9 @@ koodtx-server/
 ### Phase 5: 동기화 시스템 (3주)
 
 #### 5.1 Sync Service 구현
+
 - [ ] `SyncService.ts` 작성
+
   ```typescript
   class SyncService {
     async syncAll() {
@@ -819,6 +868,7 @@ koodtx-server/
   ```
 
 #### 5.2 네트워크 상태 감지
+
 - [ ] NetInfo 통합
   ```typescript
   NetInfo.addEventListener(state => {
@@ -829,18 +879,24 @@ koodtx-server/
   ```
 
 #### 5.3 백그라운드 동기화
+
 - [ ] react-native-background-fetch 설치
   ```typescript
-  BackgroundFetch.configure({
-    minimumFetchInterval: 15, // 15분
-  }, async (taskId) => {
-    await syncService.syncAll();
-    BackgroundFetch.finish(taskId);
-  });
+  BackgroundFetch.configure(
+    {
+      minimumFetchInterval: 15, // 15분
+    },
+    async taskId => {
+      await syncService.syncAll();
+      BackgroundFetch.finish(taskId);
+    },
+  );
   ```
 
 #### 5.4 Flask 동기화 API
+
 - [ ] `POST /sync/push` - 클라이언트 → 서버
+
   ```python
   @app.route('/sync/push', methods=['POST'])
   @jwt_required()
@@ -868,6 +924,7 @@ koodtx-server/
   ```
 
 - [ ] `POST /sync/pull` - 서버 → 클라이언트 (선택적)
+
   ```python
   @app.route('/sync/pull', methods=['POST'])
   @jwt_required()
@@ -888,7 +945,9 @@ koodtx-server/
   ```
 
 #### 5.5 파일 업로드 API
+
 - [ ] `POST /upload` - Multipart 파일 업로드
+
   ```python
   @app.route('/upload', methods=['POST'])
   @jwt_required()
@@ -914,6 +973,7 @@ koodtx-server/
   ```
 
 #### 5.6 충돌 해결 전략
+
 - [ ] Last-Write-Wins (LWW) 구현
   ```typescript
   function resolveConflict(local: Session, remote: Session): Session {
@@ -932,8 +992,10 @@ koodtx-server/
 ### Phase 6: 오디오 및 고급 센서 (2주)
 
 #### 6.1 오디오 녹음
+
 - [ ] react-native-audio-record 설치
 - [ ] Native Module 확장 (고주파 수집)
+
   ```kotlin
   class AudioRecorderModule {
       private val recorder = AudioRecord(
@@ -959,11 +1021,13 @@ koodtx-server/
   ```
 
 #### 6.2 카메라 메타데이터
+
 - [ ] expo-camera 또는 react-native-camera 사용
 - [ ] 주기적 스냅샷 (1Hz)
 - [ ] 메타데이터만 저장 (노출, ISO, 초점 거리)
 
 #### 6.3 배터리 및 시스템 센서
+
 - [ ] react-native-device-info
 - [ ] 배터리 레벨, 온도
 - [ ] CPU/메모리 사용량 (Native Module)
@@ -973,28 +1037,33 @@ koodtx-server/
 ### Phase 7: 최적화 및 안정성 (2주)
 
 #### 7.1 성능 최적화
+
 - [ ] React.memo 적용
 - [ ] useMemo, useCallback 최적화
 - [ ] FlatList 가상화 (windowSize, initialNumToRender)
 - [ ] 이미지 최적화 (react-native-fast-image)
 
 #### 7.2 배터리 최적화
+
 - [ ] 센서 샘플링율 동적 조정
 - [ ] 백그라운드에서 저전력 모드
 - [ ] Wake Lock 최소화
 
 #### 7.3 메모리 최적화
+
 - [ ] 센서 버퍼 크기 제한
 - [ ] 파일 스트리밍 (청크 단위)
 - [ ] 메모리 누수 체크 (Hermes Profiler)
 
 #### 7.4 에러 처리
+
 - [ ] Sentry 통합
 - [ ] 전역 에러 바운더리
 - [ ] 네트워크 에러 재시도 로직
 - [ ] 사용자 친화적 에러 메시지
 
 #### 7.5 로깅
+
 - [ ] 구조화된 로깅 (`winston` 또는 커스텀)
 - [ ] 로그 레벨 (debug, info, warn, error)
 - [ ] 로컬 로그 파일 저장 (디버깅용)
@@ -1004,14 +1073,17 @@ koodtx-server/
 ### Phase 8: 보안 강화 (1주)
 
 #### 8.1 앱 보안
+
 - [ ] JWT 토큰 안전한 저장 (react-native-keychain)
 - [ ] SSL Pinning (react-native-ssl-pinning)
 - [ ] 코드 난독화 (ProGuard/R8)
 - [ ] 루팅/탈옥 감지
 
 #### 8.2 서버 보안
+
 - [ ] HTTPS 강제 (Let's Encrypt)
 - [ ] Rate Limiting (Flask-Limiter)
+
   ```python
   limiter = Limiter(app, key_func=get_remote_address)
 
@@ -1020,11 +1092,13 @@ koodtx-server/
   def login():
       ...
   ```
+
 - [ ] CORS 설정
 - [ ] SQL Injection 방지 (SQLAlchemy parameterized queries)
 - [ ] XSS 방지 (입력 검증)
 
 #### 8.3 데이터 프라이버시
+
 - [ ] GDPR 준수 (데이터 삭제 API)
 - [ ] 민감 정보 암호화 (GPS 좌표 선택적)
 - [ ] 사용자 동의 화면
@@ -1034,22 +1108,26 @@ koodtx-server/
 ### Phase 9: 테스트 (2주)
 
 #### 9.1 Unit 테스트
+
 - [ ] Jest 설정
 - [ ] 유틸리티 함수 테스트
 - [ ] Redux/Zustand 스토어 테스트
 - [ ] 서비스 로직 테스트
 
 #### 9.2 Integration 테스트
+
 - [ ] API 통신 테스트 (Mock Server)
 - [ ] 데이터베이스 CRUD 테스트
 - [ ] 동기화 로직 테스트
 
 #### 9.3 E2E 테스트
+
 - [ ] Detox 또는 Appium 설정
 - [ ] 녹음 → 저장 → 동기화 플로우 테스트
 - [ ] 오프라인 → 온라인 복구 테스트
 
 #### 9.4 서버 테스트
+
 - [ ] pytest 설정
 - [ ] API 엔드포인트 테스트
 - [ ] 데이터베이스 트랜잭션 테스트
@@ -1060,6 +1138,7 @@ koodtx-server/
 ### Phase 10: 배포 준비 (1주)
 
 #### 10.1 앱 빌드
+
 - [ ] Android Release 빌드
   - Signing Key 생성
   - build.gradle 설정
@@ -1069,6 +1148,7 @@ koodtx-server/
   - App Store Connect 설정
 
 #### 10.2 서버 배포
+
 - [ ] Docker 이미지 빌드
 - [ ] AWS EC2 인스턴스 설정
 - [ ] Nginx 리버스 프록시
@@ -1078,6 +1158,7 @@ koodtx-server/
 - [ ] Redis 설정
 
 #### 10.3 CI/CD
+
 - [ ] GitHub Actions 워크플로우
   ```yaml
   name: Build and Test
@@ -1096,6 +1177,7 @@ koodtx-server/
   ```
 
 #### 10.4 모니터링 설정
+
 - [ ] Sentry (앱 + 서버)
 - [ ] Prometheus + Grafana (서버 메트릭)
 - [ ] AWS CloudWatch (인프라)
@@ -1105,16 +1187,19 @@ koodtx-server/
 ### Phase 11: 베타 테스트 및 피드백 (2주)
 
 #### 11.1 내부 베타
+
 - [ ] Google Play Internal Testing
 - [ ] 5-10명 내부 테스터
 - [ ] 피드백 수집 (Google Forms)
 
 #### 11.2 오픈 베타
+
 - [ ] Google Play Open Beta
 - [ ] 버그 리포트 시스템
 - [ ] 충돌 로그 분석
 
 #### 11.3 피드백 반영
+
 - [ ] 우선순위 버그 수정
 - [ ] UX 개선
 - [ ] 성능 튜닝
@@ -1124,6 +1209,7 @@ koodtx-server/
 ### Phase 12: 정식 출시 (1주)
 
 #### 12.1 스토어 등록
+
 - [ ] Google Play Console
   - 스크린샷, 앱 설명
   - 개인정보 처리방침
@@ -1131,11 +1217,13 @@ koodtx-server/
 - [ ] 출시
 
 #### 12.2 문서화
+
 - [ ] 사용자 가이드
 - [ ] API 문서 (Swagger/OpenAPI)
 - [ ] 개발자 문서 (README, Wiki)
 
 #### 12.3 마케팅 (선택)
+
 - [ ] 랜딩 페이지
 - [ ] 소셜 미디어 홍보
 
@@ -1146,15 +1234,18 @@ koodtx-server/
 ### 동기화 모드
 
 #### 1. 자동 동기화 (기본)
+
 - **트리거**: WiFi 연결 + 배터리 20% 이상
 - **주기**: 15분마다 체크
 - **방식**: 백그라운드 fetch
 
 #### 2. 수동 동기화
+
 - **트리거**: 사용자 버튼 클릭
 - **방식**: 즉시 동기화 시작
 
 #### 3. 실시간 동기화 (선택적)
+
 - **트리거**: 데이터 생성 시 즉시
 - **방식**: WebSocket 또는 HTTP/2 Server Push
 - **사용 사례**: 중요 이벤트만 (낙하 감지, 충격 등)
@@ -1162,6 +1253,7 @@ koodtx-server/
 ### 동기화 알고리즘
 
 #### Delta Sync (차등 동기화)
+
 ```typescript
 async function deltaSync() {
   // 1. 마지막 동기화 시간 가져오기
@@ -1174,7 +1266,7 @@ async function deltaSync() {
     .fetch();
 
   // 3. 서버에서 변경된 데이터 가져오기
-  const response = await api.post('/sync/pull', { last_sync_time: lastSync });
+  const response = await api.post('/sync/pull', {last_sync_time: lastSync});
   const serverChanges = response.data.sessions;
 
   // 4. 충돌 해결
@@ -1194,9 +1286,10 @@ async function deltaSync() {
 #### 충돌 해결 전략
 
 **1. Last-Write-Wins (LWW)**
+
 ```typescript
 function resolveConflicts(local: Session[], remote: Session[]): MergeResult {
-  const merged = { serverWins: [], localWins: [] };
+  const merged = {serverWins: [], localWins: []};
 
   for (const localItem of local) {
     const remoteItem = remote.find(r => r.id === localItem.id);
@@ -1219,6 +1312,7 @@ function resolveConflicts(local: Session[], remote: Session[]): MergeResult {
 ```
 
 **2. Custom Resolution (센서 데이터는 병합 불가)**
+
 - 센서 데이터 파일은 불변 (Immutable)
 - 충돌 시 두 버전 모두 유지 (`file_v1.jsonl`, `file_v2.jsonl`)
 - 사용자에게 알림
@@ -1233,12 +1327,12 @@ async function uploadWithRetry(file: File, maxRetries = 3) {
   while (attempt < maxRetries) {
     try {
       await api.post('/upload', file);
-      return { success: true };
+      return {success: true};
     } catch (error) {
       attempt++;
 
       if (attempt >= maxRetries) {
-        return { success: false, error };
+        return {success: false, error};
       }
 
       // Exponential backoff: 1s, 2s, 4s
@@ -1251,14 +1345,14 @@ async function uploadWithRetry(file: File, maxRetries = 3) {
 
 ### 동기화 우선순위
 
-| 우선순위 | 데이터 타입 | 조건 |
-|---------|------------|------|
-| 1 (최고) | 에러 로그 | 항상 |
-| 2 | 세션 메타데이터 | 크기 작음 |
-| 3 | GPS 데이터 | 중요도 높음 |
-| 4 | IMU 센서 (가속도, 자이로) | 파일 크기 큼 |
-| 5 | 오디오 메타데이터 | 중간 |
-| 6 (최저) | 오디오 원본 (PCM) | 파일 크기 매우 큼 |
+| 우선순위 | 데이터 타입               | 조건              |
+| -------- | ------------------------- | ----------------- |
+| 1 (최고) | 에러 로그                 | 항상              |
+| 2        | 세션 메타데이터           | 크기 작음         |
+| 3        | GPS 데이터                | 중요도 높음       |
+| 4        | IMU 센서 (가속도, 자이로) | 파일 크기 큼      |
+| 5        | 오디오 메타데이터         | 중간              |
+| 6 (최저) | 오디오 원본 (PCM)         | 파일 크기 매우 큼 |
 
 ---
 
@@ -1267,6 +1361,7 @@ async function uploadWithRetry(file: File, maxRetries = 3) {
 ### 앱 보안
 
 #### 1. 토큰 저장
+
 ```typescript
 import Keychain from 'react-native-keychain';
 
@@ -1284,8 +1379,9 @@ const token = credentials.password;
 ```
 
 #### 2. SSL Pinning
+
 ```typescript
-import { fetch as sslFetch } from 'react-native-ssl-pinning';
+import {fetch as sslFetch} from 'react-native-ssl-pinning';
 
 const response = await sslFetch('https://api.koodtx.com/sync', {
   method: 'POST',
@@ -1297,8 +1393,9 @@ const response = await sslFetch('https://api.koodtx.com/sync', {
 ```
 
 #### 3. 루팅 감지
+
 ```typescript
-import { isJailBroken } from 'jail-monkey';
+import {isJailBroken} from 'jail-monkey';
 
 if (isJailBroken()) {
   Alert.alert('보안 경고', '루팅된 기기에서는 앱을 사용할 수 없습니다.');
@@ -1308,6 +1405,7 @@ if (isJailBroken()) {
 ### 서버 보안
 
 #### 1. JWT 검증
+
 ```python
 from flask_jwt_extended import jwt_required, get_jwt_identity
 
@@ -1319,6 +1417,7 @@ def protected():
 ```
 
 #### 2. Rate Limiting
+
 ```python
 from flask_limiter import Limiter
 
@@ -1336,6 +1435,7 @@ def upload():
 ```
 
 #### 3. 입력 검증
+
 ```python
 from marshmallow import Schema, fields, validate
 
@@ -1353,12 +1453,14 @@ if errors:
 ### 데이터 프라이버시
 
 #### GDPR 준수
+
 - [ ] 사용자 동의 화면
 - [ ] 데이터 수집 목적 명시
 - [ ] 데이터 삭제 권리 (`DELETE /user/data`)
 - [ ] 데이터 이동 권리 (`GET /user/export`)
 
 #### 민감 정보 처리
+
 - [ ] GPS 좌표: 사용자 선택적 수집
 - [ ] 오디오: 명시적 권한 요청
 - [ ] 개인정보: 암호화 저장 (AES-256)
@@ -1370,6 +1472,7 @@ if errors:
 ### 앱 성능
 
 #### 1. 센서 버퍼링
+
 ```typescript
 class SensorBuffer {
   private buffer: SensorSample[] = [];
@@ -1393,11 +1496,13 @@ class SensorBuffer {
 ```
 
 #### 2. 메모리 최적화
+
 - WatermelonDB 쿼리 최적화 (인덱스)
 - 이미지 압축 (react-native-image-resizer)
 - 파일 스트리밍 (청크 단위 읽기/쓰기)
 
 #### 3. UI 최적화
+
 - React.memo 적용
 - FlatList 가상화
   ```typescript
@@ -1414,6 +1519,7 @@ class SensorBuffer {
 ### 서버 성능
 
 #### 1. 데이터베이스 인덱싱
+
 ```sql
 CREATE INDEX idx_sessions_user_id ON sessions(user_id);
 CREATE INDEX idx_sessions_updated_at ON sessions(updated_at);
@@ -1422,6 +1528,7 @@ CREATE INDEX idx_sensor_data_timestamp ON sensor_data(timestamp);
 ```
 
 #### 2. 캐싱
+
 ```python
 from flask_caching import Cache
 
@@ -1434,6 +1541,7 @@ def get_sessions(user_id):
 ```
 
 #### 3. 비동기 처리
+
 ```python
 from celery import Celery
 
@@ -1457,6 +1565,7 @@ def upload():
 ```
 
 #### 4. 파일 압축
+
 - Gzip 압축 (Nginx)
 - 센서 데이터 Protobuf 인코딩 (선택)
 
@@ -1465,6 +1574,7 @@ def upload():
 ## 배포 전략
 
 ### 개발 환경
+
 ```bash
 # 로컬 개발
 docker-compose up -d  # PostgreSQL + Redis
@@ -1473,12 +1583,14 @@ npm start             # React Native Metro
 ```
 
 ### 스테이징 환경
+
 - AWS EC2 t3.medium
 - PostgreSQL RDS (db.t3.micro)
 - S3 버킷 (개발용)
 - Cloudflare CDN
 
 ### 프로덕션 환경
+
 - AWS EC2 t3.large (오토스케일링)
 - PostgreSQL RDS (db.t3.medium, Multi-AZ)
 - S3 버킷 (프로덕션)
@@ -1529,39 +1641,41 @@ jobs:
 
 ### 기술적 위험
 
-| 위험 | 영향도 | 확률 | 대응 전략 |
-|-----|-------|------|---------|
-| React Native 성능 문제 (고주파 센서) | 높음 | 중간 | Native Module로 센서 수집, 배치 전송 |
-| 대용량 파일 동기화 실패 | 높음 | 높음 | 청크 업로드, 재시도 로직, 압축 |
-| 배터리 소모 | 중간 | 높음 | 샘플링율 조정, 배터리 최적화 |
-| 동기화 충돌 | 중간 | 중간 | LWW 전략, 충돌 로그 |
-| 저장 공간 부족 | 중간 | 중간 | 자동 정리, 사용자 알림 |
-| 서버 비용 증가 | 높음 | 높음 | S3 Lifecycle 정책, 압축, CDN |
+| 위험                                 | 영향도 | 확률 | 대응 전략                            |
+| ------------------------------------ | ------ | ---- | ------------------------------------ |
+| React Native 성능 문제 (고주파 센서) | 높음   | 중간 | Native Module로 센서 수집, 배치 전송 |
+| 대용량 파일 동기화 실패              | 높음   | 높음 | 청크 업로드, 재시도 로직, 압축       |
+| 배터리 소모                          | 중간   | 높음 | 샘플링율 조정, 배터리 최적화         |
+| 동기화 충돌                          | 중간   | 중간 | LWW 전략, 충돌 로그                  |
+| 저장 공간 부족                       | 중간   | 중간 | 자동 정리, 사용자 알림               |
+| 서버 비용 증가                       | 높음   | 높음 | S3 Lifecycle 정책, 압축, CDN         |
 
 ### 일정 위험
 
-| 마일스톤 | 예상 기간 | 버퍼 | 총 기간 |
-|---------|----------|-----|--------|
-| Phase 1-2: 인프라 | 4주 | 1주 | 5주 |
-| Phase 3: Native Module | 3주 | 1주 | 4주 |
-| Phase 4: UI | 2주 | 1주 | 3주 |
-| Phase 5: 동기화 | 3주 | 1주 | 4주 |
-| Phase 6-7: 고급 기능 | 4주 | 1주 | 5주 |
-| Phase 8-9: 보안/테스트 | 3주 | 1주 | 4주 |
-| Phase 10-12: 배포 | 4주 | 1주 | 5주 |
-| **총 기간** | **23주** | **7주** | **30주 (7.5개월)** |
+| 마일스톤               | 예상 기간 | 버퍼    | 총 기간            |
+| ---------------------- | --------- | ------- | ------------------ |
+| Phase 1-2: 인프라      | 4주       | 1주     | 5주                |
+| Phase 3: Native Module | 3주       | 1주     | 4주                |
+| Phase 4: UI            | 2주       | 1주     | 3주                |
+| Phase 5: 동기화        | 3주       | 1주     | 4주                |
+| Phase 6-7: 고급 기능   | 4주       | 1주     | 5주                |
+| Phase 8-9: 보안/테스트 | 3주       | 1주     | 4주                |
+| Phase 10-12: 배포      | 4주       | 1주     | 5주                |
+| **총 기간**            | **23주**  | **7주** | **30주 (7.5개월)** |
 
 ---
 
 ## 다음 단계
 
 ### 즉시 시작
+
 1. ✅ 이 계획서 검토
 2. ⬜ React Native 프로젝트 생성
 3. ⬜ Flask 서버 boilerplate 구축
 4. ⬜ PostgreSQL + Docker 환경 셋업
 
 ### 의사결정 필요
+
 - [ ] Expo vs React Native CLI 선택
 - [ ] 파일 포맷 (JSON Lines vs Protobuf)
 - [ ] 서버 호스팅 (AWS vs DigitalOcean vs GCP)
@@ -1569,6 +1683,7 @@ jobs:
 - [ ] iOS 지원 여부 (개발 기간 +50%)
 
 ### 추가 고려사항
+
 - [ ] 멀티 기기 동기화 (같은 사용자, 여러 폰)
 - [ ] 웹 대시보드 (센서 데이터 시각화)
 - [ ] 데이터 내보내기 (CSV, HDF5)
@@ -1580,18 +1695,21 @@ jobs:
 ## 부록
 
 ### A. 참고 자료
+
 - React Native 공식 문서: https://reactnative.dev
 - WatermelonDB: https://watermelondb.dev
 - Flask 공식 문서: https://flask.palletsprojects.com
 - Local-First 소프트웨어: https://www.inkandswitch.com/local-first/
 
 ### B. 오픈소스 라이브러리 라이선스
+
 - React Native: MIT
 - WatermelonDB: MIT
 - Flask: BSD-3-Clause
 - SQLAlchemy: MIT
 
 ### C. 용어 정의
+
 - **Local-First**: 로컬 우선 아키텍처
 - **LWW**: Last-Write-Wins (마지막 쓰기 우선)
 - **Delta Sync**: 차등 동기화
