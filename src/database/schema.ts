@@ -6,7 +6,7 @@
 import {appSchema, tableSchema} from '@nozbe/watermelondb';
 
 export const schema = appSchema({
-  version: 2,
+  version: 3,
   tables: [
     // Recording Sessions
     tableSchema({
@@ -80,6 +80,21 @@ export const schema = appSchema({
         {name: 'utc_epoch_ms', type: 'number'},
         {name: 'activity_type', type: 'string', isIndexed: true}, // walking, running, unknown
         {name: 'confidence', type: 'number', isOptional: true},
+        {name: 'is_uploaded', type: 'boolean'},
+        {name: 'created_at', type: 'number'},
+        {name: 'updated_at', type: 'number'},
+      ],
+    }),
+
+    // Step Counts (Step Counter)
+    tableSchema({
+      name: 'step_counts',
+      columns: [
+        {name: 'session_id', type: 'string', isIndexed: true},
+        {name: 'timestamp', type: 'number', isIndexed: true},
+        {name: 'elapsed_realtime_nanos', type: 'number'},
+        {name: 'count', type: 'number'}, // Cumulative count since boot
+        {name: 'delta', type: 'number'}, // Steps since last sample
         {name: 'is_uploaded', type: 'boolean'},
         {name: 'created_at', type: 'number'},
         {name: 'updated_at', type: 'number'},

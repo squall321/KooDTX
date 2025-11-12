@@ -14,6 +14,7 @@ export enum SensorType {
   GPS = 'gps',
   AUDIO = 'audio',
   STEP_DETECTOR = 'step_detector',
+  STEP_COUNTER = 'step_counter',
 }
 
 /**
@@ -111,6 +112,16 @@ export interface StepDetectorData extends BaseSensorData {
 }
 
 /**
+ * Step counter data (cumulative step count)
+ */
+export interface StepCounterData extends BaseSensorData {
+  sensorType: SensorType.STEP_COUNTER;
+  elapsedRealtimeNanos: number; // Elapsed time in nanoseconds since boot
+  count: number; // Cumulative step count since boot
+  delta: number; // Steps since last sample
+}
+
+/**
  * Union type for all sensor data
  */
 export type SensorData =
@@ -119,7 +130,8 @@ export type SensorData =
   | MagnetometerData
   | GPSData
   | AudioData
-  | StepDetectorData;
+  | StepDetectorData
+  | StepCounterData;
 
 /**
  * Sensor recording session
@@ -159,5 +171,8 @@ export interface SensorSettings {
   };
   [SensorType.STEP_DETECTOR]: SensorConfig & {
     activityDetection: boolean; // Enable walking/running classification
+  };
+  [SensorType.STEP_COUNTER]: SensorConfig & {
+    resetOnBoot: boolean; // Track boot events and reset count
   };
 }

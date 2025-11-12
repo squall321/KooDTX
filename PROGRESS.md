@@ -6641,3 +6641,349 @@ src/
 
 **Phase 30 완료**: ✅ 보행 감지 센서 시스템 구현 완료  
 **다음 단계**: Phase 31 - 보행 계수 센서 (Step Counter with cumulative count)
+
+---
+
+## Phase 31: 보행 계수 센서 (Step Counter)
+
+**완료 날짜**: 2025-11-12
+
+### 구현 내용
+
+#### 1. 타입 정의 및 데이터 구조
+**파일**: `src/types/sensor.types.ts`
+- `SensorType.STEP_COUNTER` 추가
+- `StepCounterData` 인터페이스 정의:
+  - `elapsedRealtimeNanos`: 부팅 후 경과 시간 (나노초)
+  - `count`: 부팅 이후 누적 걸음 수
+  - `delta`: 이전 샘플 이후 증가한 걸음 수
+
+#### 2. StepCounterService 구현
+**파일**: `src/services/sensors/StepCounterService.ts` (400+ 라인)
+
+**핵심 기능**:
+- 가속도계 기반 보행 감지 (Peak Detection 알고리즘)
+- 누적 카운트 추적 (부팅 이후)
+- 델타 값 계산 (샘플 간 증가량)
+- 재부팅 감지 및 자동 리셋
+- AsyncStorage 기반 상태 영속화
+
+**상태 관리**:
+```typescript
+interface StepCounterState {
+  bootTime: number;            // 부팅 시간 (performance.now() 기준)
+  cumulativeCount: number;     // 누적 걸음 수
+  lastReportedCount: number;   // 마지막 리포트된 카운트
+  sessionStartCount: number;   // 세션 시작 시 카운트
+}
+```
+
+**재부팅 감지**:
+```typescript
+const currentBootTime = Date.now() - performance.now();
+
+if (storedBootTime !== currentBootTime) {
+  // 디바이스가 재부팅됨 - 카운트 리셋
+  this.cumulativeCount = 0;
+  this.bootTime = currentBootTime;
+  await this.persistState();
+}
+```
+
+**샘플링 방식**:
+- 50Hz로 가속도계 모니터링 (보행 감지)
+- 1초 간격으로 샘플 생성 (설정 가능)
+- 각 샘플에 누적 카운트 + 델타 포함
+
+**사용 예시**:
+```typescript
+const stepCounter = new StepCounterService();
+
+// 설정 커스터마이징
+stepCounter.configure({
+  sampleInterval: 2000, // 2초마다 샘플링
+  minMagnitude: 1.8,    // 보행 감지 임계값 높임
+});
+
+// 시작
+await stepCounter.start(sessionId, (sampleData) => {
+  console.log('Total steps:', sampleData.count);
+  console.log('Steps since last sample:', sampleData.delta);
+});
+
+// 통계 확인
+const stats = stepCounter.getStatistics();
+console.log('Total steps since boot:', stats.totalSteps);
+console.log('Steps in this session:', stats.sessionSteps);
+
+// 세션 걸음 수만 확인
+const sessionSteps = stepCounter.getSessionStepCount();
+```
+
+#### 3. 데이터베이스 스키마 업데이트
+
+**스키마 버전**: 2 → 3
+
+**새 테이블**: `step_counts`
+```typescript
+tableSchema({
+  name: 'step_counts',
+  columns: [
+    {name: 'session_id', type: 'string', isIndexed: true},
+    {name: 'timestamp', type: 'number', isIndexed: true},
+    {name: 'elapsed_realtime_nanos', type: 'number'},
+    {name: 'count', type: 'number'},  // Cumulative count since boot
+    {name: 'delta', type: 'number'},  // Steps since last sample
+    {name: 'is_uploaded', type: 'boolean'},
+    {name: 'created_at', type: 'number'},
+    {name: 'updated_at', type: 'number'},
+  ],
+})
+```
+
+**모델**: `src/database/models/StepCount.ts`
+- WatermelonDB Model 클래스
+- Field decorators 사용
+- 자동 타임스탬프 관리
+
+#### 4. StepCountRepository 구현
+**파일**: `src/database/repositories/StepCountRepository.ts` (240+ 라인)
+
+**주요 메서드**:
+```typescript
+// CRUD Operations
+create(data: StepCounterData): Promise<StepCount>
+createBatch(dataArray: StepCounterData[]): Promise<StepCount[]>
+
+// Query Methods
+findBySession(sessionId: string): Promise<StepCount[]>
+findByTimeRange(startTime, endTime): Promise<StepCount[]>
+
+// Statistics
+getTotalStepsBySession(sessionId: string): Promise<number>
+getSessionStatistics(sessionId: string): Promise<Statistics>
+
+// Timeline (for visualization)
+getTimeline(sessionId: string, limit?: number): Promise<TimelineData[]>
+
+// Latest Data
+getLatest(): Promise<StepCount | null>
+getLatestBySession(sessionId: string): Promise<StepCount | null>
+
+// Sync Operations
+markAsUploaded(stepCountIds: string[]): Promise<void>
+getPendingUpload(): Promise<StepCount[]>
+
+// Delete Operations
+deleteBySession(sessionId: string): Promise<void>
+deleteAll(): Promise<void>
+```
+
+**Statistics 타입**:
+```typescript
+interface Statistics {
+  totalSteps: number;
+  sampleCount: number;
+  averageStepsPerSample: number;
+  maxDelta: number;
+  minDelta: number;
+}
+```
+
+**Timeline 타입**:
+```typescript
+interface TimelineData {
+  timestamp: number;
+  count: number;
+  delta: number;
+}
+```
+
+### Phase 30 vs Phase 31 비교
+
+| 특징 | Phase 30 (Step Detector) | Phase 31 (Step Counter) |
+|------|-------------------------|-------------------------|
+| **데이터 타입** | 이벤트 기반 | 샘플 기반 |
+| **저장 방식** | 각 걸음마다 이벤트 | 주기적 샘플 (1초 간격) |
+| **데이터 크기** | 많음 (걸음마다 1개) | 적음 (샘플마다 1개) |
+| **정보** | 활동 타입, 신뢰도 | 누적 카운트, 델타 |
+| **용도** | 상세 분석, 활동 분류 | 총 걸음 수 추적 |
+| **영속성** | 없음 | AsyncStorage (재부팅 대응) |
+
+### 기술적 세부사항
+
+#### 재부팅 감지 로직
+1. **Boot Time 계산**:
+   ```typescript
+   bootTime = Date.now() - performance.now()
+   ```
+   - `Date.now()`: 현재 시각 (UTC)
+   - `performance.now()`: 앱 시작 이후 경과 시간
+   - `bootTime`: 디바이스 부팅 시각 (근사값)
+
+2. **재부팅 확인**:
+   - 저장된 bootTime과 현재 bootTime 비교
+   - 다르면 재부팅됨 → 카운트 리셋
+   - 같으면 동일 세션 → 카운트 복원
+
+#### 상태 영속화
+**AsyncStorage Keys**:
+```typescript
+'@step_counter_boot_time'      // 부팅 시간
+'@step_counter_last_count'     // 마지막 카운트
+'@step_counter_session_start'  // 세션 시작 카운트
+```
+
+**저장 시점**:
+- 서비스 시작/종료 시
+- 매 10걸음마다 자동 저장
+- 명시적 persist() 호출 시
+
+#### 샘플링 전략
+```typescript
+// 50Hz로 걸음 감지 (실시간)
+accelerometer.subscribe(...) // 20ms 간격
+
+// 1초마다 샘플 발행 (효율성)
+setInterval(() => {
+  emitSample(); // 누적 카운트 + 델타
+}, 1000);
+```
+
+### 통합 가이드
+
+#### 1. 서비스 초기화
+```typescript
+import {StepCounterService} from '@services/sensors';
+
+const stepCounter = new StepCounterService();
+const isAvailable = await stepCounter.isAvailable();
+
+if (isAvailable) {
+  await stepCounter.start(sessionId, handleSampleData);
+}
+```
+
+#### 2. 데이터 저장
+```typescript
+import {getStepCountRepository} from '@database/repositories';
+
+const stepCountRepo = getStepCountRepository();
+
+// 단일 샘플
+await stepCountRepo.create(sampleData);
+
+// 배치 저장
+await stepCountRepo.createBatch(sampleDataArray);
+```
+
+#### 3. 통계 조회
+```typescript
+const stats = await stepCountRepo.getSessionStatistics(sessionId);
+console.log(`총 ${stats.totalSteps}걸음`);
+console.log(`샘플 수: ${stats.sampleCount}`);
+console.log(`평균: ${stats.averageStepsPerSample.toFixed(1)} 걸음/샘플`);
+console.log(`최대 델타: ${stats.maxDelta}`);
+```
+
+#### 4. 타임라인 시각화
+```typescript
+const timeline = await stepCountRepo.getTimeline(sessionId, 100);
+
+// Chart.js 등으로 시각화
+const labels = timeline.map(t => new Date(t.timestamp).toLocaleTimeString());
+const data = timeline.map(t => t.count);
+```
+
+### 파일 구조
+```
+src/
+├── types/
+│   └── sensor.types.ts              # StepCounterData 추가
+├── services/
+│   └── sensors/
+│       └── StepCounterService.ts    # 보행 계수 서비스 (400+ 라인)
+├── database/
+│   ├── schema.ts                    # step_counts 테이블 추가 (v3)
+│   ├── index.ts                     # StepCount 모델 등록
+│   ├── models/
+│   │   ├── StepCount.ts            # StepCount 모델
+│   │   └── index.ts                # Export 추가
+│   └── repositories/
+│       ├── StepCountRepository.ts   # StepCount Repository (240+ 라인)
+│       └── index.ts                # Export 추가
+```
+
+### 사용 시나리오
+
+#### 시나리오 1: 일일 걸음 수 추적
+```typescript
+// 아침에 앱 시작
+const stepCounter = new StepCounterService();
+await stepCounter.start(sessionId, onSample);
+
+// 저녁에 확인
+const stats = stepCounter.getStatistics();
+console.log(`오늘 ${stats.totalSteps}걸음 걸었습니다!`);
+```
+
+#### 시나리오 2: 여러 세션 비교
+```typescript
+const session1Steps = await repo.getTotalStepsBySession('session-1');
+const session2Steps = await repo.getTotalStepsBySession('session-2');
+
+console.log(`세션 1: ${session1Steps}걸음`);
+console.log(`세션 2: ${session2Steps}걸음`);
+console.log(`증가량: ${session2Steps - session1Steps}걸음`);
+```
+
+#### 시나리오 3: 재부팅 후에도 계속 추적
+```typescript
+// 디바이스 재부팅 전: 5000걸음
+// 재부팅 후 자동 리셋: 0걸음
+// 새로 걸은 걸음: 100걸음
+// 현재 카운트: 100걸음 (정확함)
+```
+
+### 알려진 제한사항
+
+1. **부팅 시각 정확도**:
+   - `performance.now()` 기반 추정
+   - 시간 동기화 시 오차 가능
+   - 일반적으로 수 초 이내 오차
+
+2. **백그라운드 제한**:
+   - 앱이 백그라운드에서 종료되면 카운팅 중단
+   - 백그라운드 서비스 필요 (별도 구현 필요)
+
+3. **정확도**:
+   - StepDetectorService와 동일한 Peak Detection 사용
+   - 활동 분류 없음 (총 걸음 수만)
+
+### 향후 개선 방향
+
+1. **네이티브 센서 사용**:
+   - Android: Sensor.TYPE_STEP_COUNTER
+   - iOS: CMPedometer
+   - 배터리 효율 향상
+   - 더 정확한 카운팅
+
+2. **백그라운드 지원**:
+   - Foreground Service (Android)
+   - Background Modes (iOS)
+   - 24/7 걸음 수 추적
+
+3. **목표 설정**:
+   - 일일 목표 (예: 10,000걸음)
+   - 진행 상태 알림
+   - 달성 시 축하 메시지
+
+4. **히스토리 분석**:
+   - 일별/주별/월별 통계
+   - 트렌드 분석
+   - 평균 비교
+
+---
+
+**Phase 31 완료**: ✅ 보행 계수 센서 시스템 구현 완료  
+**다음 단계**: Phase 32 - 낙하 감지 센서 (Significant Motion Detection)
