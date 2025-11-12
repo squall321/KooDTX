@@ -5358,3 +5358,302 @@ README.md 상단에 배지 추가:
 - [ ] Performance 벤치마크
 
 ---
+
+## Phase 27: Performance Optimization ✅
+
+**날짜**: 2025-11-12
+
+### 목표
+React Native 앱의 성능을 최적화하여 사용자 경험 개선:
+- React 컴포넌트 최적화
+- 리스트 렌더링 최적화
+- 번들 크기 분석 및 최적화
+- 성능 모니터링 도구 구축
+
+### 구현 내용
+
+#### 1. Performance Monitor (성능 측정 유틸리티)
+
+**PerformanceMonitor.ts** (250+ lines):
+- Singleton 패턴으로 구현
+- 성능 측정 mark/measure API
+- 비동기/동기 함수 실행 시간 측정
+- 통계 정보 수집 (min, max, avg, count)
+- 성능 리포트 출력
+- DEV 모드에서만 활성화
+
+**주요 기능**:
+```typescript
+// 측정 시작/종료
+performanceMonitor.mark('loadData');
+// ... 작업 수행
+performanceMonitor.measure('loadData');
+
+// 비동기 함수 측정
+const data = await performanceMonitor.measureAsync(
+  'fetchData',
+  () => repository.findAll()
+);
+
+// 통계 조회
+const stats = performanceMonitor.getStats('loadData');
+// { count: 10, min: 15.2, max: 125.6, avg: 45.3, total: 453 }
+
+// 리포트 출력
+performanceMonitor.printReport();
+```
+
+**성능 추적 HOC**:
+```typescript
+export const MyComponent = withPerformanceTracking(
+  Component,
+  'MyComponent'
+);
+```
+
+**렌더링 추적 Hook**:
+```typescript
+function MyComponent() {
+  useRenderTracking('MyComponent');
+  // 10회 이상 렌더링 시 경고
+}
+```
+
+#### 2. Optimized List (리스트 최적화)
+
+**OptimizedFlatList.tsx** (150+ lines):
+- 성능 최적화된 FlatList 래퍼 컴포넌트
+- 최적 설정값 사전 적용
+- getItemLayout 자동 계산 (고정 높이)
+- viewabilityConfig 최적화
+- 메모이제이션 HOC 제공
+
+**최적화 설정**:
+```typescript
+export const OPTIMIZED_FLATLIST_CONFIG = {
+  initialNumToRender: 10,        // 초기 렌더링 항목
+  maxToRenderPerBatch: 5,        // 배치 크기
+  updateCellsBatchingPeriod: 50, // 업데이트 빈도
+  windowSize: 5,                 // 뷰포트 배수
+  removeClippedSubviews: true,   // 화면 밖 제거
+};
+```
+
+**사용 예시**:
+```typescript
+<OptimizedFlatList
+  data={sessions}
+  itemHeight={80}  // 고정 높이
+  renderItem={({item}) => <SessionItem session={item} />}
+/>
+```
+
+**유틸리티 Hook**:
+- `useViewableItems`: 보이는 항목 추적
+- `useInfiniteScroll`: 무한 스크롤
+- `useListFilter`: 검색/필터링
+- `withMemoizedItem`: 리스트 아이템 메모이제이션
+
+#### 3. Bundle Analyzer (번들 분석 도구)
+
+**scripts/analyze-bundle.js** (280+ lines):
+- 소스 코드 크기 분석
+- node_modules 크기 분석
+- 의존성 크기 순위 (Top 10)
+- 파일/디렉토리 크기 순위 (Top 20)
+- 색상 코딩 (Green < 100KB, Yellow < 1MB, Red >= 1MB)
+
+**실행**:
+```bash
+npm run analyze
+# 또는
+npm run perf
+```
+
+**출력 예시**:
+```
+=== Source Code Analysis ===
+Total Source Size: 2.5 MB
+
+📊 Top Directories/Files in src/
+1. 📁 screens                                  850 KB
+2. 📁 services                                 650 KB
+3. 📁 components                               420 KB
+...
+
+=== Dependencies Analysis ===
+Total Dependencies: 47
+Production: 24
+Development: 23
+
+📦 Top 10 Largest Dependencies:
+1. react-native                                95.2 MB
+2. @nozbe/watermelondb                         15.8 MB
+3. react-native-paper                          8.5 MB
+...
+
+=== Summary ===
+Source Code: 2.5 MB
+node_modules: 245.3 MB
+Total: 247.8 MB
+```
+
+#### 4. 성능 최적화 가이드 문서
+
+**docs/PERFORMANCE.md** (350+ lines):
+완전한 성능 최적화 가이드 문서:
+
+**섹션**:
+1. React 컴포넌트 최적화
+   - React.memo 사용법
+   - useMemo/useCallback 패턴
+   - 불필요한 리렌더링 방지
+
+2. 리스트 렌더링 최적화
+   - OptimizedFlatList 사용
+   - getItemLayout 제공
+   - 가상화 (Virtualization)
+
+3. 메모리 관리
+   - 구독 정리
+   - 타이머 정리
+   - 대용량 데이터 배치 처리
+
+4. 번들 크기 최적화
+   - 번들 분석 방법
+   - 동적 import
+   - 의존성 최적화
+
+5. 성능 모니터링
+   - PerformanceMonitor 사용법
+   - 렌더링 추적
+   - Performance Metrics
+
+6. Best Practices
+   - 이미지 최적화
+   - 네트워크 요청 최적화
+   - 상태 업데이트 최적화
+   - 조건부 렌더링
+   - Key 사용
+
+**성능 목표**:
+| 지표 | 목표 |
+|------|------|
+| 앱 시작 시간 | < 3초 |
+| 화면 전환 | < 300ms |
+| 리스트 스크롤 | 60 FPS |
+| 메모리 사용량 | < 150MB |
+| 번들 크기 | < 5MB |
+
+### 파일 구조
+
+```
+src/
+└── utils/
+    └── performance/
+        ├── PerformanceMonitor.ts ✨ NEW
+        ├── OptimizedList.tsx ✨ NEW
+        └── index.ts ✨ NEW
+
+scripts/
+└── analyze-bundle.js ✨ NEW
+
+docs/
+└── PERFORMANCE.md ✨ NEW
+```
+
+### 기술적 세부사항
+
+**성능 측정 방식**:
+- `performance.now()` API 사용
+- Mark/Measure 패턴
+- 통계 집계 (min, max, avg, total)
+- DEV 모드에서만 활성화
+
+**리스트 최적화 기법**:
+- getItemLayout: 고정 높이 항목 성능 향상
+- removeClippedSubviews: 화면 밖 제거
+- windowSize: 렌더링 범위 제어
+- maxToRenderPerBatch: 배치 크기 제한
+
+**번들 분석**:
+- 재귀적 디렉토리 탐색
+- 파일/디렉토리 크기 측정
+- 크기순 정렬
+- 색상 코딩으로 시각화
+
+**메모이제이션**:
+- React.memo: 컴포넌트 메모이제이션
+- useMemo: 계산 값 메모이제이션
+- useCallback: 함수 메모이제이션
+- 얕은 비교 (shallow comparison)
+
+### package.json 업데이트
+
+새로운 스크립트 추가:
+```json
+{
+  "scripts": {
+    "analyze": "node scripts/analyze-bundle.js",
+    "perf": "node scripts/analyze-bundle.js"
+  }
+}
+```
+
+### 사용 예시
+
+**1. 성능 측정**:
+```typescript
+import {performanceMonitor} from '@utils/performance';
+
+async function loadData() {
+  performanceMonitor.mark('loadData');
+  
+  const data = await repository.findAll();
+  
+  performanceMonitor.measure('loadData');
+  // 🟢 [Performance] loadData: 45.23ms
+  
+  return data;
+}
+```
+
+**2. 최적화된 리스트**:
+```typescript
+import {OptimizedFlatList} from '@utils/performance';
+
+<OptimizedFlatList
+  data={sessions}
+  itemHeight={80}
+  renderItem={({item}) => <SessionItem session={item} />}
+/>
+```
+
+**3. 번들 분석**:
+```bash
+npm run analyze
+```
+
+### 성능 개선 효과
+
+**예상 개선사항**:
+- 리스트 스크롤: 30% 성능 향상
+- 컴포넌트 렌더링: 40% 감소
+- 메모리 사용: 20% 감소
+- 번들 크기: 가시화 및 최적화 가능
+
+**측정 가능한 지표**:
+- FPS (Frames Per Second)
+- TTI (Time to Interactive)
+- 메모리 사용량
+- 번들 크기
+- 렌더링 횟수
+
+### 다음 단계 (Optional)
+- [ ] React DevTools Profiler 통합
+- [ ] Flipper Performance Plugin
+- [ ] Hermes Engine 최적화
+- [ ] Code Splitting
+- [ ] Lazy Loading 전략
+
+---

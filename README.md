@@ -395,6 +395,79 @@ npm test
 - [![CI](https://img.shields.io/badge/CI-passing-brightgreen.svg)]() - 빌드 및 테스트 상태
 - [![Security](https://img.shields.io/badge/Security-passing-brightgreen.svg)]() - 보안 검사 상태
 
+## 성능 최적화
+
+프로젝트는 다양한 성능 최적화 도구와 유틸리티를 포함합니다.
+
+### Performance Monitor
+
+성능 측정 및 모니터링:
+
+```typescript
+import {performanceMonitor} from '@utils/performance';
+
+// 측정 시작/종료
+performanceMonitor.mark('loadData');
+const data = await fetchData();
+performanceMonitor.measure('loadData');
+
+// 비동기 함수 측정
+const result = await performanceMonitor.measureAsync(
+  'fetchSensorData',
+  () => repository.findAll()
+);
+
+// 통계 조회
+const stats = performanceMonitor.getStats('loadData');
+console.log(`Average: ${stats.avg}ms`);
+
+// 리포트 출력
+performanceMonitor.printReport();
+```
+
+### Optimized List
+
+FlatList 최적화:
+
+```typescript
+import {OptimizedFlatList} from '@utils/performance';
+
+<OptimizedFlatList
+  data={sessions}
+  itemHeight={80}  // 고정 높이로 성능 향상
+  renderItem={({item}) => <SessionItem session={item} />}
+/>
+```
+
+### Bundle Analysis
+
+번들 크기 분석:
+
+```bash
+# 번들 크기 및 의존성 분석
+npm run analyze
+
+# 또는
+npm run perf
+```
+
+출력:
+- 소스 코드 크기 분석
+- Top 10 largest dependencies
+- 파일/디렉토리 크기 순위
+- 색상 코딩으로 대용량 파일 강조
+
+### Performance Guide
+
+상세한 성능 최적화 가이드는 [docs/PERFORMANCE.md](docs/PERFORMANCE.md)를 참조하세요.
+
+**주요 내용**:
+- React 컴포넌트 최적화 (React.memo, useMemo, useCallback)
+- 리스트 렌더링 최적화 (FlatList, virtualization)
+- 메모리 관리 (구독 정리, 타이머 관리)
+- 번들 크기 최적화
+- Best Practices
+
 ## 문제 해결
 
 ### Android 빌드 실패
