@@ -18,6 +18,8 @@
     "validate": "npm run typecheck && npm run lint && npm run format:check && npm run test"
   },
   "dependencies": {
+    "@nozbe/watermelondb": "^0.28.0",
+    "@nozbe/with-observables": "^1.6.0",
     "@react-native-community/geolocation": "^3.4.0",
     "date-fns": "^4.1.0",
     "lodash": "^4.17.21",

@@ -22,9 +22,9 @@
 
 ## Phase 진행 현황
 
-### ✅ 완료된 Phase: 12/300
+### ✅ 완료된 Phase: 13/300
 
-### 🔄 진행 중: Phase 13
+### 🔄 진행 중: Phase 14
 
 ### ⏳ 대기 중: Phase 11-300
 
@@ -1126,6 +1126,244 @@ Time:        6.032 s
 ## Phase 10: 유틸리티 라이브러리 설치 ✅
 ## Phase 11: React Native 센서 라이브러리 설치 ✅
 ## Phase 12: 센서 데이터 수집 및 버퍼링 시스템 ✅
+## Phase 13: WatermelonDB 로컬 데이터베이스 설정 ✅
+
+**완료 시간**: 2025-11-12 06:00  
+**소요 시간**: 0.8시간
+
+### 주요 성과
+
+**1. WatermelonDB 설치**
+```bash
+npm install @nozbe/watermelondb @nozbe/with-observables
+```
+- **@nozbe/watermelondb**: React Native용 고성능 로컬 데이터베이스
+- **@nozbe/with-observables**: 옵저버블 HOC 유틸리티
+
+**2. 데이터베이스 스키마 정의** (schema.ts - 78줄)
+
+**3개 테이블 정의**:
+
+**recording_sessions**
+- session_id (indexed)
+- start_time, end_time (indexed)
+- is_active, enabled_sensors (JSON)
+- sample_rate, data_count, notes
+- is_uploaded, created_at, updated_at
+
+**sensor_data**
+- sensor_type, session_id (indexed)
+- timestamp (indexed)
+- x, y, z (3축 데이터)
+- latitude, longitude, altitude, accuracy, speed, heading (GPS)
+- is_uploaded, created_at, updated_at
+
+**audio_recordings**
+- session_id, timestamp (indexed)
+- file_path, file_size, duration
+- sample_rate, channels, format
+- is_uploaded, uploaded_url
+- created_at, updated_at
+
+**3. 데이터베이스 모델 구현** (~160줄)
+
+**RecordingSession.ts** (25줄)
+```typescript
+export class RecordingSession extends Model {
+  static table = 'recording_sessions';
+  
+  @field('session_id') sessionId!: string;
+  @json('enabled_sensors', ...) enabledSensors!: SensorType[];
+  @readonly @date('created_at') createdAt!: Date;
+}
+```
+
+**SensorDataRecord.ts** (36줄)
+```typescript
+export class SensorDataRecord extends Model {
+  static table = 'sensor_data';
+  
+  @field('sensor_type') sensorType!: SensorType;
+  @field('x') x?: number;
+  @field('latitude') latitude?: number;
+}
+```
+
+**AudioRecording.ts** (26줄)
+```typescript
+export class AudioRecording extends Model {
+  static table = 'audio_recordings';
+  
+  @field('file_path') filePath!: string;
+  @field('duration') duration!: number;
+}
+```
+
+**4. 데이터베이스 어댑터 설정** (index.ts - 32줄)
+
+```typescript
+const adapter = new SQLiteAdapter({
+  schema,
+  jsi: false, // JSI 미사용 (호환성)
+  onSetUpError: error => {
+    console.error('Database setup error:', error);
+  },
+});
+
+export const database = new Database({
+  adapter,
+  modelClasses: [RecordingSession, SensorDataRecord, AudioRecording],
+});
+```
+
+**5. Repository 패턴 구현** (~440줄)
+
+**SensorDataRepository** (240줄)
+```typescript
+export class SensorDataRepository {
+  async create(data: SensorData): Promise<SensorDataRecord>;
+  async createBatch(dataArray: SensorData[]): Promise<SensorDataRecord[]>;
+  async findBySession(sessionId: string): Promise<SensorDataRecord[]>;
+  async findBySessionAndType(sessionId: string, sensorType: SensorType): Promise<SensorDataRecord[]>;
+  async findByTimeRange(sessionId: string, startTime: number, endTime: number): Promise<SensorDataRecord[]>;
+  async findUnuploaded(limit?: number): Promise<SensorDataRecord[]>;
+  async markAsUploaded(ids: string[]): Promise<void>;
+  async delete(id: string): Promise<void>;
+  async count(sessionId?: string): Promise<number>;
+}
+```
+
+**RecordingSessionRepository** (203줄)
+```typescript
+export class RecordingSessionRepository {
+  async create(data: CreateSessionData): Promise<RecordingSession>;
+  async findBySessionId(sessionId: string): Promise<RecordingSession | null>;
+  async findAll(limit?: number): Promise<RecordingSession[]>;
+  async findActive(): Promise<RecordingSession[]>;
+  async findCompleted(limit?: number): Promise<RecordingSession[]>;
+  async findUnuploaded(): Promise<RecordingSession[]>;
+  async incrementDataCount(sessionId: string, increment: number): Promise<void>;
+  async markAsUploaded(sessionId: string): Promise<void>;
+  async delete(id: string): Promise<void>;
+}
+```
+
+**주요 기능**:
+- ✅ 단일/배치 생성
+- 🔍 다양한 쿼리 (세션, 타입, 시간 범위)
+- 📤 업로드 상태 관리
+- 📊 통계 및 카운트
+- 🗑️ 삭제 작업
+- 🔒 싱글톤 패턴
+
+### 아키텍처 패턴
+
+**계층 구조**:
+```
+UI Components
+    ↓
+Hooks (useSensor, useSensorCollection)
+    ↓
+Services (SensorManager, SensorDataBuffer)
+    ↓
+Repositories (SensorDataRepository, RecordingSessionRepository)
+    ↓
+WatermelonDB Models
+    ↓
+SQLiteAdapter
+    ↓
+SQLite Database
+```
+
+**데이터 흐름**:
+```
+센서 → Hook → Buffer → BatchSaver 
+  → SensorDataRepository.createBatch()
+  → WatermelonDB → SQLite
+```
+
+### 파일 구조
+```
+src/database/
+├── schema.ts                      # DB 스키마 정의
+├── index.ts                       # DB 어댑터 및 인스턴스
+├── models/
+│   ├── RecordingSession.ts        # 세션 모델
+│   ├── SensorDataRecord.ts        # 센서 데이터 모델
+│   ├── AudioRecording.ts          # 오디오 모델
+│   └── index.ts                   # Export 모듈
+└── repositories/
+    ├── SensorDataRepository.ts    # 센서 데이터 레포지토리
+    ├── RecordingSessionRepository.ts  # 세션 레포지토리
+    └── index.ts                   # Export 모듈
+```
+
+### WatermelonDB 주요 특징
+
+**성능**:
+- ⚡ Lazy loading으로 빠른 쿼리
+- 🚀 인덱싱으로 빠른 검색
+- 💾 효율적인 SQLite 사용
+
+**옵저버블**:
+- 📡 RxJS 기반 반응형 쿼리
+- 🔄 자동 UI 업데이트
+- 🎯 선택적 관찰
+
+**오프라인 우선**:
+- 📱 완전한 로컬 저장소
+- 🔌 동기화 준비
+- 💪 안정적인 데이터 지속성
+
+### 사용 예시
+
+**센서 데이터 저장**:
+```typescript
+const repo = getSensorDataRepository();
+
+// 단일 저장
+await repo.create(sensorData);
+
+// 배치 저장
+await repo.createBatch(sensorDataArray);
+
+// 세션별 조회
+const data = await repo.findBySession('session-123');
+
+// 업로드되지 않은 데이터 조회
+const unuploaded = await repo.findUnuploaded();
+```
+
+**녹음 세션 관리**:
+```typescript
+const sessionRepo = getRecordingSessionRepository();
+
+// 세션 생성
+await sessionRepo.create({
+  sessionId: 'session-123',
+  startTime: Date.now(),
+  enabledSensors: [SensorType.ACCELEROMETER, SensorType.GPS],
+  sampleRate: 100,
+});
+
+// 데이터 카운트 증가
+await sessionRepo.incrementDataCount('session-123', 10);
+
+// 세션 종료
+await sessionRepo.updateBySessionId('session-123', {
+  endTime: Date.now(),
+  isActive: false,
+});
+```
+
+### 다음 단계 (Phase 14)
+- SensorDataBatchSaver를 데이터베이스와 통합
+- 센서 수집 Hook과 데이터베이스 연결
+- 실시간 데이터 저장 구현
+- 데이터 동기화 준비
+
+---
+
 
 **완료 시간**: 2025-11-12 05:00  
 **소요 시간**: 1.0시간
@@ -1651,9 +1889,9 @@ Time:        7.769 s
 
 ## 통계
 
-- **총 작업 시간**: 6.7시간
-- **완료율**: 4.0% (12/300)
-- **이번 주 목표 완료율**: 120% (12/10)
+- **총 작업 시간**: 7.5시간
+- **완료율**: 4.3% (13/300)
+- **이번 주 목표 완료율**: 130% (13/10)
 
 ---
 
