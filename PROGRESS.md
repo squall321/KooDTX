@@ -2129,10 +2129,309 @@ const label = `${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}`;
 - ScrollView의 showsHorizontalScrollIndicator={true}
 
 ### 다음 단계 (Phase 20)
-- 오디오 녹음 준비
-- react-native-audio-recorder 설정
-- 오디오 파일 저장 구조
-- 오디오 재생 기능
+- 오디오 녹음 준비 ✅
+- AudioRecorderService 구현 ✅
+- AudioRecordingRepository 구현 ✅
+- useAudioRecording Hook 구현 ✅
+
+---
+
+## Phase 20: 오디오 녹음 인프라 구축 ✅
+
+**완료 시간**: 2025-11-12 11:00
+**소요 시간**: 1.0시간
+
+### 주요 성과
+
+**1. react-native-audio-recorder-player 설치**
+
+```bash
+npm install react-native-audio-recorder-player
+```
+
+- **기능**: 오디오 녹음 및 재생
+- **지원**: Android & iOS
+- **포맷**: m4a (AAC 인코딩)
+
+**2. AudioRecorderService 구현** (270줄)
+
+오디오 녹음 관리 서비스 (Singleton Pattern)
+
+```typescript
+export class AudioRecorderService {
+  async startRecording(options: AudioRecordingOptions, onProgress?, onError?): Promise<string>;
+  async stopRecording(): Promise<AudioRecordingResult | null>;
+  async startPlayer(filePath: string, onProgress?): Promise<void>;
+  async stopPlayer(): Promise<void>;
+  async pausePlayer(): Promise<void>;
+  async resumePlayer(): Promise<void>;
+  async cleanup(): Promise<void>;
+}
+```
+
+**주요 기능**:
+- 🎤 오디오 녹음 (m4a 형식)
+- 🎵 오디오 재생
+- ⏸️ 일시정지/재개
+- 📊 녹음 진행률 콜백
+- 📁 파일 경로 관리
+- 🧹 리소스 정리
+
+**오디오 설정**:
+```typescript
+const audioSet = {
+  AudioEncoderAndroid: AudioEncoderAndroidType.AAC,
+  AudioSourceAndroid: AudioSourceAndroidType.MIC,
+  AVEncoderAudioQualityKeyIOS: AVEncoderAudioQualityIOSType.high,
+  AVNumberOfChannelsKeyIOS: 2,  // Stereo
+  AVFormatIDKeyIOS: AVEncodingOption.aac,
+  AudioSamplingRate: 44100,  // 44.1 kHz
+};
+```
+
+**파일 경로 생성**:
+```typescript
+const timestamp = Date.now();
+const fileName = `audio_${sessionId}_${timestamp}.m4a`;
+const directory = Platform.OS === 'ios'
+  ? RNFS.DocumentDirectoryPath
+  : RNFS.ExternalDirectoryPath;
+const filePath = `${directory}/${fileName}`;
+```
+
+**3. AudioRecordingRepository 구현** (240줄)
+
+오디오 녹음 메타데이터 관리 레포지토리
+
+```typescript
+export class AudioRecordingRepository {
+  async create(input: CreateAudioRecordingInput): Promise<AudioRecording>;
+  async findById(id: string): Promise<AudioRecording | null>;
+  async findBySession(sessionId: string): Promise<AudioRecording[]>;
+  async findAll(): Promise<AudioRecording[]>;
+  async findNotUploaded(): Promise<AudioRecording[]>;
+  async update(id: string, input: UpdateAudioRecordingInput): Promise<AudioRecording>;
+  async markAsUploaded(ids: string[]): Promise<void>;
+  async delete(id: string): Promise<void>;
+  async deleteBySession(sessionId: string): Promise<void>;
+  async count(): Promise<number>;
+  async countBySession(sessionId: string): Promise<number>;
+}
+```
+
+**데이터베이스 스키마** (audio_recordings 테이블):
+- `session_id`: 세션 ID (외래 키)
+- `timestamp`: 녹음 시작 타임스탬프
+- `file_path`: 오디오 파일 경로
+- `file_size`: 파일 크기 (bytes)
+- `duration`: 녹음 길이 (seconds)
+- `sample_rate`: 샘플 레이트 (Hz)
+- `channels`: 채널 수 (1: mono, 2: stereo)
+- `format`: 파일 포맷 (m4a)
+- `is_uploaded`: 업로드 여부
+- `uploaded_url`: 업로드된 URL
+
+**4. useAudioRecording Hook 구현** (130줄)
+
+React Hook으로 오디오 녹음 기능 제공
+
+```typescript
+export function useAudioRecording(options: UseAudioRecordingOptions): UseAudioRecordingResult {
+  const {sessionId, sampleRate, channels, onProgress, onError} = options;
+
+  return {
+    isRecording: boolean;
+    recordingDuration: number;
+    filePath: string | null;
+    start: () => Promise<void>;
+    stop: () => Promise<AudioRecordingResult | null>;
+    error: Error | null;
+  };
+}
+```
+
+**사용 예제**:
+```typescript
+const {isRecording, recordingDuration, start, stop, error} = useAudioRecording({
+  sessionId: 'session-123',
+  sampleRate: 44100,
+  channels: 2,
+  onProgress: (progress) => {
+    console.log(`Duration: ${progress.currentPosition}ms`);
+  },
+  onError: (err) => {
+    console.error('Recording error:', err);
+  },
+});
+
+// Start recording
+await start();
+
+// Stop recording
+const result = await stop();
+// result: {filePath, duration, fileSize}
+```
+
+**Hook 기능**:
+- ✅ 자동 세션 ID 검증
+- ✅ 녹음 상태 관리
+- ✅ 진행률 추적
+- ✅ 에러 처리
+- ✅ 자동 데이터베이스 저장
+- ✅ 컴포넌트 언마운트 시 정리
+
+**5. 파일 저장 구조**
+
+**Android**:
+```
+/storage/emulated/0/Android/data/com.koodtxtemp/files/
+├── audio_session-123_1731394800000.m4a
+├── audio_session-123_1731394900000.m4a
+└── audio_session-456_1731395000000.m4a
+```
+
+**iOS**:
+```
+~/Library/Application Support/
+├── audio_session-123_1731394800000.m4a
+├── audio_session-123_1731394900000.m4a
+└── audio_session-456_1731395000000.m4a
+```
+
+**파일 네이밍 규칙**:
+```
+audio_{sessionId}_{timestamp}.m4a
+```
+
+### 오디오 녹음 플로우
+
+```
+┌──────────────────────────────────┐
+│ useAudioRecording Hook           │
+├──────────────────────────────────┤
+│ 1. start() 호출                  │
+│    ↓                             │
+│ 2. AudioRecorderService          │
+│    - startRecording()            │
+│    - 파일 경로 생성               │
+│    - 녹음 시작                   │
+│    ↓                             │
+│ 3. 진행률 콜백                   │
+│    - onProgress(progress)        │
+│    - 녹음 시간 업데이트           │
+│    ↓                             │
+│ 4. stop() 호출                   │
+│    ↓                             │
+│ 5. AudioRecorderService          │
+│    - stopRecording()             │
+│    - 파일 정보 반환               │
+│    ↓                             │
+│ 6. AudioRecordingRepository      │
+│    - create()                    │
+│    - 메타데이터 저장              │
+│    ↓                             │
+│ 7. 완료                          │
+└──────────────────────────────────┘
+```
+
+### 오디오 재생 플로우
+
+```
+┌──────────────────────────────────┐
+│ AudioRecorderService             │
+├──────────────────────────────────┤
+│ 1. startPlayer(filePath)         │
+│    ↓                             │
+│ 2. 오디오 파일 로드               │
+│    ↓                             │
+│ 3. 재생 시작                     │
+│    ↓                             │
+│ 4. 진행률 콜백                   │
+│    - onProgress(progress)        │
+│    ↓                             │
+│ 5. pausePlayer() / resumePlayer()│
+│    ↓                             │
+│ 6. stopPlayer()                  │
+│    ↓                             │
+│ 7. 완료                          │
+└──────────────────────────────────┘
+```
+
+### 업데이트된 파일
+
+- **src/services/audio/AudioRecorderService.ts** (270줄): 오디오 녹음 서비스
+- **src/database/repositories/AudioRecordingRepository.ts** (240줄): 오디오 레포지토리
+- **src/database/repositories/index.ts**: AudioRecordingRepository export
+- **src/hooks/useAudioRecording.ts** (130줄): 오디오 녹음 Hook
+- **src/hooks/index.ts**: useAudioRecording export
+- **package.json**: react-native-audio-recorder-player 추가
+
+### 통합 준비 완료
+
+RecordingScreen에 오디오 녹음을 통합하려면:
+
+```typescript
+import {useAudioRecording} from '@hooks';
+
+// Inside RecordingScreen component:
+const audioRecording = useAudioRecording({
+  sessionId,
+  sampleRate: 44100,
+  channels: 2,
+  onProgress: (progress) => {
+    // Update UI with recording duration
+  },
+  onError: (error) => {
+    console.error('Audio recording error:', error);
+  },
+});
+
+// Start recording (함께 센서 데이터와)
+const handleStartRecording = async () => {
+  // ... start sensor collection
+  if (enabledSensors[SensorType.AUDIO]) {
+    await audioRecording.start();
+  }
+};
+
+// Stop recording
+const handleStopRecording = async () => {
+  // ... stop sensor collection
+  if (audioRecording.isRecording) {
+    const result = await audioRecording.stop();
+    console.log('Audio saved:', result);
+  }
+};
+```
+
+### 기술적 세부사항
+
+**오디오 품질**:
+- **샘플 레이트**: 44.1 kHz (CD 품질)
+- **채널**: 2 (스테레오)
+- **인코딩**: AAC (고효율 압축)
+- **컨테이너**: m4a
+
+**파일 크기 예상**:
+- 1분 녹음: ~1-2 MB
+- 10분 녹음: ~10-20 MB
+- 60분 녹음: ~60-120 MB
+
+**권한**:
+- Android: `RECORD_AUDIO` (이미 AndroidManifest.xml에 추가됨)
+- iOS: `NSMicrophoneUsageDescription` (Info.plist에 추가 필요)
+
+**에러 처리**:
+- 권한 거부: Error throw
+- 디스크 공간 부족: Error throw
+- 이미 녹음 중: Error throw
+- 세션 ID 없음: Error throw
+
+### 다음 단계 (Phase 21)
+- RecordingScreen에 오디오 통합
+- 오디오 재생 UI 추가
+- SessionDetail에 오디오 표시
+- 오디오 파일 내보내기
 
 ---
 

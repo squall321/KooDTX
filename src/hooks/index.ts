@@ -23,3 +23,9 @@ export type {
   PermissionsState,
   UsePermissionsResult,
 } from './usePermissions';
+
+export {useAudioRecording} from './useAudioRecording';
+export type {
+  UseAudioRecordingOptions,
+  UseAudioRecordingResult,
+} from './useAudioRecording';
