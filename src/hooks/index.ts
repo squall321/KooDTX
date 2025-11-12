@@ -16,3 +16,10 @@ export type {
   UseSensorCollectionWithDBOptions,
   UseSensorCollectionWithDBResult,
 } from './useSensorCollectionWithDB';
+
+export {usePermissions} from './usePermissions';
+export type {
+  PermissionStatus,
+  PermissionsState,
+  UsePermissionsResult,
+} from './usePermissions';

@@ -22,9 +22,9 @@
 
 ## Phase 진행 현황
 
-### ✅ 완료된 Phase: 15/300
+### ✅ 완료된 Phase: 16/300
 
-### 🔄 진행 중: Phase 16
+### 🔄 진행 중: Phase 17
 
 ### ⏳ 대기 중: Phase 11-300
 
@@ -1129,6 +1129,147 @@ Time:        6.032 s
 ## Phase 13: WatermelonDB 로컬 데이터베이스 설정 ✅
 ## Phase 14: 센서 데이터 저장 통합 ✅
 ## Phase 15: Recording UI 화면 구현 ✅
+## Phase 16: 권한 처리 및 사용자 경험 개선 ✅
+
+**완료 시간**: 2025-11-12 07:30  
+**소요 시간**: 0.5시간
+
+### 주요 성과
+
+**1. TypeScript 데코레이터 설정** (tsconfig.json)
+
+WatermelonDB 모델 데코레이터 지원을 위한 설정 추가
+
+```json
+{
+  "experimentalDecorators": true,
+  "emitDecoratorMetadata": true,
+  "strictPropertyInitialization": false
+}
+```
+
+**2. usePermissions Hook 구현** (150줄)
+
+Android/iOS 센서 권한 관리 Hook
+
+```typescript
+export function usePermissions(): UsePermissionsResult {
+  permissions: PermissionsState;
+  isLoading: boolean;
+  requestPermissions(): Promise<boolean>;
+  openSettings(): void;
+}
+```
+
+**기능**:
+- ✅ 위치 권한 확인 (Android)
+- 🎤 마이크 권한 확인 (Android)
+- 🔄 권한 요청 (PermissionsAndroid.requestMultiple)
+- ⚙️ 앱 설정 열기 (Linking.openSettings)
+- 📱 플랫폼별 처리 (Android/iOS)
+
+**권한 상태**:
+- `granted`: 허용됨
+- `denied`: 거부됨
+- `blocked`: 차단됨
+- `unavailable`: 확인 불가
+
+**3. RecordingScreen 개선** (430줄)
+
+**추가된 기능**:
+
+**권한 배너** (Banner):
+```
+⚠️ GPS 센서를 사용하려면 위치 권한이 필요합니다.
+[권한 요청]
+```
+
+**로딩 상태**:
+- `isStarting`: 녹음 시작 중
+- `permissionsLoading`: 권한 요청 중
+- 버튼에 로딩 인디케이터 표시
+- "시작 중..." 텍스트 표시
+
+**센서 초기화 표시**:
+```
+🔄 센서 초기화 중...
+(ActivityIndicator)
+```
+
+**데이터 대기 표시**:
+```
+accelerometer
+데이터 대기 중...
+```
+
+**권한 플로우**:
+1. GPS 체크박스 선택
+2. 권한 배너 표시
+3. "권한 요청" 버튼 클릭
+4. Android 권한 다이얼로그
+5. 허용/거부 처리
+6. 거부 시 설정 열기 제안
+
+**4. 개선된 사용자 경험**
+
+**녹음 시작**:
+```
+1. 센서 선택
+2. GPS 선택 시 → 권한 배너 표시
+3. "녹음 시작" 클릭
+4. 권한 확인 → 필요 시 요청
+5. 버튼 로딩 상태: "시작 중..."
+6. 센서 초기화 표시
+7. 실시간 데이터 표시 시작
+```
+
+**에러 처리**:
+- 권한 거부 → 설정 열기 제안
+- 센서 초기화 실패 → 에러 메시지
+- 데이터베이스 오류 → 콘솔 로그
+
+**로딩 피드백**:
+- 권한 요청 중: 버튼 로딩 (배너)
+- 녹음 시작 중: 버튼 로딩 + 텍스트 변경
+- 센서 초기화 중: ActivityIndicator
+- 데이터 대기 중: "데이터 대기 중..." 텍스트
+
+### 업데이트된 파일
+
+- **tsconfig.json**: 데코레이터 설정 추가
+- **usePermissions.ts** (150줄): 권한 관리 Hook
+- **hooks/index.ts**: usePermissions export 추가
+- **RecordingScreen.tsx** (430줄): 권한/로딩 통합
+
+### 사용자 시나리오
+
+**시나리오 1: GPS 없이 녹음**
+1. 가속도계, 자이로스코프 선택
+2. "녹음 시작" → 즉시 시작
+3. 권한 요청 없음
+
+**시나리오 2: GPS 포함 녹음 (권한 없음)**
+1. GPS 체크 → 배너 표시
+2. "권한 요청" 클릭
+3. Android 권한 다이얼로그
+4. 허용 → "녹음 시작" 활성화
+5. "녹음 시작" → GPS 데이터 수집
+
+**시나리오 3: GPS 포함 녹음 (권한 거부)**
+1. GPS 체크 → 배너 표시
+2. "권한 요청" 클릭
+3. 거부 → "설정 열기" 알림
+4. 설정에서 권한 허용
+5. 앱 복귀 → 녹음 가능
+
+### 다음 단계 (Phase 17)
+- 녹음 히스토리 화면 구현
+- 세션 목록 표시
+- 세션 상세 정보 표시
+- 데이터 내보내기 기능
+
+---
+
 
 **완료 시간**: 2025-11-12 07:00  
 **소요 시간**: 0.7시간
@@ -2267,9 +2408,9 @@ Time:        7.769 s
 
 ## 통계
 
-- **총 작업 시간**: 8.7시간
-- **완료율**: 5.0% (15/300)
-- **이번 주 목표 완료율**: 150% (15/10)
+- **총 작업 시간**: 9.2시간
+- **완료율**: 5.3% (16/300)
+- **이번 주 목표 완료율**: 160% (16/10)
 
 ---
 

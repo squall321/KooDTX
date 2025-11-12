@@ -3,7 +3,7 @@
  * Main screen for sensor data recording
  */
 
-import React, {useState, useCallback, useEffect} from 'react';
+import React, {useState, useCallback} from 'react';
 import {View, StyleSheet, ScrollView} from 'react-native';
 import {
   Text,
@@ -14,9 +14,11 @@ import {
   Portal,
   Dialog,
   TextInput,
+  ActivityIndicator,
+  Banner,
 } from 'react-native-paper';
 import {SensorType} from '@types/sensor.types';
-import {useSensorCollectionWithDB} from '@hooks';
+import {useSensorCollectionWithDB, usePermissions} from '@hooks';
 import {getRecordingSessionRepository} from '@database/repositories';
 import {generateSessionId} from '@utils';
 
@@ -24,6 +26,10 @@ export function RecordingScreen() {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [sessionNotes, setSessionNotes] = useState<string>('');
   const [showNotesDialog, setShowNotesDialog] = useState(false);
+  const [isStarting, setIsStarting] = useState(false);
+
+  // Permissions
+  const {permissions, isLoading: permissionsLoading, requestPermissions, openSettings} = usePermissions();
 
   // Sensor selection
   const [enabledSensors, setEnabledSensors] = useState<Record<SensorType, boolean>>({
@@ -35,7 +41,7 @@ export function RecordingScreen() {
   });
 
   // Sensor settings
-  const [sampleRate, setSampleRate] = useState(100);
+  const [sampleRate] = useState(100);
 
   // Latest sensor data for display
   const [latestData, setLatestData] = useState<Record<SensorType, any>>({});
@@ -90,7 +96,19 @@ export function RecordingScreen() {
 
   // Start recording
   const handleStartRecording = useCallback(async () => {
+    setIsStarting(true);
+
     try {
+      // Check permissions first
+      if (permissions.location !== 'granted' && enabledSensors[SensorType.GPS]) {
+        const granted = await requestPermissions();
+        if (!granted) {
+          openSettings();
+          setIsStarting(false);
+          return;
+        }
+      }
+
       const newSessionId = generateSessionId();
       setSessionId(newSessionId);
 
@@ -113,8 +131,10 @@ export function RecordingScreen() {
       await start(sensorsToStart);
     } catch (err) {
       console.error('Failed to start recording:', err);
+    } finally {
+      setIsStarting(false);
     }
-  }, [enabledSensors, sampleRate, sessionNotes, start, sessionRepo]);
+  }, [enabledSensors, sampleRate, sessionNotes, start, sessionRepo, permissions, requestPermissions, openSettings]);
 
   // Stop recording
   const handleStopRecording = useCallback(async () => {
@@ -140,8 +160,28 @@ export function RecordingScreen() {
   const bufferStats = isRunning ? getBufferStats() : null;
   const saverStats = isRunning ? getSaverStats() : null;
 
+  // Check if GPS is enabled but permission not granted
+  const needsLocationPermission = enabledSensors[SensorType.GPS] && permissions.location !== 'granted';
+
   return (
     <ScrollView style={styles.container}>
+      {/* Permission Banner */}
+      {needsLocationPermission && !isRunning && (
+        <Banner
+          visible={true}
+          actions={[
+            {
+              label: '권한 요청',
+              onPress: requestPermissions,
+              loading: permissionsLoading,
+            },
+          ]}
+          icon="alert-circle"
+        >
+          GPS 센서를 사용하려면 위치 권한이 필요합니다.
+        </Banner>
+      )}
+
       <Card style={styles.card}>
         <Card.Title title="센서 녹음" subtitle="센서 데이터 수집 및 저장" />
         <Card.Content>
@@ -221,9 +261,10 @@ export function RecordingScreen() {
                 onPress={handleStartRecording}
                 icon="record"
                 style={styles.button}
-                disabled={Object.values(enabledSensors).every(v => !v)}
+                loading={isStarting}
+                disabled={Object.values(enabledSensors).every(v => !v) || isStarting}
               >
-                녹음 시작
+                {isStarting ? '시작 중...' : '녹음 시작'}
               </Button>
             ) : (
               <Button
@@ -252,24 +293,38 @@ export function RecordingScreen() {
         <Card style={styles.card}>
           <Card.Title title="실시간 데이터" />
           <Card.Content>
-            {runningSensors.map(sensorType => {
-              const data = latestData[sensorType];
-              return (
-                <View key={sensorType} style={styles.dataItem}>
-                  <Text variant="titleSmall">{sensorType}</Text>
-                  {data && 'x' in data && (
-                    <Text variant="bodySmall">
-                      X: {data.x?.toFixed(3)}, Y: {data.y?.toFixed(3)}, Z: {data.z?.toFixed(3)}
-                    </Text>
-                  )}
-                  {data && 'latitude' in data && (
-                    <Text variant="bodySmall">
-                      Lat: {data.latitude?.toFixed(6)}, Lng: {data.longitude?.toFixed(6)}
-                    </Text>
-                  )}
-                </View>
-              );
-            })}
+            {runningSensors.length === 0 ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" />
+                <Text variant="bodyMedium" style={styles.loadingText}>
+                  센서 초기화 중...
+                </Text>
+              </View>
+            ) : (
+              runningSensors.map(sensorType => {
+                const data = latestData[sensorType];
+                return (
+                  <View key={sensorType} style={styles.dataItem}>
+                    <Text variant="titleSmall">{sensorType}</Text>
+                    {data && 'x' in data && (
+                      <Text variant="bodySmall">
+                        X: {data.x?.toFixed(3)}, Y: {data.y?.toFixed(3)}, Z: {data.z?.toFixed(3)}
+                      </Text>
+                    )}
+                    {data && 'latitude' in data && (
+                      <Text variant="bodySmall">
+                        Lat: {data.latitude?.toFixed(6)}, Lng: {data.longitude?.toFixed(6)}
+                      </Text>
+                    )}
+                    {!data && (
+                      <Text variant="bodySmall" style={styles.waitingText}>
+                        데이터 대기 중...
+                      </Text>
+                    )}
+                  </View>
+                );
+              })
+            )}
           </Card.Content>
         </Card>
       )}
@@ -357,5 +412,17 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#e0e0e0',
+  },
+  waitingText: {
+    color: '#999',
+    fontStyle: 'italic',
+  },
+  loadingContainer: {
+    alignItems: 'center',
+    padding: 20,
+  },
+  loadingText: {
+    marginTop: 12,
+    color: '#666',
   },
 });
