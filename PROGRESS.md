@@ -5136,3 +5136,225 @@ npm run test:clearCache
 - [ ] Snapshot 테스트 추가
 
 ---
+
+## Phase 26: CI/CD Pipeline with GitHub Actions ✅
+
+**날짜**: 2025-11-12
+
+### 목표
+GitHub Actions를 사용한 자동화된 CI/CD 파이프라인 구축:
+- 자동 코드 품질 검사
+- 자동 테스트 실행
+- 보안 검사 자동화
+- PR 검증 자동화
+
+### 구현 내용
+
+#### 1. CI Pipeline (.github/workflows/ci.yml)
+
+**6개의 Job으로 구성**:
+
+1. **Lint Job**:
+   - ESLint 실행
+   - Prettier 포맷 검사
+   - 코드 스타일 규칙 준수 확인
+
+2. **TypeCheck Job**:
+   - TypeScript 컴파일러 실행 (`tsc --noEmit`)
+   - 타입 안정성 검증
+   - 타입 오류 사전 감지
+
+3. **Test Job**:
+   - Jest 단위 테스트 실행
+   - 커버리지 수집 (`--coverage`)
+   - Codecov에 커버리지 업로드
+   - 테스트 결과 artifact 저장
+
+4. **Validate Job**:
+   - 전체 프로젝트 검증 (`npm run validate`)
+   - package.json 존재 확인
+   - 의존성 검증
+   - 프로젝트 구조 확인
+
+5. **Build Check Job**:
+   - Metro bundler 설정 검증
+   - Babel 설정 검증
+   - TypeScript 설정 검증
+   - React Native 프로젝트 구조 검증
+
+6. **Summary Job**:
+   - 모든 Job 결과 집계
+   - 최종 성공/실패 판정
+
+**트리거**:
+- Push: main, develop, claude/** 브랜치
+- Pull Request: main, develop 브랜치
+
+#### 2. PR Check Pipeline (.github/workflows/pr-check.yml)
+
+**7개의 Job으로 구성**:
+
+1. **PR Info**:
+   - PR 번호, 제목, 작성자 표시
+   - Base/Head 브랜치 정보
+   - 변경 파일 수
+
+2. **Quick Checks**:
+   - PR 제목 규칙 검증 (Conventional Commits)
+   - 브랜치 명명 규칙 검증
+   - 대용량 파일 감지
+
+3. **Code Quality**:
+   - Linter 실행
+   - 포맷 검사
+   - TypeScript 타입 체크
+
+4. **Test Coverage**:
+   - 커버리지 수집
+   - PR에 커버리지 코멘트 자동 작성
+   - 커버리지 테이블 표시
+
+5. **Changes Check**:
+   - 변경 파일 분석
+   - package.json 수정 감지
+   - 데이터베이스 파일 수정 감지
+   - Native 코드 수정 감지
+
+6. **Size Check**:
+   - node_modules 크기 확인
+   - 소스 코드 크기 확인
+   - 상위 10개 의존성 크기 표시
+
+**트리거**:
+- Pull Request: opened, synchronize, reopened
+
+#### 3. Security Pipeline (.github/workflows/security.yml)
+
+**5개의 Job으로 구성**:
+
+1. **Dependency Audit**:
+   - `npm audit` 실행
+   - 취약점 개수 집계
+   - Audit 리포트 artifact 저장
+
+2. **Dependency Review**:
+   - PR에서 추가된 의존성 검토
+   - License 준수 확인
+   - 심각도 체크 (moderate 이상)
+
+3. **Security Scan**:
+   - 코드 내 API key 스캔
+   - Access token 스캔
+   - 비밀번호 패턴 스캔
+   - .env 파일 누출 검사
+   - .gitignore 검증
+
+4. **License Check**:
+   - LICENSE 파일 존재 확인
+   - 의존성 라이선스 목록
+
+5. **CodeQL Analysis**:
+   - GitHub CodeQL 정적 분석
+   - JavaScript/TypeScript 취약점 스캔
+
+**트리거**:
+- Push: main, develop
+- Pull Request: main, develop
+- Schedule: 매주 월요일 00:00 UTC
+- Manual: workflow_dispatch
+
+### 기술적 세부사항
+
+**Node.js 설정**:
+```yaml
+- uses: actions/setup-node@v4
+  with:
+    node-version: '18'
+    cache: 'npm'
+```
+
+**병렬 실행**:
+- Lint, TypeCheck, Test Job은 병렬 실행
+- Validate, Build Check는 테스트 완료 후 실행 (needs)
+
+**캐싱**:
+- npm 캐시 활용으로 설치 시간 단축
+- Jest 캐시 초기화 (`test:clearCache`)
+
+**Artifact**:
+- 테스트 커버리지 리포트
+- npm audit 리포트
+
+**PR 자동 코멘트**:
+```javascript
+// 커버리지 테이블을 PR에 자동 작성
+github.rest.issues.createComment({
+  issue_number: context.issue.number,
+  body: coverage_table
+});
+```
+
+### 파일 구조
+
+```
+.github/
+└── workflows/
+    ├── ci.yml ✨ NEW
+    ├── pr-check.yml ✨ NEW
+    └── security.yml ✨ NEW
+```
+
+### CI/CD 파이프라인 흐름
+
+```
+┌─────────────────────────────────────┐
+│ Push/PR Trigger                     │
+└────────────┬────────────────────────┘
+             │
+      ┌──────┴──────┐
+      │             │
+      ▼             ▼
+┌─────────┐   ┌──────────┐
+│ CI      │   │ Security │
+│ Pipeline│   │ Pipeline │
+└────┬────┘   └────┬─────┘
+     │             │
+     ├─ Lint       ├─ Audit
+     ├─ TypeCheck  ├─ Scan
+     ├─ Test       ├─ License
+     ├─ Validate   └─ CodeQL
+     ├─ Build Check
+     └─ Summary
+          │
+          ▼
+    ✅ All Passed / ❌ Failed
+```
+
+### 로컬 검증
+
+CI와 동일한 검사를 로컬에서 실행:
+```bash
+npm run validate  # lint + typecheck + format + test
+npm run lint
+npm run typecheck
+npm run format:check
+npm test
+```
+
+### 배지 추가
+
+README.md 상단에 배지 추가:
+- CI Status
+- Security Status
+- React Native Version
+- TypeScript Version
+- License
+
+### 다음 단계 (Optional)
+- [ ] Codecov 통합 완료
+- [ ] Slack/Discord 알림 연동
+- [ ] 자동 배포 (Android/iOS)
+- [ ] E2E 테스트 CI 통합
+- [ ] Performance 벤치마크
+
+---

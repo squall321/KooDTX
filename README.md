@@ -1,5 +1,11 @@
 # KooDTX - React Native Sensor Data Collection App
 
+[![CI](https://github.com/squall321/KooDTX/actions/workflows/ci.yml/badge.svg)](https://github.com/squall321/KooDTX/actions/workflows/ci.yml)
+[![Security](https://github.com/squall321/KooDTX/actions/workflows/security.yml/badge.svg)](https://github.com/squall321/KooDTX/actions/workflows/security.yml)
+[![React Native](https://img.shields.io/badge/React%20Native-0.73.0-blue.svg)](https://reactnative.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0.4-blue.svg)](https://www.typescriptlang.org/)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+
 KooDTX는 React Native로 구현한 센서 데이터 수집 및 동기화 애플리케이션입니다. 모바일 기기의 다양한 센서(가속도계, 자이로스코프, 자기계, GPS)와 오디오를 녹음하여 로컬에 저장하고, 네트워크를 통해 서버와 동기화하는 기능을 제공합니다.
 
 ## 주요 기능
@@ -328,6 +334,66 @@ src/
 - UploadQueue: 20+ 테스트 케이스
 
 **Mocks**: AsyncStorage, NetInfo, Geolocation, Audio, Sensors, WatermelonDB, Axios
+
+## CI/CD
+
+프로젝트는 GitHub Actions를 사용한 자동화된 CI/CD 파이프라인을 포함합니다.
+
+### Workflows
+
+**CI Pipeline** (`.github/workflows/ci.yml`):
+- **Lint**: ESLint 및 Prettier 코드 스타일 검사
+- **TypeCheck**: TypeScript 타입 검증
+- **Test**: Jest 단위 테스트 실행 및 커버리지 수집
+- **Validate**: 프로젝트 구조 및 의존성 검증
+- **Build Check**: React Native 설정 및 빌드 구성 검증
+
+**PR Check** (`.github/workflows/pr-check.yml`):
+- PR 정보 분석 및 요약
+- 브랜치 명명 규칙 검증
+- 코드 품질 검사
+- 테스트 커버리지 리포트
+- 변경 파일 분석
+- 번들 크기 검사
+
+**Security** (`.github/workflows/security.yml`):
+- npm audit를 통한 의존성 취약점 검사
+- 코드 내 secret 스캔
+- License 준수 검사
+- CodeQL 정적 분석
+
+### CI 트리거
+
+```yaml
+# 자동 실행
+- Push: main, develop, claude/** 브랜치
+- Pull Request: main, develop 브랜치 대상
+- Schedule: 매주 월요일 (보안 검사)
+
+# 수동 실행
+- workflow_dispatch 이벤트
+```
+
+### 로컬에서 CI 검증
+
+CI 파이프라인과 동일한 검사를 로컬에서 실행:
+
+```bash
+# 전체 검증 (lint + typecheck + format + test)
+npm run validate
+
+# 개별 검사
+npm run lint
+npm run typecheck
+npm run format:check
+npm test
+```
+
+### Badge 상태
+
+프로젝트 README 상단의 배지를 통해 CI 상태를 실시간으로 확인할 수 있습니다:
+- [![CI](https://img.shields.io/badge/CI-passing-brightgreen.svg)]() - 빌드 및 테스트 상태
+- [![Security](https://img.shields.io/badge/Security-passing-brightgreen.svg)]() - 보안 검사 상태
 
 ## 문제 해결
 
