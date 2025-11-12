@@ -22,11 +22,11 @@
 
 ## Phase 진행 현황
 
-### ✅ 완료된 Phase: 7/300
+### ✅ 완료된 Phase: 8/300
 
-### 🔄 진행 중: Phase 8
+### 🔄 진행 중: Phase 9
 
-### ⏳ 대기 중: Phase 9-300
+### ⏳ 대기 중: Phase 10-300
 
 ---
 
@@ -791,6 +791,187 @@ date.ts   |     100 |    86.66 |     100 |     100 |
 
 ---
 
+## Phase 8: 상태 관리 라이브러리 설치 (Zustand) ✅
+
+**상태**: ✅ 완료
+**시작일**: 2025-11-12
+**완료일**: 2025-11-12
+**실제 소요**: 0.5시간
+**우선순위**: high
+
+### 작업 내용
+
+- [x] Zustand 설치
+- [x] 3개 핵심 스토어 생성
+- [x] 스토어 타입 정의
+- [x] 23개 테스트 케이스 작성 및 통과
+- [x] 스토어 export 설정
+
+### 진행 로그
+
+**2025-11-12 01:45**
+
+- Zustand v4.5.0 설치 (1 package)
+- 경량 상태 관리 라이브러리
+- Redux보다 간단하고 보일러플레이트 적음
+
+**2025-11-12 01:50**
+
+- useAppStore 생성 (110줄)
+  - 네트워크 상태 관리 (online, server connection)
+  - 로딩 상태 (initializing, loading)
+  - 에러 핸들링
+  - 앱 초기화 로직
+
+**2025-11-12 01:55**
+
+- useRecordingStore 생성 (120줄)
+  - 녹화 세션 관리
+  - 녹화 제어 (start, stop, pause, resume)
+  - 센서 설정
+  - 데이터 카운트 및 duration 추적
+
+**2025-11-12 02:00**
+
+- useSensorStore 생성 (90줄)
+  - 센서 설정 관리 (5개 센서)
+  - 센서 활성화/비활성화
+  - 샘플링 레이트 설정
+  - 기본 설정 복원
+
+**2025-11-12 02:05**
+
+- 스토어 테스트 작성:
+  - useAppStore: 11개 테스트
+  - useRecordingStore: 12개 테스트
+  - 총 23개 테스트 케이스
+
+**2025-11-12 02:10**
+
+- 모든 테스트 통과 ✅ (23/23)
+- Test execution time: 5.611s
+
+### 생성된 스토어
+
+#### 1. useAppStore (110줄)
+
+**상태**:
+- `isOnline`: 네트워크 연결 상태
+- `isConnectedToServer`: 서버 연결 상태
+- `isInitializing`: 앱 초기화 중
+- `isLoading`: 로딩 상태
+- `error`: 현재 에러
+- `lastError`: 마지막 에러 및 타임스탬프
+
+**액션**:
+- `setOnline()`: 온라인 상태 업데이트
+- `setConnectedToServer()`: 서버 연결 상태
+- `setError()`: 에러 설정
+- `clearError()`: 에러 제거
+- `initialize()`: 앱 초기화
+- `reset()`: 상태 초기화
+
+#### 2. useRecordingStore (120줄)
+
+**상태**:
+- `currentSession`: 현재 녹화 세션
+- `isRecording`: 녹화 중 여부
+- `isPaused`: 일시정지 상태
+- `enabledSensors`: 활성화된 센서 목록
+- `sampleRate`: 샘플링 레이트
+- `dataCount`: 수집된 데이터 수
+- `duration`: 녹화 시간
+
+**액션**:
+- `startRecording()`: 녹화 시작
+- `stopRecording()`: 녹화 종료
+- `pauseRecording()`: 일시정지
+- `resumeRecording()`: 재개
+- `updateDataCount()`: 데이터 카운트 업데이트
+- `updateDuration()`: 시간 업데이트
+
+#### 3. useSensorStore (90줄)
+
+**상태**:
+- `settings`: 센서별 설정
+  - accelerometer, gyroscope, magnetometer
+  - gps, audio
+- `availableSensors`: 사용 가능한 센서 목록
+
+**액션**:
+- `updateSensorConfig()`: 센서 설정 업데이트
+- `toggleSensor()`: 센서 활성화/비활성화
+- `setAvailableSensors()`: 사용 가능 센서 설정
+- `resetToDefaults()`: 기본값으로 복원
+
+### 테스트 결과
+
+✅ **23/23 테스트 통과**
+
+```
+Test Suites: 2 passed, 2 total
+Tests:       23 passed, 23 total
+Time:        5.611 s
+```
+
+#### useAppStore 테스트 (11개)
+
+- ✓ Initial state verification
+- ✓ Network status updates
+- ✓ Server disconnection on offline
+- ✓ Loading states management
+- ✓ Error handling and clearing
+- ✓ LastError tracking with timestamp
+- ✓ App initialization
+- ✓ State reset
+
+#### useRecordingStore 테스트 (12개)
+
+- ✓ Initial state verification
+- ✓ Recording start with configuration
+- ✓ Session timestamps validation
+- ✓ Recording stop and session update
+- ✓ Stop without active session
+- ✓ Pause and resume functionality
+- ✓ Data count updates
+- ✓ Duration updates
+- ✓ Sensor configuration changes
+- ✓ Sample rate updates
+- ✓ State reset
+
+### Zustand 장점
+
+1. **간단한 API**: Redux보다 훨씬 간단
+2. **타입 안전**: TypeScript 완벽 지원
+3. **보일러플레이트 최소화**: Actions, reducers 불필요
+4. **React Hooks 기반**: 자연스러운 사용
+5. **번들 크기**: 매우 작음 (~1KB)
+6. **DevTools 지원**: Redux DevTools 호환
+
+### 산출물
+
+- **src/store/useAppStore.ts**: 앱 상태 스토어 (110줄)
+- **src/store/useRecordingStore.ts**: 녹화 스토어 (120줄)
+- **src/store/useSensorStore.ts**: 센서 스토어 (90줄)
+- **src/store/index.ts**: 스토어 exports (7줄)
+- **src/store/__tests__/useAppStore.test.ts**: 테스트 (155줄)
+- **src/store/__tests__/useRecordingStore.test.ts**: 테스트 (178줄)
+- **총 코드**: ~660줄
+
+### 참고사항
+
+- 모든 스토어는 타입 안전
+- Reset 기능으로 테스트 격리 보장
+- 초기 상태 명확히 정의
+- Actions는 immutable updates 사용
+- 향후 persist middleware 추가 가능 (AsyncStorage)
+
+### 다음 Phase
+
+→ Phase 9: React Navigation 설치
+
+---
+
 ## 주간 목표
 
 ### Week 1 (2025-11-11 ~ 2025-11-17)
@@ -804,9 +985,9 @@ date.ts   |     100 |    86.66 |     100 |     100 |
 
 ## 통계
 
-- **총 작업 시간**: 3.5시간
-- **완료율**: 2.3% (7/300)
-- **이번 주 목표 완료율**: 70% (7/10)
+- **총 작업 시간**: 4.0시간
+- **완료율**: 2.7% (8/300)
+- **이번 주 목표 완료율**: 80% (8/10)
 
 ---
 
@@ -819,6 +1000,8 @@ date.ts   |     100 |    86.66 |     100 |     100 |
 5. ~~Phase 5 완료 (ESLint 및 Prettier 설정)~~ ✅
 6. ~~Phase 6 완료 (프로젝트 폴더 구조 생성)~~ ✅
 7. ~~Phase 7 완료 (Jest 및 테스트 환경 설정)~~ ✅
+8. ~~Phase 8 완료 (Zustand 상태 관리 설치)~~ ✅
+9. Phase 9 시작 (React Navigation 설치)
 8. Phase 8 시작 (Zustand 상태 관리 설정)
 
 ---
@@ -830,4 +1013,4 @@ date.ts   |     100 |    86.66 |     100 |     100 |
 
 ---
 
-_최종 업데이트: 2025-11-12 01:40_
+_최종 업데이트: 2025-11-12 02:15_
