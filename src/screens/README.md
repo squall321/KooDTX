@@ -2,15 +2,27 @@
 
 Full-screen views for navigation routes.
 
+## Current Screens
+
+- **RecordingScreen.tsx** - Main sensor data recording interface
+  - Sensor selection (Accelerometer, Gyroscope, Magnetometer, GPS)
+  - Recording start/stop controls
+  - Real-time sensor data display
+  - Session notes and settings
+  - Buffer and save statistics
+
+- **HomeScreen.tsx** - Demo screen (to be replaced)
+
 ## Structure
 
 ```
 screens/
-├── Home/            # Dashboard and home screen
-├── Recording/       # Recording session screens
-├── History/         # Historical data viewing screens
-├── Settings/        # App settings screens
-└── Auth/            # Authentication screens (if needed)
+├── RecordingScreen.tsx  # Current: Sensor recording (implemented)
+├── Home/                # Dashboard and home screen
+├── Recording/           # Recording session screens
+├── History/             # Historical data viewing screens
+├── Settings/            # App settings screens
+└── Auth/                # Authentication screens (if needed)
 ```
 
 ## Guidelines

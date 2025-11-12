@@ -8,7 +8,7 @@ import {PaperProvider} from 'react-native-paper';
 
 import {getTheme} from '@config/theme';
 
-import {HomeScreen} from './src/screens/HomeScreen';
+import {RecordingScreen} from './src/screens/RecordingScreen';
 
 function App(): React.JSX.Element {
   const colorScheme = useColorScheme();
@@ -22,7 +22,7 @@ function App(): React.JSX.Element {
           barStyle={isDarkMode ? 'light-content' : 'dark-content'}
           backgroundColor={theme.colors.background}
         />
-        <HomeScreen />
+        <RecordingScreen />
       </SafeAreaView>
     </PaperProvider>
   );

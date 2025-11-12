@@ -22,9 +22,9 @@
 
 ## Phase 진행 현황
 
-### ✅ 완료된 Phase: 14/300
+### ✅ 완료된 Phase: 15/300
 
-### 🔄 진행 중: Phase 15
+### 🔄 진행 중: Phase 16
 
 ### ⏳ 대기 중: Phase 11-300
 
@@ -1128,6 +1128,179 @@ Time:        6.032 s
 ## Phase 12: 센서 데이터 수집 및 버퍼링 시스템 ✅
 ## Phase 13: WatermelonDB 로컬 데이터베이스 설정 ✅
 ## Phase 14: 센서 데이터 저장 통합 ✅
+## Phase 15: Recording UI 화면 구현 ✅
+
+**완료 시간**: 2025-11-12 07:00  
+**소요 시간**: 0.7시간
+
+### 주요 성과
+
+**1. RecordingScreen 구현** (320줄)
+
+완전한 기능의 센서 녹음 화면
+
+**주요 기능**:
+- ✅ **센서 선택**: 4개 센서 (가속도계, 자이로스코프, 자기계, GPS)
+- 🎛️ **설정**: 샘플링 레이트 표시
+- 📝 **메모**: 세션 노트 입력
+- ▶️ **제어**: 녹음 시작/중지 버튼
+- 📊 **실시간 데이터**: 센서별 최신 값 표시
+- 📈 **통계**: 버퍼/저장 통계 실시간 표시
+- ⚠️ **에러 처리**: 에러 메시지 표시
+
+**2. UI 컴포넌트**
+
+**상태 표시**:
+```typescript
+상태: 🔴 녹음 중 / ⚪ 대기 중
+세션: session-1731393600000-a1b2c3d4
+```
+
+**센서 선택 (Checkbox)**:
+- ✓ 가속도계 (Accelerometer)
+- ✓ 자이로스코프 (Gyroscope)
+- ✓ 자기계 (Magnetometer)
+- ☐ GPS
+
+**실시간 데이터**:
+```
+accelerometer
+X: 0.123, Y: -0.456, Z: 9.789
+
+gyroscope
+X: 0.001, Y: 0.002, Z: -0.001
+
+gps
+Lat: 37.123456, Lng: 127.654321
+```
+
+**통계**:
+```
+버퍼: 45 / 1250
+저장: 1200 (실패: 5)
+배치: 12
+```
+
+**3. 통합 기능**
+
+**세션 생성**:
+```typescript
+await sessionRepo.create({
+  sessionId: newSessionId,
+  startTime: Date.now(),
+  enabledSensors: [SensorType.ACCELEROMETER, SensorType.GYROSCOPE],
+  sampleRate: 100,
+  notes: sessionNotes,
+});
+```
+
+**센서 시작**:
+```typescript
+await start([
+  SensorType.ACCELEROMETER,
+  SensorType.GYROSCOPE,
+  SensorType.MAGNETOMETER,
+]);
+```
+
+**데이터 수집 → 저장**:
+```
+useSensorCollectionWithDB Hook
+  → 실시간 데이터 수신
+  → 화면에 최신 값 표시
+  → 자동으로 DB 저장
+  → 통계 업데이트
+```
+
+**세션 종료**:
+```typescript
+await stop();
+await sessionRepo.updateBySessionId(sessionId, {
+  endTime: Date.now(),
+  isActive: false,
+});
+```
+
+**4. 사용자 경험**
+
+**녹음 전**:
+1. 원하는 센서 선택 (체크박스)
+2. 메모 입력 (선택사항)
+3. "녹음 시작" 버튼 클릭
+
+**녹음 중**:
+1. 🔴 녹음 중 표시
+2. 실시간 센서 데이터 표시
+3. 버퍼/저장 통계 표시
+4. "녹음 중지" 버튼 (빨간색)
+
+**녹음 후**:
+1. 데이터베이스에 자동 저장
+2. 세션 종료 처리
+3. 대기 상태로 복귀
+
+**5. 업데이트된 파일**
+
+- **RecordingScreen.tsx** (320줄): 메인 녹음 화면
+- **App.tsx**: RecordingScreen 사용
+- **src/screens/README.md**: 스크린 문서 업데이트
+
+### 화면 구조
+
+```
+RecordingScreen
+├── Card: 센서 녹음
+│   ├── 상태 표시
+│   ├── 센서 선택 (Checkbox)
+│   ├── 설정 표시
+│   ├── 메모 버튼
+│   └── 녹음 시작/중지 버튼
+├── Card: 실시간 데이터 (녹음 중)
+│   └── 센서별 최신 값
+└── Card: 통계 (녹음 중)
+    ├── 버퍼 통계
+    └── 저장 통계
+```
+
+### Material Design 3 스타일
+
+- **Card**: 정보 그룹화
+- **Checkbox**: 센서 선택
+- **Button**: contained (강조), outlined (일반)
+- **Dialog**: 메모 입력
+- **Text**: variant로 계층 구조
+- **Divider**: 섹션 구분
+
+### 완전한 데이터 흐름
+
+```
+사용자 UI 조작
+    ↓
+RecordingScreen
+    ↓
+RecordingSessionRepository.create() → DB
+    ↓
+useSensorCollectionWithDB.start()
+    ↓
+SensorManager → SensorService → 센서 하드웨어
+    ↓
+실시간 데이터 수신
+    ├─→ 화면 업데이트 (latestData)
+    └─→ SensorDataService
+          ├─→ SensorDataBuffer
+          └─→ SensorDataBatchSaver
+                └─→ SensorDataRepository.createBatch() → DB
+                      └─→ RecordingSessionRepository.incrementDataCount()
+```
+
+### 다음 단계 (Phase 16)
+- TypeScript 데코레이터 설정 수정
+- 권한 요청 처리 (Android/iOS)
+- 에러 핸들링 개선
+- 로딩 상태 표시
+
+---
+
 
 **완료 시간**: 2025-11-12 06:30  
 **소요 시간**: 0.5시간
@@ -2094,9 +2267,9 @@ Time:        7.769 s
 
 ## 통계
 
-- **총 작업 시간**: 8.0시간
-- **완료율**: 4.7% (14/300)
-- **이번 주 목표 완료율**: 140% (14/10)
+- **총 작업 시간**: 8.7시간
+- **완료율**: 5.0% (15/300)
+- **이번 주 목표 완료율**: 150% (15/10)
 
 ---
 
