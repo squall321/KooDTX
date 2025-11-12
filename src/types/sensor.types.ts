@@ -16,6 +16,7 @@ export enum SensorType {
   STEP_DETECTOR = 'step_detector',
   STEP_COUNTER = 'step_counter',
   SIGNIFICANT_MOTION = 'significant_motion',
+  PROXIMITY = 'proximity',
 }
 
 /**
@@ -145,6 +146,16 @@ export interface SignificantMotionData extends BaseSensorData {
 }
 
 /**
+ * Proximity sensor data
+ */
+export interface ProximityData extends BaseSensorData {
+  sensorType: SensorType.PROXIMITY;
+  distance: number; // Distance in centimeters (device-specific max range)
+  isNear: boolean; // Boolean indicating if object is near
+  maxRange: number; // Maximum detection range of the sensor (cm)
+}
+
+/**
  * Union type for all sensor data
  */
 export type SensorData =
@@ -155,7 +166,8 @@ export type SensorData =
   | AudioData
   | StepDetectorData
   | StepCounterData
-  | SignificantMotionData;
+  | SignificantMotionData
+  | ProximityData;
 
 /**
  * Sensor recording session
@@ -202,5 +214,8 @@ export interface SensorSettings {
   [SensorType.SIGNIFICANT_MOTION]: SensorConfig & {
     motionClassification: boolean; // Enable motion type classification
     minimumMagnitude: number; // Minimum magnitude to trigger (m/s²)
+  };
+  [SensorType.PROXIMITY]: SensorConfig & {
+    wakeOnProximity: boolean; // Wake screen when object detected
   };
 }

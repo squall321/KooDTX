@@ -6987,3 +6987,364 @@ console.log(`증가량: ${session2Steps - session1Steps}걸음`);
 
 **Phase 31 완료**: ✅ 보행 계수 센서 시스템 구현 완료  
 **다음 단계**: Phase 32 - 낙하 감지 센서 (Significant Motion Detection)
+
+---
+
+## Phase 33: 근접 센서 (Proximity Sensor)
+
+**완료 날짜**: 2025-11-12
+
+### 구현 내용
+
+#### 1. 타입 정의 및 데이터 구조
+**파일**: `src/types/sensor.types.ts`
+- `SensorType.PROXIMITY` 추가
+- `ProximityData` 인터페이스 정의:
+  - `distance`: 거리 (센티미터)
+  - `isNear`: 근접 여부 (boolean)
+  - `maxRange`: 센서 최대 감지 거리 (cm)
+
+#### 2. ProximityService 구현
+**파일**: `src/services/sensors/ProximityService.ts` (200+ 라인)
+
+**핵심 기능**:
+- 근접 센서 데이터 수집 인터페이스
+- **센서 가용성 체크** (isAvailable)
+- 센서 없는 경우 자동 스킵 처리
+- 네이티브 모듈 통합 준비
+
+**센서 가용성 처리**:
+```typescript
+async isAvailable(): Promise<boolean> {
+  // React Native Sensors 라이브러리는 proximity 미지원
+  // 네이티브 모듈 구현 필요
+  console.warn('Proximity sensor requires native module');
+  return false; // 센서 없음
+}
+
+async start(...) {
+  const available = await this.isAvailable();
+  if (!available) {
+    // 센서가 없으면 에러 발생 및 스킵
+    throw new Error('Proximity sensor not available');
+  }
+  // 센서가 있으면 시작
+}
+```
+
+**설정 가능한 파라미터**:
+```typescript
+interface ProximityConfig {
+  sampleInterval: number;      // 샘플 간격 (ms)
+  nearThreshold: number;        // 근접 임계값 (cm)
+  wakeOnProximity: boolean;     // 근접 시 화면 활성화
+}
+```
+
+**네이티브 모듈 인터페이스**:
+```typescript
+// Android
+- Sensor.TYPE_PROXIMITY
+- Returns distance in centimeters
+- Binary mode: 0 (near) or maxRange (far)
+
+// iOS  
+- UIDevice.proximityState
+- Binary only: true (near) or false (far)
+- No distance measurement
+```
+
+#### 3. 데이터베이스 스키마 업데이트
+
+**스키마 버전**: 3 → 4
+
+**sensor_data 테이블에 컬럼 추가**:
+```typescript
+// Proximity data
+{name: 'distance', type: 'number', isOptional: true},
+{name: 'is_near', type: 'boolean', isOptional: true},
+{name: 'max_range', type: 'number', isOptional: true},
+```
+
+**SensorDataRecord 모델 업데이트**:
+- `distance?: number` 필드 추가
+- `isNear?: boolean` 필드 추가
+- `maxRange?: number` 필드 추가
+
+#### 4. SensorDataRepository 업데이트
+**파일**: `src/database/repositories/SensorDataRepository.ts`
+
+**Proximity 데이터 처리 추가**:
+```typescript
+// Proximity data
+if ('distance' in data) {
+  record.distance = data.distance;
+  record.isNear = data.isNear;
+  record.maxRange = data.maxRange;
+}
+```
+
+### 센서 가용성 처리 전략
+
+#### 1. 서비스 레벨 체크
+```typescript
+const proximityService = new ProximityService();
+const isAvailable = await proximityService.isAvailable();
+
+if (isAvailable) {
+  await proximityService.start(sessionId, handleData);
+} else {
+  console.log('Proximity sensor not available - skipping');
+  // 센서가 없어도 앱은 정상 동작
+}
+```
+
+#### 2. 다중 센서 관리 예시
+```typescript
+const sensors = [
+  accelerometerService,
+  gyroscopeService,
+  proximityService,  // 일부 디바이스에서만 사용 가능
+];
+
+for (const sensor of sensors) {
+  if (await sensor.isAvailable()) {
+    await sensor.start(sessionId, handleData);
+    console.log(`${sensor.getSensorType()} started`);
+  } else {
+    console.log(`${sensor.getSensorType()} not available - skipped`);
+  }
+}
+```
+
+#### 3. 센서 상태 UI 표시
+```typescript
+const sensorStatus = {
+  accelerometer: await accelerometer.isAvailable(),
+  gyroscope: await gyroscope.isAvailable(),
+  proximity: await proximity.isAvailable(),
+};
+
+// UI에 표시
+{sensorStatus.proximity ? '✅' : '❌'} Proximity Sensor
+```
+
+### 네이티브 모듈 구현 가이드
+
+#### Android 구현 (ProximityModule.java)
+```java
+public class ProximityModule extends ReactContextBaseJavaModule {
+  private SensorManager sensorManager;
+  private Sensor proximitySensor;
+  
+  @ReactMethod
+  public void isAvailable(Promise promise) {
+    Sensor sensor = sensorManager.getDefaultSensor(Sensor.TYPE_PROXIMITY);
+    promise.resolve(sensor != null);
+  }
+  
+  @ReactMethod
+  public void startProximityUpdates() {
+    sensorManager.registerListener(
+      proximityListener,
+      proximitySensor,
+      SensorManager.SENSOR_DELAY_NORMAL
+    );
+  }
+  
+  @ReactMethod
+  public void stopProximityUpdates() {
+    sensorManager.unregisterListener(proximityListener);
+  }
+  
+  @ReactMethod
+  public void getMaxRange(Promise promise) {
+    promise.resolve(proximitySensor.getMaximumRange());
+  }
+}
+```
+
+#### iOS 구현 (ProximityModule.m)
+```objc
+@implementation ProximityModule
+
+RCT_EXPORT_MODULE();
+
+RCT_REMAP_METHOD(isAvailable,
+                 isAvailableWithResolver:(RCTPromiseResolveBlock)resolve
+                 rejecter:(RCTPromiseRejectBlock)reject) {
+  BOOL available = [[UIDevice currentDevice] isProximityMonitoringEnabled];
+  resolve(@(available));
+}
+
+RCT_EXPORT_METHOD(startProximityUpdates) {
+  [[UIDevice currentDevice] setProximityMonitoringEnabled:YES];
+  [[NSNotificationCenter defaultCenter]
+    addObserver:self
+    selector:@selector(proximityStateDidChange:)
+    name:UIDeviceProximityStateDidChangeNotification
+    object:nil];
+}
+
+- (void)proximityStateDidChange:(NSNotification *)notification {
+  BOOL state = [[UIDevice currentDevice] proximityState];
+  [self sendEventWithName:@"ProximityChanged"
+                     body:@{@"isNear": @(state)}];
+}
+
+@end
+```
+
+### 사용 시나리오
+
+#### 시나리오 1: 통화 중 화면 끄기
+```typescript
+const proximity = new ProximityService();
+
+if (await proximity.isAvailable()) {
+  await proximity.start(sessionId, (data) => {
+    if (data.isNear) {
+      // 얼굴이 화면에 가까움 - 화면 끄기
+      ScreenBrightness.setBrightness(0);
+    } else {
+      // 얼굴이 멀어짐 - 화면 켜기
+      ScreenBrightness.setBrightness(1);
+    }
+  });
+}
+```
+
+#### 시나리오 2: 주머니 감지
+```typescript
+let inPocket = false;
+
+proximity.start(sessionId, (data) => {
+  if (data.distance < 1) { // 1cm 미만
+    inPocket = true;
+    // 터치 입력 무시
+    TouchHandler.disable();
+  } else {
+    inPocket = false;
+    TouchHandler.enable();
+  }
+});
+```
+
+#### 시나리오 3: 센서 없는 디바이스 처리
+```typescript
+const startProximityIfAvailable = async () => {
+  const proximity = new ProximityService();
+  
+  try {
+    await proximity.start(sessionId, handleData);
+    return true;
+  } catch (error) {
+    if (error.message.includes('not available')) {
+      console.log('Device does not have proximity sensor');
+      // 대체 기능 사용 (예: 수동 화면 끄기 버튼)
+      return false;
+    }
+    throw error;
+  }
+};
+```
+
+### 파일 구조
+```
+src/
+├── types/
+│   └── sensor.types.ts              # ProximityData 추가
+├── services/
+│   └── sensors/
+│       └── ProximityService.ts      # 근접 센서 서비스 (200+ 라인)
+├── database/
+│   ├── schema.ts                    # sensor_data 테이블 업데이트 (v4)
+│   ├── models/
+│   │   └── SensorDataRecord.ts     # proximity 필드 추가
+│   └── repositories/
+│       └── SensorDataRepository.ts  # proximity 데이터 처리 추가
+```
+
+### 테스트 전략
+
+#### 1. 센서 가용성 테스트
+```typescript
+test('proximity sensor availability', async () => {
+  const proximity = new ProximityService();
+  const available = await proximity.isAvailable();
+  
+  // 현재는 false (네이티브 모듈 없음)
+  expect(available).toBe(false);
+});
+```
+
+#### 2. 센서 없는 경우 처리
+```typescript
+test('handles missing sensor gracefully', async () => {
+  const proximity = new ProximityService();
+  
+  try {
+    await proximity.start('session-1', jest.fn());
+    fail('Should throw error');
+  } catch (error) {
+    expect(error.message).toContain('not available');
+  }
+});
+```
+
+#### 3. 네이티브 모듈 통합 테스트
+```typescript
+// 네이티브 모듈 구현 후
+test('proximity sensor integration', async () => {
+  const proximity = new ProximityService();
+  const onData = jest.fn();
+  
+  await proximity.start('session-1', onData);
+  
+  // 근접 이벤트 시뮬레이션
+  // ... 네이티브 모듈 호출
+  
+  expect(onData).toHaveBeenCalledWith(
+    expect.objectContaining({
+      sensorType: SensorType.PROXIMITY,
+      isNear: true,
+    })
+  );
+});
+```
+
+### 알려진 제한사항
+
+1. **React Native Sensors 라이브러리 미지원**:
+   - proximity sensor는 기본 라이브러리에 포함되지 않음
+   - 네이티브 모듈 구현 필요
+
+2. **플랫폼별 차이**:
+   - Android: 거리 값 제공 (센티미터)
+   - iOS: Boolean만 제공 (near/far)
+
+3. **센서 가용성**:
+   - 일부 저가 디바이스에는 근접 센서 없음
+   - 태블릿에는 대부분 없음
+
+### 향후 개선 방향
+
+1. **네이티브 모듈 구현**:
+   - Android/iOS 네이티브 모듈 개발
+   - React Native New Architecture 지원
+
+2. **센서 폴백**:
+   - 근접 센서 없는 경우 대체 UI 제공
+   - 수동 화면 끄기/켜기 버튼
+
+3. **고급 기능**:
+   - 근접 이벤트 히스토리
+   - 패턴 분석 (예: 주머니에 넣은 시간)
+   - 자동 모드 전환
+
+---
+
+**Phase 33 완료**: ✅ 근접 센서 시스템 구현 완료 (센서 가용성 체크 포함)  
+**다음 단계**: Phase 34 - 조도 센서 (Light Sensor)
+
+**중요**: Phase 33에서 구현한 센서 가용성 체크 패턴은 이후 모든 센서에 적용됩니다.

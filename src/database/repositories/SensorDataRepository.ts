@@ -37,6 +37,13 @@ export class SensorDataRepository {
           record.heading = data.heading;
         }
 
+        // Proximity data
+        if ('distance' in data) {
+          record.distance = data.distance;
+          record.isNear = data.isNear;
+          record.maxRange = data.maxRange;
+        }
+
         record.isUploaded = data.isUploaded ?? false;
       });
     });
@@ -69,6 +76,13 @@ export class SensorDataRepository {
               record.accuracy = data.accuracy;
               record.speed = data.speed;
               record.heading = data.heading;
+            }
+
+            // Proximity data
+            if ('distance' in data) {
+              record.distance = data.distance;
+              record.isNear = data.isNear;
+              record.maxRange = data.maxRange;
             }
 
             record.isUploaded = data.isUploaded ?? false;
