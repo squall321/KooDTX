@@ -6,7 +6,7 @@
 import {appSchema, tableSchema} from '@nozbe/watermelondb';
 
 export const schema = appSchema({
-  version: 4,
+  version: 5,
   tables: [
     // Recording Sessions
     tableSchema({
@@ -26,7 +26,7 @@ export const schema = appSchema({
       ],
     }),
 
-    // Sensor Data (Accelerometer, Gyroscope, Magnetometer, GPS, Proximity)
+    // Sensor Data (Accelerometer, Gyroscope, Magnetometer, GPS, Proximity, Light, Pressure)
     tableSchema({
       name: 'sensor_data',
       columns: [
@@ -48,6 +48,13 @@ export const schema = appSchema({
         {name: 'distance', type: 'number', isOptional: true},
         {name: 'is_near', type: 'boolean', isOptional: true},
         {name: 'max_range', type: 'number', isOptional: true},
+        // Light data
+        {name: 'lux', type: 'number', isOptional: true},
+        {name: 'brightness_level', type: 'string', isOptional: true},
+        // Pressure data
+        {name: 'pressure', type: 'number', isOptional: true},
+        {name: 'calculated_altitude', type: 'number', isOptional: true},
+        {name: 'sea_level_pressure', type: 'number', isOptional: true},
         // Metadata
         {name: 'is_uploaded', type: 'boolean'},
         {name: 'created_at', type: 'number'},

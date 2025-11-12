@@ -17,6 +17,8 @@ export enum SensorType {
   STEP_COUNTER = 'step_counter',
   SIGNIFICANT_MOTION = 'significant_motion',
   PROXIMITY = 'proximity',
+  LIGHT = 'light',
+  PRESSURE = 'pressure',
 }
 
 /**
@@ -156,6 +158,25 @@ export interface ProximityData extends BaseSensorData {
 }
 
 /**
+ * Light sensor data (ambient light)
+ */
+export interface LightData extends BaseSensorData {
+  sensorType: SensorType.LIGHT;
+  lux: number; // Illuminance in lux (SI unit)
+  brightnessLevel?: 'dark' | 'dim' | 'normal' | 'bright' | 'very_bright'; // Categorized brightness
+}
+
+/**
+ * Pressure sensor data (barometer)
+ */
+export interface PressureData extends BaseSensorData {
+  sensorType: SensorType.PRESSURE;
+  pressure: number; // Atmospheric pressure in hPa (hectopascals) or mbar
+  altitude?: number; // Estimated altitude in meters (calculated from pressure)
+  seaLevelPressure?: number; // Reference sea level pressure for altitude calculation (hPa)
+}
+
+/**
  * Union type for all sensor data
  */
 export type SensorData =
@@ -167,7 +188,9 @@ export type SensorData =
   | StepDetectorData
   | StepCounterData
   | SignificantMotionData
-  | ProximityData;
+  | ProximityData
+  | LightData
+  | PressureData;
 
 /**
  * Sensor recording session
@@ -217,5 +240,18 @@ export interface SensorSettings {
   };
   [SensorType.PROXIMITY]: SensorConfig & {
     wakeOnProximity: boolean; // Wake screen when object detected
+  };
+  [SensorType.LIGHT]: SensorConfig & {
+    autoBrightness: boolean; // Enable automatic brightness adjustment
+    brightnessThresholds?: {
+      dark: number; // lux threshold for dark (< value)
+      dim: number; // lux threshold for dim
+      normal: number; // lux threshold for normal
+      bright: number; // lux threshold for bright
+    };
+  };
+  [SensorType.PRESSURE]: SensorConfig & {
+    altitudeCalculation: boolean; // Calculate altitude from pressure
+    seaLevelPressure: number; // Reference pressure for altitude calculation (default: 1013.25 hPa)
   };
 }

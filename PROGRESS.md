@@ -22,11 +22,11 @@
 
 ## Phase 진행 현황
 
-### ✅ 완료된 Phase: 16/300
+### ✅ 완료된 Phase: 35/300
 
-### 🔄 진행 중: Phase 17
+### 🔄 진행 중: Phase 36
 
-### ⏳ 대기 중: Phase 11-300
+### ⏳ 대기 중: Phase 36-300
 
 ---
 
@@ -7344,7 +7344,591 @@ test('proximity sensor integration', async () => {
 
 ---
 
-**Phase 33 완료**: ✅ 근접 센서 시스템 구현 완료 (센서 가용성 체크 포함)  
+**Phase 33 완료**: ✅ 근접 센서 시스템 구현 완료 (센서 가용성 체크 포함)
 **다음 단계**: Phase 34 - 조도 센서 (Light Sensor)
 
 **중요**: Phase 33에서 구현한 센서 가용성 체크 패턴은 이후 모든 센서에 적용됩니다.
+
+---
+
+## Phase 34: 조도 센서 (Light Sensor)
+
+**완료 날짜**: 2025-11-12
+
+### 구현 내용
+
+#### 1. 타입 정의 및 데이터 구조
+**파일**: `src/types/sensor.types.ts`
+- `SensorType.LIGHT` 추가
+- `LightData` 인터페이스 정의:
+  - `lux`: 조도 (럭스, SI 단위)
+  - `brightnessLevel`: 밝기 레벨 분류 (dark/dim/normal/bright/very_bright)
+
+**SensorSettings 확장**:
+```typescript
+[SensorType.LIGHT]: SensorConfig & {
+  autoBrightness: boolean;
+  brightnessThresholds?: {
+    dark: number;   // 10 lux
+    dim: number;    // 50 lux
+    normal: number; // 500 lux
+    bright: number; // 10000 lux
+  };
+};
+```
+
+#### 2. LightService 구현
+**파일**: `src/services/sensors/LightService.ts` (250+ 라인)
+
+**핵심 기능**:
+- 조도 센서 데이터 수집 인터페이스
+- **밝기 레벨 자동 분류**
+- **화면 밝기 추천 기능**
+- 센서 가용성 체크 (isAvailable)
+- 네이티브 모듈 통합 준비
+
+**밝기 레벨 분류**:
+```typescript
+private categorizeBrightness(lux: number): BrightnessLevel {
+  if (lux < 10) return 'dark';         // 매우 어두움
+  else if (lux < 50) return 'dim';     // 어두움
+  else if (lux < 500) return 'normal'; // 보통 실내
+  else if (lux < 10000) return 'bright'; // 밝음
+  else return 'very_bright';           // 매우 밝음 (직사광선)
+}
+```
+
+**화면 밝기 추천 알고리즘**:
+```typescript
+getSuggestedScreenBrightness(lux: number): number {
+  // 로그 스케일 기반 밝기 계산
+  // lux 0 → brightness 0.1 (최소)
+  // lux 100000 → brightness 1.0 (최대)
+  const brightness = 0.1 + (Math.log10(lux) / 5) * 0.9;
+  return Math.max(0.1, Math.min(1.0, brightness));
+}
+```
+
+**설정 가능한 파라미터**:
+```typescript
+interface LightConfig {
+  sampleInterval: number;        // 샘플 간격 (ms, 기본: 1000)
+  autoBrightness: boolean;       // 자동 밝기 조절
+  brightnessThresholds: {        // 밝기 레벨 임계값
+    dark: number;
+    dim: number;
+    normal: number;
+    bright: number;
+  };
+}
+```
+
+**실제 사용 예시**:
+```typescript
+const lightService = new LightService();
+
+// 설정
+lightService.configure({
+  sampleInterval: 2000,
+  autoBrightness: true,
+});
+
+// 시작
+if (await lightService.isAvailable()) {
+  await lightService.start(sessionId, (data) => {
+    console.log(`Lux: ${data.lux}`);
+    console.log(`Level: ${data.brightnessLevel}`);
+
+    // 화면 밝기 자동 조절
+    const suggested = lightService.getSuggestedScreenBrightness(data.lux);
+    Brightness.setBrightness(suggested);
+  });
+}
+```
+
+#### 3. 네이티브 모듈 인터페이스
+```typescript
+// Android
+- Sensor.TYPE_LIGHT
+- Returns illuminance in lux (SI unit)
+- Range: 0.01 to 100,000+ lux
+- Typical values:
+  - 0.0001 lux: Moonless night
+  - 0.5 lux: Full moon
+  - 50 lux: Living room
+  - 400 lux: Office
+  - 1000 lux: Overcast day
+  - 10000-25000 lux: Full daylight
+  - 100000+ lux: Direct sunlight
+
+// iOS
+- No direct light sensor API
+- Alternatives:
+  1. Use camera AVCaptureDevice ISO/brightness
+  2. Use CIDetector face detection with ambient light estimation
+  3. Estimate from screen auto-brightness settings
+```
+
+#### 4. 데이터베이스 스키마 업데이트
+
+**스키마 버전**: 4 → 5
+
+**sensor_data 테이블에 컬럼 추가**:
+```typescript
+// Light data
+{name: 'lux', type: 'number', isOptional: true},
+{name: 'brightness_level', type: 'string', isOptional: true},
+```
+
+**SensorDataRecord 모델 업데이트**:
+- `lux?: number` 필드 추가
+- `brightnessLevel?: string` 필드 추가
+
+#### 5. SensorDataRepository 업데이트
+**파일**: `src/database/repositories/SensorDataRepository.ts`
+
+**Light 데이터 처리 추가**:
+```typescript
+// Light data
+if ('lux' in data) {
+  record.lux = data.lux;
+  record.brightnessLevel = data.brightnessLevel;
+}
+```
+
+### 활용 시나리오
+
+#### 1. 자동 화면 밝기 조절
+```typescript
+const lightService = new LightService();
+lightService.configure({ autoBrightness: true });
+
+await lightService.start(sessionId, (data) => {
+  const brightness = lightService.getSuggestedScreenBrightness(data.lux);
+  await Brightness.setBrightnessLevel(brightness);
+});
+```
+
+#### 2. 야간 모드 자동 전환
+```typescript
+await lightService.start(sessionId, (data) => {
+  if (data.brightnessLevel === 'dark' || data.brightnessLevel === 'dim') {
+    // 다크 모드 활성화
+    setDarkMode(true);
+  } else {
+    setDarkMode(false);
+  }
+});
+```
+
+#### 3. 밝기 기반 카메라 설정
+```typescript
+await lightService.start(sessionId, (data) => {
+  if (data.lux < 10) {
+    // 야간 모드: 높은 ISO, 낮은 셔터 속도
+    camera.setISO(3200);
+    camera.setShutterSpeed('1/30');
+  } else if (data.lux > 10000) {
+    // 주간 모드: 낮은 ISO, 빠른 셔터 속도
+    camera.setISO(100);
+    camera.setShutterSpeed('1/500');
+  }
+});
+```
+
+#### 4. 에너지 절약
+```typescript
+await lightService.start(sessionId, (data) => {
+  if (data.brightnessLevel === 'very_bright') {
+    // 실외 직사광선: 배터리 절약 모드
+    setBatterySavingMode(true);
+    reduceSampleRate();
+  }
+});
+```
+
+### 향후 개선 방향
+
+1. **네이티브 모듈 구현**:
+   - Android TYPE_LIGHT 센서 연동
+   - iOS 대체 솔루션 (camera-based)
+
+2. **고급 밝기 알고리즘**:
+   - 이동 평균 필터 (갑작스런 변화 완화)
+   - 사용자 선호도 학습
+   - 환경별 프로파일 (실내/실외/차량)
+
+3. **UI/UX 개선**:
+   - 실시간 조도 그래프
+   - 히스토리 분석 (하루 평균 조도)
+   - 환경 조도 알림
+
+---
+
+## Phase 35: 기압계 센서 (Pressure Sensor)
+
+**완료 날짜**: 2025-11-12
+
+### 구현 내용
+
+#### 1. 타입 정의 및 데이터 구조
+**파일**: `src/types/sensor.types.ts`
+- `SensorType.PRESSURE` 추가
+- `PressureData` 인터페이스 정의:
+  - `pressure`: 기압 (hPa/밀리바)
+  - `altitude`: 계산된 고도 (미터)
+  - `seaLevelPressure`: 해수면 기압 기준값 (hPa)
+
+**SensorSettings 확장**:
+```typescript
+[SensorType.PRESSURE]: SensorConfig & {
+  altitudeCalculation: boolean;
+  seaLevelPressure: number; // 기본값: 1013.25 hPa
+};
+```
+
+#### 2. PressureService 구현
+**파일**: `src/services/sensors/PressureService.ts` (280+ 라인)
+
+**핵심 기능**:
+- 기압 센서 데이터 수집 인터페이스
+- **기압 기반 고도 계산**
+- **기압 추세 분석** (상승/하강/안정)
+- **날씨 예측 기능**
+- 센서 가용성 체크 (isAvailable)
+- 네이티브 모듈 통합 준비
+
+**기압식 고도 계산**:
+```typescript
+// 기압식 고도 공식 (Barometric Formula)
+private calculateAltitude(pressure: number, seaLevelPressure: number): number {
+  // h = 44330 * (1 - (P / P0)^0.1903)
+  // h: 고도 (미터)
+  // P: 측정 기압 (hPa)
+  // P0: 해수면 기압 (hPa)
+  const altitude = 44330 * (1 - Math.pow(pressure / seaLevelPressure, 0.1903));
+  return Math.round(altitude * 10) / 10; // 소수점 1자리
+}
+
+// 역계산: 고도에서 기압 계산
+calculatePressureAtAltitude(altitude: number, seaLevelPressure: number): number {
+  // P = P0 * (1 - h / 44330)^5.255
+  const pressure = seaLevelPressure * Math.pow(1 - altitude / 44330, 5.255);
+  return Math.round(pressure * 100) / 100; // 소수점 2자리
+}
+```
+
+**기압 추세 분석**:
+```typescript
+detectPressureTrend(
+  currentPressure: number,
+  previousPressure: number,
+  threshold: number = 0.5 // hPa
+): 'rising' | 'falling' | 'stable' {
+  const diff = currentPressure - previousPressure;
+  if (diff > threshold) return 'rising';
+  else if (diff < -threshold) return 'falling';
+  else return 'stable';
+}
+```
+
+**날씨 예측 알고리즘**:
+```typescript
+estimateWeather(pressure: number, trend: 'rising' | 'falling' | 'stable'): string {
+  if (pressure > 1023) {
+    return trend === 'rising' ? 'Clear, dry' : 'Clearing';
+  } else if (pressure > 1013) {
+    return trend === 'rising' ? 'Fair'
+      : trend === 'falling' ? 'Clouding up'
+      : 'Partly cloudy';
+  } else if (pressure > 1003) {
+    return trend === 'falling' ? 'Rain likely' : 'Unsettled';
+  } else {
+    return trend === 'falling' ? 'Storm warning' : 'Rainy';
+  }
+}
+```
+
+**기압 범위 참고값**:
+```typescript
+// 일반적인 기압 범위 (hPa)
+- 870 hPa: 태풍 중심 (기록상 최저)
+- 950 hPa: 강한 저기압
+- 980-1000 hPa: 저기압 (비/눈)
+- 1013.25 hPa: 표준 해수면 기압
+- 1020-1030 hPa: 고기압 (맑음)
+- 1050+ hPa: 강한 고기압 (기록상 최고: ~1085 hPa)
+
+// 고도별 기압 (표준 대기)
+- 해수면: 1013.25 hPa
+- 500m: 954 hPa
+- 1000m: 898 hPa
+- 1500m: 845 hPa
+- 2000m: 794 hPa
+- 3000m: 701 hPa
+```
+
+**설정 가능한 파라미터**:
+```typescript
+interface PressureConfig {
+  sampleInterval: number;        // 샘플 간격 (ms, 기본: 1000)
+  altitudeCalculation: boolean;  // 고도 계산 활성화
+  seaLevelPressure: number;      // 해수면 기압 (hPa, 기본: 1013.25)
+}
+```
+
+**실제 사용 예시**:
+```typescript
+const pressureService = new PressureService();
+
+// 설정 (예: 서울 평균 해수면 기압 기준)
+pressureService.configure({
+  sampleInterval: 1000,
+  altitudeCalculation: true,
+  seaLevelPressure: 1013.25,
+});
+
+// 시작
+if (await pressureService.isAvailable()) {
+  let previousPressure = 1013.25;
+
+  await pressureService.start(sessionId, (data) => {
+    console.log(`Pressure: ${data.pressure} hPa`);
+    console.log(`Altitude: ${data.altitude} m`);
+
+    // 기압 추세 분석
+    const trend = pressureService.detectPressureTrend(
+      data.pressure,
+      previousPressure
+    );
+
+    // 날씨 예측
+    const weather = pressureService.estimateWeather(data.pressure, trend);
+    console.log(`Weather: ${weather}`);
+
+    previousPressure = data.pressure;
+  });
+}
+```
+
+#### 3. 네이티브 모듈 인터페이스
+```typescript
+// Android
+- Sensor.TYPE_PRESSURE
+- Returns pressure in hPa (hectopascals) = mbar (millibars)
+- Typical range: 300-1100 hPa
+- Available on most modern smartphones
+- Sample rate: SENSOR_DELAY_NORMAL (200ms)
+
+// iOS
+- CMAltimeter (Core Motion)
+- Requires motion & fitness permission
+- Returns:
+  - relativeAltitude: 상대 고도 (meters)
+  - pressure: 기압 (kilopascals, kPa → hPa 변환 필요)
+- Available on iPhone 6+, iPad with barometer
+```
+
+#### 4. 데이터베이스 스키마 업데이트
+
+**스키마 버전**: 4 → 5 (Phase 34와 함께)
+
+**sensor_data 테이블에 컬럼 추가**:
+```typescript
+// Pressure data
+{name: 'pressure', type: 'number', isOptional: true},
+{name: 'calculated_altitude', type: 'number', isOptional: true},
+{name: 'sea_level_pressure', type: 'number', isOptional: true},
+```
+
+**SensorDataRecord 모델 업데이트**:
+- `pressure?: number` 필드 추가
+- `calculatedAltitude?: number` 필드 추가
+- `seaLevelPressure?: number` 필드 추가
+
+#### 5. SensorDataRepository 업데이트
+**파일**: `src/database/repositories/SensorDataRepository.ts`
+
+**Pressure 데이터 처리 추가**:
+```typescript
+// Pressure data
+if ('pressure' in data) {
+  record.pressure = data.pressure;
+  record.calculatedAltitude = data.altitude;
+  record.seaLevelPressure = data.seaLevelPressure;
+}
+```
+
+### 활용 시나리오
+
+#### 1. 등산/하이킹 고도 추적
+```typescript
+const pressureService = new PressureService();
+
+// GPS 기반 고도와 조합
+await pressureService.start(sessionId, async (data) => {
+  const gpsAltitude = await GPS.getAltitude();
+  const pressureAltitude = data.altitude;
+
+  // 기압 고도는 날씨 영향을 받으므로 GPS와 보정
+  const calibratedAltitude = (gpsAltitude + pressureAltitude) / 2;
+
+  console.log(`Current altitude: ${calibratedAltitude}m`);
+});
+```
+
+#### 2. 실내 층수 감지
+```typescript
+const pressureService = new PressureService();
+let baselinePressure: number | null = null;
+
+await pressureService.start(sessionId, (data) => {
+  if (!baselinePressure) {
+    baselinePressure = data.pressure;
+    return;
+  }
+
+  // 기압 변화로 층수 추정 (~12 Pa per floor)
+  const pressureDiff = baselinePressure - data.pressure;
+  const floor = Math.round(pressureDiff / 0.12); // hPa to floors
+
+  console.log(`Floor change: ${floor > 0 ? '+' : ''}${floor}`);
+});
+```
+
+#### 3. 날씨 경보 시스템
+```typescript
+const pressureService = new PressureService();
+const pressureHistory: number[] = [];
+
+await pressureService.start(sessionId, (data) => {
+  pressureHistory.push(data.pressure);
+
+  // 지난 3시간 기압 추세 분석
+  if (pressureHistory.length > 180) { // 1분 간격 * 180 = 3시간
+    pressureHistory.shift();
+
+    const first = pressureHistory[0];
+    const last = pressureHistory[pressureHistory.length - 1];
+    const drop = first - last;
+
+    // 3시간 동안 3 hPa 이상 하강 → 폭풍 경보
+    if (drop > 3) {
+      Alert.alert(
+        'Storm Warning',
+        'Rapid pressure drop detected. Weather may deteriorate.'
+      );
+    }
+  }
+});
+```
+
+#### 4. 비행기 모드 감지
+```typescript
+const pressureService = new PressureService();
+
+await pressureService.start(sessionId, (data) => {
+  if (data.pressure < 800) {
+    // 기압 800 hPa 이하 → 고도 ~2000m 이상
+    console.log('High altitude detected - possible flight');
+
+    // 비행 모드 전환 제안
+    if (!isAirplaneMode()) {
+      Alert.alert(
+        'Flying?',
+        'High altitude detected. Enable airplane mode?'
+      );
+    }
+  }
+});
+```
+
+#### 5. 해수면 기압 보정
+```typescript
+const pressureService = new PressureService();
+
+// GPS로 현재 고도 확인
+const gpsAltitude = await GPS.getAltitude();
+
+await pressureService.start(sessionId, (data) => {
+  // 현재 고도와 측정 기압으로 해수면 기압 역산
+  const seaLevelPressure = pressureService.calculatePressureAtAltitude(
+    -gpsAltitude, // 음수 고도 (해수면으로 환산)
+    data.pressure
+  );
+
+  // 보정된 해수면 기압 설정
+  pressureService.setSeaLevelPressure(seaLevelPressure);
+
+  console.log(`Calibrated sea level pressure: ${seaLevelPressure} hPa`);
+});
+```
+
+### 고도 계산 정확도
+
+#### 영향 요인
+1. **날씨 변화**:
+   - 기압은 날씨 시스템에 따라 변함
+   - 같은 고도에서도 ±10-30 hPa 차이 가능
+   - 해결: GPS 고도로 해수면 기압 주기적 보정
+
+2. **온도 효과**:
+   - 표준 공식은 15°C 기준
+   - 온도 변화 시 오차 발생
+   - 해결: 온도 센서 데이터로 보정
+
+3. **지역적 기압 변화**:
+   - 저기압/고기압 이동
+   - 시간당 1-3 hPa 변화 가능
+
+#### 정확도 향상 방법
+```typescript
+// 1. GPS와 융합
+const fusedAltitude = (gpsAltitude * 0.7) + (pressureAltitude * 0.3);
+
+// 2. 칼만 필터 적용
+const kalmanFilter = new KalmanFilter();
+const filteredAltitude = kalmanFilter.update(pressureAltitude, gpsAltitude);
+
+// 3. 주기적 보정
+setInterval(async () => {
+  const gpsAlt = await GPS.getAltitude();
+  const pressure = await pressureService.getCurrentPressure();
+  const calibratedSeaLevel = calculateSeaLevelPressure(gpsAlt, pressure);
+  pressureService.setSeaLevelPressure(calibratedSeaLevel);
+}, 300000); // 5분마다
+```
+
+### 향후 개선 방향
+
+1. **네이티브 모듈 구현**:
+   - Android TYPE_PRESSURE 센서 연동
+   - iOS CMAltimeter 연동
+   - 온도 보정 알고리즘
+
+2. **고급 알고리즘**:
+   - 칼만 필터 (GPS + 기압 융합)
+   - 기계 학습 기반 날씨 예측
+   - 개인화된 기압 패턴 분석
+
+3. **UI/UX 개선**:
+   - 실시간 기압 그래프
+   - 24시간 기압 추세 차트
+   - 날씨 경보 알림
+   - 고도 프로파일 (등산 기록)
+
+4. **센서 융합**:
+   - GPS + 기압 고도 융합
+   - 온도 센서 연동 (보정)
+   - 습도 센서 연동 (체감 날씨)
+
+---
+
+**Phase 34-35 완료**: ✅ 조도 센서 및 기압계 센서 구현 완료
+**데이터베이스 버전**: v4 → v5
+**다음 단계**: Phase 36 - 중력 센서 (Gravity Sensor)
+
+**주요 성과**:
+- 환경 센서 확장 (조도, 기압)
+- 스마트 기능 추가 (자동 밝기, 고도 계산, 날씨 예측)
+- 데이터베이스 스키마 v5 업그레이드 완료
