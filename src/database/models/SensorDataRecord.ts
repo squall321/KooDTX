@@ -1,6 +1,6 @@
 /**
  * SensorDataRecord Model
- * Represents sensor data (accelerometer, gyroscope, magnetometer, GPS, proximity)
+ * Represents sensor data (accelerometer, gyroscope, magnetometer, GPS, proximity, light, pressure, gravity, linear_acceleration, rotation_vector)
  */
 
 import {Model} from '@nozbe/watermelondb';
@@ -14,10 +14,11 @@ export class SensorDataRecord extends Model {
   @field('session_id') sessionId!: string;
   @field('timestamp') timestamp!: number;
 
-  // 3-axis data (accelerometer, gyroscope, magnetometer)
+  // 3-axis data (accelerometer, gyroscope, magnetometer, gravity, linear_acceleration)
   @field('x') x?: number;
   @field('y') y?: number;
   @field('z') z?: number;
+  @field('magnitude') magnitude?: number;
 
   // GPS data
   @field('latitude') latitude?: number;
@@ -40,6 +41,14 @@ export class SensorDataRecord extends Model {
   @field('pressure') pressure?: number;
   @field('calculated_altitude') calculatedAltitude?: number;
   @field('sea_level_pressure') seaLevelPressure?: number;
+
+  // Rotation vector data (quaternion and Euler angles)
+  @field('qx') qx?: number;
+  @field('qy') qy?: number;
+  @field('qz') qz?: number;
+  @field('qw') qw?: number;
+  @field('pitch') pitch?: number;
+  @field('roll') roll?: number;
 
   // Metadata
   @field('is_uploaded') isUploaded!: boolean;

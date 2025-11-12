@@ -22,11 +22,11 @@
 
 ## Phase 진행 현황
 
-### ✅ 완료된 Phase: 35/300
+### ✅ 완료된 Phase: 38/300
 
-### 🔄 진행 중: Phase 36
+### 🔄 진행 중: Phase 39
 
-### ⏳ 대기 중: Phase 36-300
+### ⏳ 대기 중: Phase 39-300
 
 ---
 
@@ -7932,3 +7932,159 @@ setInterval(async () => {
 - 환경 센서 확장 (조도, 기압)
 - 스마트 기능 추가 (자동 밝기, 고도 계산, 날씨 예측)
 - 데이터베이스 스키마 v5 업그레이드 완료
+
+---
+
+## Phase 36: 중력 센서 (Gravity Sensor)
+
+**완료 날짜**: 2025-11-12
+
+### 구현 내용
+
+#### 1. 타입 정의 및 데이터 구조
+**파일**: `src/types/sensor.types.ts`
+- `SensorType.GRAVITY` 추가
+- `GravityData` 인터페이스: x, y, z (m/s²), magnitude
+
+#### 2. GravityService 구현
+**파일**: `src/services/sensors/GravityService.ts` (300+ 라인)
+
+**핵심 기능**:
+- 중력 방향 및 크기 측정 (지구 중력 ~9.81 m/s²)
+- 디바이스 기울기 각도 계산 (pitch, roll)
+- 기기 방향 감지 (portrait/landscape/face_up/face_down)
+- 수평 감지 (isLevel)
+
+**사용 예시**:
+```typescript
+const gravityService = new GravityService();
+const {pitch, roll} = gravityService.getTiltAngles(x, y, z);
+const orientation = gravityService.detectOrientation(x, y, z);
+const isFlat = gravityService.isLevel(x, y, z, 5); // 5° tolerance
+```
+
+**가상 센서**: 가속도계 + 자이로스코프 융합
+
+---
+
+## Phase 37: 선형 가속도 센서 (Linear Acceleration)
+
+**완료 날짜**: 2025-11-12
+
+### 구현 내용
+
+#### 1. 타입 정의 및 데이터 구조
+- `SensorType.LINEAR_ACCELERATION` 추가
+- `LinearAccelerationData` 인터페이스: x, y, z, magnitude (m/s²)
+
+#### 2. LinearAccelerationService 구현
+**파일**: `src/services/sensors/LinearAccelerationService.ts` (350+ 라인)
+
+**핵심 기능**:
+- 중력 제거된 순수 가속도 측정 (Linear = Accel - Gravity)
+- 저주파 노이즈 필터링 (low-pass filter)
+- 흔들기 감지 (detectShake)
+- 충격 감지 (detectImpact: light/moderate/strong)
+- 동작 분류 (stationary/walking/running/vehicle/falling)
+- 제스처 인식 (swipe/tap/shake)
+- 속도 적분 계산 (integrateVelocity)
+
+**사용 예시**:
+```typescript
+const linearAccelService = new LinearAccelerationService();
+const magnitude = calculateMagnitude(x, y, z);
+const isShake = linearAccelService.detectShake(magnitude, 15); // 15 m/s² threshold
+const motion = linearAccelService.classifyMotion(x, y, z, magnitude);
+const gesture = linearAccelService.detectGesture(history);
+```
+
+**활용 사례**: 제스처 인식, 진동 감지, 모션 추적, 게임 컨트롤
+
+---
+
+## Phase 38: 회전 벡터 센서 (Rotation Vector)
+
+**완료 날짜**: 2025-11-12
+
+### 구현 내용
+
+#### 1. 타입 정의 및 데이터 구조
+- `SensorType.ROTATION_VECTOR` 추가
+- `RotationVectorData` 인터페이스:
+  - 쿼터니언: qx, qy, qz, qw
+  - 오일러 각: heading (yaw), pitch, roll (degrees)
+  - accuracy: 정확도 추정값
+
+#### 2. RotationVectorService 구현
+**파일**: `src/services/sensors/RotationVectorService.ts` (450+ 라인)
+
+**핵심 기능**:
+- 쿼터니언 ↔ 오일러 각 변환
+- 쿼터니언 정규화 (normalizeQuaternion)
+- 구면 선형 보간 (SLERP - Spherical Linear Interpolation)
+- 회전 행렬 생성 (quaternionToRotationMatrix)
+- 쿼터니언 각도 차이 계산
+- 나침반 방위각 추출 (getCompassHeading)
+- 기기 방향 감지
+
+**쿼터니언 수학**:
+```typescript
+// 오일러 각 → 쿼터니언
+const q = service.eulerToQuaternion(heading, pitch, roll);
+
+// 쿼터니언 → 오일러 각
+const { heading, pitch, roll } = service.quaternionToEuler(q);
+
+// 쿼터니언 보간 (부드러운 회전)
+const interpolated = service.slerpQuaternion(q1, q2, 0.5); // t=0.5 (중간)
+
+// 각도 차이 계산
+const angleDiff = service.quaternionAngularDifference(q1, q2); // degrees
+```
+
+**활용 사례**: AR/VR, 나침반, 3D 포지셔닝, 카메라 안정화, 게임 제어
+
+---
+
+### 데이터베이스 업데이트 (v5 → v6)
+
+**스키마 버전**: v6
+
+**sensor_data 테이블에 추가된 컬럼**:
+```typescript
+// Gravity & Linear Acceleration
+{name: 'magnitude', type: 'number', isOptional: true},
+
+// Rotation Vector (quaternion)
+{name: 'qx', type: 'number', isOptional: true},
+{name: 'qy', type: 'number', isOptional: true},
+{name: 'qz', type: 'number', isOptional: true},
+{name: 'qw', type: 'number', isOptional: true},
+
+// Euler angles
+{name: 'pitch', type: 'number', isOptional: true},
+{name: 'roll', type: 'number', isOptional: true},
+```
+
+**SensorDataRecord 모델**: 새 필드 추가 완료
+**SensorDataRepository**: create/createBatch 메서드 업데이트 완료
+
+---
+
+**Phase 36-38 완료**: ✅ 모션 센서 3종 (중력, 선형 가속도, 회전 벡터) 구현 완료
+**데이터베이스 버전**: v5 → v6
+**다음 단계**: Phase 39-40 (추가 센서 또는 다른 기능)
+
+**주요 성과**:
+- 고급 모션 센서 확장 (중력, 선형 가속도, 회전 벡터)
+- 쿼터니언 수학 라이브러리 구현 (SLERP, 변환, 회전 행렬)
+- 제스처 인식 및 동작 분류 알고리즘
+- 데이터베이스 스키마 v6 업그레이드 완료
+- 센서 가용성 체크 패턴 지속 적용
+
+**기술적 특징**:
+- 모든 센서는 가상 센서 (센서 융합 기반)
+- Android: TYPE_GRAVITY, TYPE_LINEAR_ACCELERATION, TYPE_ROTATION_VECTOR
+- iOS: CMDeviceMotion (gravity, userAcceleration, attitude)
+- 쿼터니언 사용으로 짐벌 락(Gimbal Lock) 문제 해결
+- 네이티브 모듈 구현 가이드 포함

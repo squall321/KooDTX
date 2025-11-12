@@ -6,7 +6,7 @@
 import {appSchema, tableSchema} from '@nozbe/watermelondb';
 
 export const schema = appSchema({
-  version: 5,
+  version: 6,
   tables: [
     // Recording Sessions
     tableSchema({
@@ -26,17 +26,18 @@ export const schema = appSchema({
       ],
     }),
 
-    // Sensor Data (Accelerometer, Gyroscope, Magnetometer, GPS, Proximity, Light, Pressure)
+    // Sensor Data (Accelerometer, Gyroscope, Magnetometer, GPS, Proximity, Light, Pressure, Gravity, Linear Accel, Rotation Vector)
     tableSchema({
       name: 'sensor_data',
       columns: [
         {name: 'sensor_type', type: 'string', isIndexed: true},
         {name: 'session_id', type: 'string', isIndexed: true},
         {name: 'timestamp', type: 'number', isIndexed: true},
-        // 3-axis data (accelerometer, gyroscope, magnetometer)
+        // 3-axis data (accelerometer, gyroscope, magnetometer, gravity, linear_acceleration)
         {name: 'x', type: 'number', isOptional: true},
         {name: 'y', type: 'number', isOptional: true},
         {name: 'z', type: 'number', isOptional: true},
+        {name: 'magnitude', type: 'number', isOptional: true},
         // GPS data
         {name: 'latitude', type: 'number', isOptional: true},
         {name: 'longitude', type: 'number', isOptional: true},
@@ -55,6 +56,13 @@ export const schema = appSchema({
         {name: 'pressure', type: 'number', isOptional: true},
         {name: 'calculated_altitude', type: 'number', isOptional: true},
         {name: 'sea_level_pressure', type: 'number', isOptional: true},
+        // Rotation vector data (quaternion)
+        {name: 'qx', type: 'number', isOptional: true},
+        {name: 'qy', type: 'number', isOptional: true},
+        {name: 'qz', type: 'number', isOptional: true},
+        {name: 'qw', type: 'number', isOptional: true},
+        {name: 'pitch', type: 'number', isOptional: true},
+        {name: 'roll', type: 'number', isOptional: true},
         // Metadata
         {name: 'is_uploaded', type: 'boolean'},
         {name: 'created_at', type: 'number'},

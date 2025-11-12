@@ -20,11 +20,16 @@ export class SensorDataRepository {
         record.sessionId = data.sessionId;
         record.timestamp = data.timestamp;
 
-        // 3-axis data
+        // 3-axis data (accelerometer, gyroscope, magnetometer, gravity, linear_acceleration)
         if ('x' in data) {
           record.x = data.x;
           record.y = data.y;
           record.z = data.z;
+        }
+
+        // Magnitude (gravity, linear_acceleration)
+        if ('magnitude' in data) {
+          record.magnitude = data.magnitude;
         }
 
         // GPS data
@@ -57,6 +62,16 @@ export class SensorDataRepository {
           record.seaLevelPressure = data.seaLevelPressure;
         }
 
+        // Rotation vector data (quaternion and Euler angles)
+        if ('qx' in data) {
+          record.qx = data.qx;
+          record.qy = data.qy;
+          record.qz = data.qz;
+          record.qw = data.qw;
+          record.pitch = data.pitch;
+          record.roll = data.roll;
+        }
+
         record.isUploaded = data.isUploaded ?? false;
       });
     });
@@ -74,11 +89,16 @@ export class SensorDataRepository {
             record.sessionId = data.sessionId;
             record.timestamp = data.timestamp;
 
-            // 3-axis data
+            // 3-axis data (accelerometer, gyroscope, magnetometer, gravity, linear_acceleration)
             if ('x' in data) {
               record.x = data.x;
               record.y = data.y;
               record.z = data.z;
+            }
+
+            // Magnitude (gravity, linear_acceleration)
+            if ('magnitude' in data) {
+              record.magnitude = data.magnitude;
             }
 
             // GPS data
@@ -109,6 +129,16 @@ export class SensorDataRepository {
               record.pressure = data.pressure;
               record.calculatedAltitude = data.altitude;
               record.seaLevelPressure = data.seaLevelPressure;
+            }
+
+            // Rotation vector data (quaternion and Euler angles)
+            if ('qx' in data) {
+              record.qx = data.qx;
+              record.qy = data.qy;
+              record.qz = data.qz;
+              record.qw = data.qw;
+              record.pitch = data.pitch;
+              record.roll = data.roll;
             }
 
             record.isUploaded = data.isUploaded ?? false;
