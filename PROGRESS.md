@@ -22,11 +22,11 @@
 
 ## Phase 진행 현황
 
-### ✅ 완료된 Phase: 6/300
+### ✅ 완료된 Phase: 7/300
 
-### 🔄 진행 중: Phase 7
+### 🔄 진행 중: Phase 8
 
-### ⏳ 대기 중: Phase 8-300
+### ⏳ 대기 중: Phase 9-300
 
 ---
 
@@ -600,6 +600,197 @@ src/
 
 ---
 
+## Phase 7: Jest 및 테스트 환경 설정 ✅
+
+**상태**: ✅ 완료
+**시작일**: 2025-11-12
+**완료일**: 2025-11-12
+**실제 소요**: 0.5시간
+**우선순위**: high
+
+### 작업 내용
+
+- [x] Jest 설정 강화 (path aliases, coverage)
+- [x] jest.setup.js 생성
+- [x] React Native Testing Library 설치
+- [x] 테스트 유틸리티 함수 작성
+- [x] date utils 및 테스트 작성
+- [x] 19개 테스트 케이스 작성 및 통과
+- [x] npm scripts 추가 (test:watch, test:coverage)
+
+### 진행 로그
+
+**2025-11-12 01:10**
+
+- Jest 설정 파일 강화
+- Path aliases 매핑 (13개)
+- Coverage threshold 설정 (70%)
+- Test match patterns 설정
+
+**2025-11-12 01:15**
+
+- jest.setup.js 생성
+- LogBox warnings 억제
+- Console methods mock
+- Test timeout 설정 (10초)
+
+**2025-11-12 01:18**
+
+- React Native Testing Library 설치 (14 packages)
+- @testing-library/react-native v13.3.3
+- @testing-library/jest-native v5.4.3 (deprecated, 나중에 제거)
+
+**2025-11-12 01:20**
+
+- 테스트 유틸리티 작성 (__tests__/utils/testUtils.tsx)
+- renderWithProviders 함수
+- Mock navigation/route generators
+- Mock sensor data generators
+- Async test helpers
+
+**2025-11-12 01:25**
+
+- date utils 구현 (src/utils/date.ts)
+- 6개 유틸리티 함수:
+  - formatTimestamp: 타임스탬프 포맷팅
+  - calculateDuration: 시간 계산
+  - formatDuration: 시간 포맷팅
+  - getCurrentTimestamp: 현재 시간
+  - isToday: 오늘 날짜 확인
+  - getRelativeTime: 상대 시간 문자열
+
+**2025-11-12 01:30**
+
+- 19개 테스트 케이스 작성
+- 모든 테스트 통과 ✅ (19/19)
+- Coverage 달성:
+  - Statements: 100%
+  - Branch: 86.66%
+  - Functions: 100%
+  - Lines: 100%
+
+**2025-11-12 01:35**
+
+- npm scripts 추가:
+  - test:watch: Watch mode
+  - test:coverage: Coverage 리포트
+  - test:clearCache: Jest 캐시 클리어
+- validate 스크립트에 test 추가
+
+### Jest 설정 강화 내용
+
+#### Path Aliases 매핑
+
+```javascript
+moduleNameMapper: {
+  '^@components/(.*)$': '<rootDir>/src/components/$1',
+  '^@screens/(.*)$': '<rootDir>/src/screens/$1',
+  // ... 13개 경로 매핑
+}
+```
+
+#### Coverage 설정
+
+```javascript
+coverageThreshold: {
+  global: {
+    branches: 70,
+    functions: 70,
+    lines: 70,
+    statements: 70,
+  }
+}
+```
+
+#### Transform 설정
+
+- React Native 모듈 변환
+- React Navigation 변환
+- Community 패키지 변환
+
+### 테스트 유틸리티
+
+#### renderWithProviders
+
+- Provider wrapper 지원
+- 향후 Redux, Navigation 추가 예정
+
+#### Mock Generators
+
+- `createMockNavigation()`: Navigation mock
+- `createMockRoute()`: Route mock
+- `generateMockSensorData()`: 센서 데이터 생성
+- `generateMockRecordingSession()`: 세션 데이터 생성
+
+#### Test Helpers
+
+- `waitForCondition()`: 조건 대기
+- `delay()`: 비동기 지연
+- `mockFetchSuccess()`: Fetch 성공 mock
+- `mockFetchError()`: Fetch 에러 mock
+
+### Date Utils 함수
+
+| 함수                 | 설명                         | 테스트 수 |
+| -------------------- | ---------------------------- | --------- |
+| formatTimestamp      | 타임스탬프 → 문자열          | 2         |
+| calculateDuration    | 두 시간 차이 계산            | 3         |
+| formatDuration       | Duration 객체 → 문자열       | 3         |
+| getCurrentTimestamp  | 현재 타임스탬프 반환         | 2         |
+| isToday              | 오늘 날짜 여부 확인          | 3         |
+| getRelativeTime      | 상대 시간 문자열 (X ago)     | 6         |
+
+### npm Scripts
+
+| 스크립트        | 설명                  | 용도                |
+| --------------- | --------------------- | ------------------- |
+| test            | 모든 테스트 실행      | CI/CD, 개발         |
+| test:watch      | Watch mode            | 개발 중 자동 실행   |
+| test:coverage   | Coverage 리포트       | 품질 확인           |
+| test:clearCache | Jest 캐시 클리어      | 문제 해결           |
+| validate        | 전체 검증 (test 포함) | PR 전 최종 검증     |
+
+### 산출물
+
+- **jest.config.js**: 강화된 Jest 설정 (61줄)
+- **jest.setup.js**: Jest 셋업 파일 (43줄)
+- **__tests__/utils/testUtils.tsx**: 테스트 유틸리티 (130줄)
+- **src/utils/date.ts**: Date 유틸리티 (94줄)
+- **src/utils/__tests__/date.test.ts**: Date 테스트 (138줄)
+
+### 테스트 결과
+
+✅ **19/19 테스트 통과**
+
+```
+Test Suites: 1 passed, 1 total
+Tests:       19 passed, 19 total
+Snapshots:   0 total
+Time:        3.312 s
+```
+
+✅ **Coverage 달성**
+
+```
+File      | % Stmts | % Branch | % Funcs | % Lines |
+----------|---------|----------|---------|---------|
+All files |     100 |    86.66 |     100 |     100 |
+date.ts   |     100 |    86.66 |     100 |     100 |
+```
+
+### 참고사항
+
+- 모든 path aliases가 Jest에서 정상 작동
+- Coverage threshold 70% 설정 (높은 품질 유지)
+- React Native Testing Library로 컴포넌트 테스트 준비 완료
+- 테스트 유틸리티로 반복 코드 최소화
+
+### 다음 Phase
+
+→ Phase 8: Zustand 상태 관리 설정
+
+---
+
 ## 주간 목표
 
 ### Week 1 (2025-11-11 ~ 2025-11-17)
@@ -613,9 +804,9 @@ src/
 
 ## 통계
 
-- **총 작업 시간**: 3.0시간
-- **완료율**: 2.0% (6/300)
-- **이번 주 목표 완료율**: 60% (6/10)
+- **총 작업 시간**: 3.5시간
+- **완료율**: 2.3% (7/300)
+- **이번 주 목표 완료율**: 70% (7/10)
 
 ---
 
@@ -627,7 +818,8 @@ src/
 4. ~~Phase 4 완료 (TypeScript 설정 강화)~~ ✅
 5. ~~Phase 5 완료 (ESLint 및 Prettier 설정)~~ ✅
 6. ~~Phase 6 완료 (프로젝트 폴더 구조 생성)~~ ✅
-7. Phase 7 시작 (Jest 및 테스트 환경 설정)
+7. ~~Phase 7 완료 (Jest 및 테스트 환경 설정)~~ ✅
+8. Phase 8 시작 (Zustand 상태 관리 설정)
 
 ---
 
@@ -638,4 +830,4 @@ src/
 
 ---
 
-_최종 업데이트: 2025-11-12 01:05_
+_최종 업데이트: 2025-11-12 01:40_
