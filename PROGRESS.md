@@ -1801,10 +1801,338 @@ const avgLatitude = sumLat / count;
 - 사용자 취소: 조용히 무시
 
 ### 다음 단계 (Phase 19)
-- 센서 데이터 차트 시각화 (Line Chart)
-- 실시간 차트 업데이트
-- 차트 확대/축소 기능
-- 센서별 차트 토글
+- 센서 데이터 차트 시각화 (Line Chart) ✅
+- 센서별 차트 토글 ✅
+- 차트 가로 스크롤 ✅
+- 데이터 샘플링 (성능 최적화) ✅
+
+---
+
+## Phase 19: 센서 데이터 차트 시각화 ✅
+
+**완료 시간**: 2025-11-12 10:00
+**소요 시간**: 1.0시간
+
+### 주요 성과
+
+**1. ChartScreen 구현** (415줄)
+
+센서 데이터를 Line Chart로 시각화하는 화면
+
+```typescript
+export function ChartScreen({route}: Props) {
+  const {sessionId} = route.params;
+  const [sensorData, setSensorData] = useState<SensorDataRecord[]>([]);
+  const [selectedSensor, setSelectedSensor] = useState<SensorType>(SensorType.ACCELEROMETER);
+  const [availableSensors, setAvailableSensors] = useState<SensorType[]>([]);
+
+  // Load sensor data, sample data, render charts
+}
+```
+
+**주요 기능**:
+- 📊 Line Chart로 센서 데이터 시각화
+- 🔄 센서별 토글 (SegmentedButtons)
+- 📏 데이터 샘플링 (최대 100 포인트)
+- ↔️ 가로 스크롤 (긴 데이터)
+- 🎨 색상 구분 (X: 빨강, Y: 초록, Z: 파랑)
+- 📑 범례 표시
+- 📈 3축 센서 (가속도계, 자이로스코프, 자기계)
+- 🌍 GPS (위도, 경도, 고도 별도 차트)
+
+**2. 차트 라이브러리 설치**
+
+```bash
+npm install react-native-svg react-native-chart-kit
+```
+
+- **react-native-svg**: SVG 렌더링
+- **react-native-chart-kit**: Line Chart 컴포넌트
+
+**3. 센서별 차트 구성**
+
+**3축 센서 (Accelerometer, Gyroscope, Magnetometer)**:
+```
+┌────────────────────────────────┐
+│ 가속도계 - 3축 데이터           │
+├────────────────────────────────┤
+│ [X축] [Y축] [Z축]              │
+│                                │
+│  ┌─────────────────┐           │
+│  │  📈 Line Chart  │           │
+│  │  (X, Y, Z)      │           │
+│  │  Time →         │           │
+│  └─────────────────┘           │
+│                                │
+│ 100개 데이터 포인트 표시        │
+└────────────────────────────────┘
+```
+
+**GPS 센서**:
+```
+┌────────────────────────────────┐
+│ GPS - 위도                      │
+├────────────────────────────────┤
+│  📈 Line Chart (latitude)      │
+└────────────────────────────────┘
+
+┌────────────────────────────────┐
+│ GPS - 경도                      │
+├────────────────────────────────┤
+│  📈 Line Chart (longitude)     │
+└────────────────────────────────┘
+
+┌────────────────────────────────┐
+│ GPS - 고도                      │
+├────────────────────────────────┤
+│  📈 Line Chart (altitude)      │
+└────────────────────────────────┘
+```
+
+**4. 센서 선택 UI**
+
+SegmentedButtons로 센서 전환:
+
+```typescript
+<SegmentedButtons
+  value={selectedSensor}
+  onValueChange={value => setSelectedSensor(value as SensorType)}
+  buttons={[
+    {value: SensorType.ACCELEROMETER, label: '가속도계'},
+    {value: SensorType.GYROSCOPE, label: '자이로스코프'},
+    {value: SensorType.MAGNETOMETER, label: '자기계'},
+    {value: SensorType.GPS, label: 'GPS'},
+  ]}
+/>
+```
+
+**5. 데이터 샘플링**
+
+성능 최적화를 위한 데이터 샘플링:
+
+```typescript
+const sampleData = useCallback((data: SensorDataRecord[]): SensorDataRecord[] => {
+  if (data.length <= MAX_DATA_POINTS) {
+    return data;
+  }
+
+  const step = Math.ceil(data.length / MAX_DATA_POINTS);
+  return data.filter((_, index) => index % step === 0);
+}, []);
+```
+
+- **MAX_DATA_POINTS**: 100개
+- **샘플링 방식**: 균등 간격 샘플링
+- **예시**: 1000개 데이터 → 10개마다 1개 선택 → 100개
+
+**6. 차트 데이터 준비**
+
+**3축 센서**:
+```typescript
+const prepare3AxisChartData = useCallback((data: SensorDataRecord[]): ChartData => {
+  const sampledData = sampleData(data);
+
+  const xData = sampledData.map(d => d.x || 0);
+  const yData = sampledData.map(d => d.y || 0);
+  const zData = sampledData.map(d => d.z || 0);
+
+  return {
+    labels: sampledData.map((d, i) => {
+      if (i % 10 === 0) {
+        const date = new Date(d.timestamp);
+        return `${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}`;
+      }
+      return '';
+    }),
+    datasets: [
+      {data: xData, color: () => 'rgba(255, 0, 0, 1)'},  // Red
+      {data: yData, color: () => 'rgba(0, 255, 0, 1)'},  // Green
+      {data: zData, color: () => 'rgba(0, 0, 255, 1)'},  // Blue
+    ],
+    legend: ['X축', 'Y축', 'Z축'],
+  };
+}, [sampleData]);
+```
+
+**GPS**:
+```typescript
+const prepareGPSChartData = useCallback(
+  (data: SensorDataRecord[], field: 'latitude' | 'longitude' | 'altitude') => {
+    const sampledData = sampleData(data);
+    const values = sampledData.map(d => {
+      if (field === 'latitude') return d.latitude || 0;
+      if (field === 'longitude') return d.longitude || 0;
+      return d.altitude || 0;
+    });
+
+    return {
+      labels: /* time labels */,
+      datasets: [{data: values, color: () => 'rgba(75, 192, 192, 1)'}],
+      legend: [fieldNames[field]],
+    };
+  },
+  [sampleData],
+);
+```
+
+**7. 차트 렌더링**
+
+react-native-chart-kit의 LineChart 사용:
+
+```typescript
+<LineChart
+  data={chartData}
+  width={Math.max(screenWidth - 60, chartData.labels.length * 20)}
+  height={220}
+  chartConfig={{
+    backgroundColor: '#ffffff',
+    backgroundGradientFrom: '#ffffff',
+    backgroundGradientTo: '#ffffff',
+    decimalPlaces: 2,
+    color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+    propsForDots: {r: '2', strokeWidth: '1'},
+  }}
+  bezier
+  withInnerLines
+  withOuterLines
+  withVerticalLines
+  withHorizontalLines
+/>
+```
+
+**차트 설정**:
+- **Width**: 동적 (데이터 양에 따라)
+- **Height**: 220px
+- **Bezier**: 부드러운 곡선
+- **Grid Lines**: 내부/외부/수직/수평
+- **Dots**: 작은 점 (반지름 2px)
+- **배경**: 흰색
+
+**8. 가로 스크롤**
+
+긴 데이터를 위한 수평 스크롤:
+
+```typescript
+<ScrollView horizontal showsHorizontalScrollIndicator>
+  <LineChart
+    data={chartData}
+    width={Math.max(screenWidth - 60, chartData.labels.length * 20)}
+    // 차트 width가 화면보다 크면 스크롤 가능
+  />
+</ScrollView>
+```
+
+**9. SessionDetail 통합**
+
+세션 상세 화면에 "차트 보기" 버튼 추가:
+
+```typescript
+<Button
+  mode="contained"
+  icon="chart-line"
+  onPress={() => navigation.navigate('Chart', {sessionId})}
+  disabled={sensorData.length === 0}
+  style={styles.button}>
+  차트 보기
+</Button>
+```
+
+**10. 네비게이션 구조 업데이트**
+
+```
+History Tab
+├── HistoryList (세션 목록)
+│   └── [세션 클릭]
+│       ↓
+├── SessionDetail (세션 상세)
+│   ├── [차트 보기]
+│   │   ↓
+│   ├── Chart (차트 화면)
+│   ├── CSV 내보내기
+│   ├── JSON 내보내기
+│   └── 세션 삭제
+```
+
+### 화면 구조 업데이트
+
+```
+KooDTX App
+├── 📱 Tab Navigator (Bottom)
+│   ├── 🔴 Recording (RecordingScreen)
+│   │
+│   └── 📋 History (HistoryStack)
+│       ├── HistoryList
+│       ├── SessionDetail
+│       │   └── [차트 보기]
+│       │       ↓
+│       └── Chart (ChartScreen) ⭐ NEW
+│           ├── 센서 선택 (SegmentedButtons)
+│           ├── Line Chart (3축 or GPS)
+│           ├── 범례 (Legend)
+│           └── 가로 스크롤
+```
+
+### 업데이트된 파일
+
+- **src/screens/ChartScreen.tsx** (415줄): 차트 화면
+- **src/screens/index.ts**: ChartScreen export
+- **src/navigation/HistoryStack.tsx**: Chart 화면 추가
+- **src/screens/SessionDetailScreen.tsx**: "차트 보기" 버튼 추가
+- **package.json**: react-native-svg, react-native-chart-kit 추가
+
+### 사용자 플로우
+
+**플로우 1: 센서 데이터 차트 보기**
+1. History 탭 → 세션 선택
+2. 세션 상세 화면
+3. "차트 보기" 버튼 클릭
+4. 차트 화면 표시 (기본: 가속도계)
+5. 센서별 데이터 시각화
+
+**플로우 2: 센서 전환**
+1. 차트 화면
+2. 센서 선택 버튼 (가속도계/자이로스코프/자기계/GPS)
+3. 선택한 센서의 차트 표시
+4. X/Y/Z (또는 위도/경도/고도) 확인
+
+**플로우 3: 차트 스크롤**
+1. 차트 화면
+2. 가로로 스크롤
+3. 전체 데이터 포인트 탐색
+
+### 기술적 세부사항
+
+**차트 색상**:
+- **X축**: rgba(255, 0, 0, 1) - 빨강
+- **Y축**: rgba(0, 255, 0, 1) - 초록
+- **Z축**: rgba(0, 0, 255, 1) - 파랑
+- **GPS**: rgba(75, 192, 192, 1) - 청록색
+
+**데이터 포인트 계산**:
+```typescript
+// 예: 1000개 데이터
+const step = Math.ceil(1000 / 100); // 10
+// 0, 10, 20, 30, ... 990 인덱스 선택 → 100개
+```
+
+**타임스탬프 포맷**:
+```typescript
+const date = new Date(timestamp);
+const label = `${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}`;
+// 예: "14:32:45"
+```
+
+**성능 최적화**:
+- 최대 100개 데이터 포인트로 제한
+- 균등 간격 샘플링
+- useCallback으로 함수 메모이제이션
+- ScrollView의 showsHorizontalScrollIndicator={true}
+
+### 다음 단계 (Phase 20)
+- 오디오 녹음 준비
+- react-native-audio-recorder 설정
+- 오디오 파일 저장 구조
+- 오디오 재생 기능
 
 ---
 

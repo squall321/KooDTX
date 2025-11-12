@@ -34,6 +34,7 @@ import RNFS from 'react-native-fs';
 type HistoryStackParamList = {
   HistoryList: undefined;
   SessionDetail: {sessionId: string};
+  Chart: {sessionId: string};
 };
 
 type Props = NativeStackScreenProps<HistoryStackParamList, 'SessionDetail'>;
@@ -511,6 +512,15 @@ export function SessionDetailScreen({route, navigation}: Props) {
         <Card.Content>
           <Text variant="headlineSmall">작업</Text>
           <Divider style={styles.divider} />
+
+          <Button
+            mode="contained"
+            icon="chart-line"
+            onPress={() => navigation.navigate('Chart', {sessionId})}
+            disabled={sensorData.length === 0}
+            style={styles.button}>
+            차트 보기
+          </Button>
 
           <Button
             mode="contained"
