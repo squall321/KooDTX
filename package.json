@@ -17,7 +17,10 @@
     "typecheck": "tsc --noEmit",
     "validate": "npm run typecheck && npm run lint && npm run format:check && npm run test",
     "analyze": "node scripts/analyze-bundle.js",
-    "perf": "node scripts/analyze-bundle.js"
+    "perf": "node scripts/analyze-bundle.js",
+    "version:patch": "node scripts/bump-version.js patch",
+    "version:minor": "node scripts/bump-version.js minor",
+    "version:major": "node scripts/bump-version.js major"
   },
   "dependencies": {
     "@nozbe/watermelondb": "^0.28.0",

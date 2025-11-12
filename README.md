@@ -12,9 +12,10 @@ KooDTX는 React Native로 구현한 센서 데이터 수집 및 동기화 애플
 
 ### 📱 센서 데이터 수집
 - **가속도계 (Accelerometer)**: X, Y, Z축 가속도 측정
-- **자이로스코프 (Gyroscope)**: X, Y, Z축 회전 속도 측정  
+- **자이로스코프 (Gyroscope)**: X, Y, Z축 회전 속도 측정
 - **자기계 (Magnetometer)**: X, Y, Z축 자기장 측정
 - **GPS**: 위도, 경도, 고도, 정확도, 속도, 방향 측정
+- **보행 감지 (Step Detector)**: 실시간 걸음 감지 및 걷기/뛰기 분류
 - **오디오**: 44.1kHz 스테레오 AAC 녹음
 
 ### 💾 로컬 우선 아키텍처 (Local-First)
@@ -467,6 +468,90 @@ npm run perf
 - 메모리 관리 (구독 정리, 타이머 관리)
 - 번들 크기 최적화
 - Best Practices
+
+## 에러 처리 및 로깅
+
+프로젝트는 포괄적인 에러 처리 및 로깅 시스템을 포함합니다.
+
+### Logger Service
+
+통합 로깅 서비스:
+
+```typescript
+import {logger, LogLevel} from '@services/logging';
+
+// 로그 레벨별 메서드
+logger.debug('Debug info', {data: value});
+logger.info('User action', {userId: '123'});
+logger.warn('Warning message', {code: 'WARN_001'});
+logger.error('Error occurred', error, {context});
+logger.fatal('Critical error', error, {context});
+
+// 설정
+logger.configure({
+  minLevel: LogLevel.INFO,
+  remoteLogging: true,
+  remoteUrl: 'https://api.example.com/logs',
+});
+
+// 조회
+const errorLogs = logger.getErrorLogs();
+const stats = logger.getStats();
+```
+
+### Error Handler
+
+전역 에러 핸들러:
+
+```typescript
+import {errorHandler} from '@services/logging';
+
+// App.tsx에서 초기화
+errorHandler.initialize({
+  enableCrashReporting: true,
+  onError: (error, isFatal) => {
+    // 커스텀 에러 처리
+  },
+});
+```
+
+### Error Boundary
+
+React 에러 경계:
+
+```typescript
+import {ErrorBoundary} from '@components/ErrorBoundary';
+
+<ErrorBoundary>
+  <App />
+</ErrorBoundary>
+```
+
+### Crash Reporter
+
+크래시 리포팅:
+
+```typescript
+import {crashReporter} from '@services/logging';
+
+await crashReporter.initialize();
+await crashReporter.reportCrash(error, {context});
+
+const stats = crashReporter.getStats();
+// {totalReports: 25, reportsLast24h: 3}
+```
+
+### 에러 처리 가이드
+
+상세한 에러 처리 가이드는 [docs/ERROR_HANDLING.md](docs/ERROR_HANDLING.md)를 참조하세요.
+
+**주요 내용**:
+- Logger Service 사용법
+- Error Handler 설정
+- Error Boundary 적용
+- Crash Reporter 활용
+- Best Practices
+- 원격 서비스 연동 (Sentry, Firebase)
 
 ## 문제 해결
 

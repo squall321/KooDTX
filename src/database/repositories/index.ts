@@ -19,6 +19,18 @@ export {
   getAudioRecordingRepository,
 } from './AudioRecordingRepository';
 
+export {
+  StepEventRepository,
+  getStepEventRepository,
+  resetStepEventRepository,
+} from './StepEventRepository';
+
+export {
+  StepCountRepository,
+  getStepCountRepository,
+  resetStepCountRepository,
+} from './StepCountRepository';
+
 export type {CreateSessionData, UpdateSessionData} from './RecordingSessionRepository';
 export type {
   CreateAudioRecordingInput,

@@ -6,7 +6,7 @@
 import {appSchema, tableSchema} from '@nozbe/watermelondb';
 
 export const schema = appSchema({
-  version: 1,
+  version: 5,
   tables: [
     // Recording Sessions
     tableSchema({
@@ -26,7 +26,7 @@ export const schema = appSchema({
       ],
     }),
 
-    // Sensor Data (Accelerometer, Gyroscope, Magnetometer, GPS)
+    // Sensor Data (Accelerometer, Gyroscope, Magnetometer, GPS, Proximity, Light, Pressure)
     tableSchema({
       name: 'sensor_data',
       columns: [
@@ -44,6 +44,17 @@ export const schema = appSchema({
         {name: 'accuracy', type: 'number', isOptional: true},
         {name: 'speed', type: 'number', isOptional: true},
         {name: 'heading', type: 'number', isOptional: true},
+        // Proximity data
+        {name: 'distance', type: 'number', isOptional: true},
+        {name: 'is_near', type: 'boolean', isOptional: true},
+        {name: 'max_range', type: 'number', isOptional: true},
+        // Light data
+        {name: 'lux', type: 'number', isOptional: true},
+        {name: 'brightness_level', type: 'string', isOptional: true},
+        // Pressure data
+        {name: 'pressure', type: 'number', isOptional: true},
+        {name: 'calculated_altitude', type: 'number', isOptional: true},
+        {name: 'sea_level_pressure', type: 'number', isOptional: true},
         // Metadata
         {name: 'is_uploaded', type: 'boolean'},
         {name: 'created_at', type: 'number'},
@@ -65,6 +76,37 @@ export const schema = appSchema({
         {name: 'format', type: 'string'},
         {name: 'is_uploaded', type: 'boolean'},
         {name: 'uploaded_url', type: 'string', isOptional: true},
+        {name: 'created_at', type: 'number'},
+        {name: 'updated_at', type: 'number'},
+      ],
+    }),
+
+    // Step Events (Step Detector)
+    tableSchema({
+      name: 'step_events',
+      columns: [
+        {name: 'session_id', type: 'string', isIndexed: true},
+        {name: 'timestamp', type: 'number', isIndexed: true},
+        {name: 'elapsed_realtime_nanos', type: 'number'},
+        {name: 'utc_epoch_ms', type: 'number'},
+        {name: 'activity_type', type: 'string', isIndexed: true}, // walking, running, unknown
+        {name: 'confidence', type: 'number', isOptional: true},
+        {name: 'is_uploaded', type: 'boolean'},
+        {name: 'created_at', type: 'number'},
+        {name: 'updated_at', type: 'number'},
+      ],
+    }),
+
+    // Step Counts (Step Counter)
+    tableSchema({
+      name: 'step_counts',
+      columns: [
+        {name: 'session_id', type: 'string', isIndexed: true},
+        {name: 'timestamp', type: 'number', isIndexed: true},
+        {name: 'elapsed_realtime_nanos', type: 'number'},
+        {name: 'count', type: 'number'}, // Cumulative count since boot
+        {name: 'delta', type: 'number'}, // Steps since last sample
+        {name: 'is_uploaded', type: 'boolean'},
         {name: 'created_at', type: 'number'},
         {name: 'updated_at', type: 'number'},
       ],

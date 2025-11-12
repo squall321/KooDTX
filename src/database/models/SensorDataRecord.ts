@@ -1,6 +1,6 @@
 /**
  * SensorDataRecord Model
- * Represents sensor data (accelerometer, gyroscope, magnetometer, GPS)
+ * Represents sensor data (accelerometer, gyroscope, magnetometer, GPS, proximity)
  */
 
 import {Model} from '@nozbe/watermelondb';
@@ -26,6 +26,20 @@ export class SensorDataRecord extends Model {
   @field('accuracy') accuracy?: number;
   @field('speed') speed?: number;
   @field('heading') heading?: number;
+
+  // Proximity data
+  @field('distance') distance?: number;
+  @field('is_near') isNear?: boolean;
+  @field('max_range') maxRange?: number;
+
+  // Light data
+  @field('lux') lux?: number;
+  @field('brightness_level') brightnessLevel?: string;
+
+  // Pressure data
+  @field('pressure') pressure?: number;
+  @field('calculated_altitude') calculatedAltitude?: number;
+  @field('sea_level_pressure') seaLevelPressure?: number;
 
   // Metadata
   @field('is_uploaded') isUploaded!: boolean;
