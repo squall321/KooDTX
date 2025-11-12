@@ -42,10 +42,10 @@ export function usePermissions(): UsePermissionsResult {
     if (Platform.OS === 'android') {
       try {
         const locationGranted = await PermissionsAndroid.check(
-          PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+          PermissionsAndroid.PERMISSIONS['ACCESS_FINE_LOCATION'],
         );
         const micGranted = await PermissionsAndroid.check(
-          PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
+          PermissionsAndroid.PERMISSIONS['RECORD_AUDIO'],
         );
 
         setPermissions({
@@ -74,20 +74,20 @@ export function usePermissions(): UsePermissionsResult {
     try {
       if (Platform.OS === 'android') {
         const results = await PermissionsAndroid.requestMultiple([
-          PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
-          PermissionsAndroid.PERMISSIONS.ACCESS_COARSE_LOCATION,
-          PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
+          PermissionsAndroid.PERMISSIONS['ACCESS_FINE_LOCATION'],
+          PermissionsAndroid.PERMISSIONS['ACCESS_COARSE_LOCATION'],
+          PermissionsAndroid.PERMISSIONS['RECORD_AUDIO'],
         ]);
 
         const locationGranted =
-          results[PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION] ===
-            PermissionsAndroid.RESULTS.GRANTED ||
-          results[PermissionsAndroid.PERMISSIONS.ACCESS_COARSE_LOCATION] ===
-            PermissionsAndroid.RESULTS.GRANTED;
+          results[PermissionsAndroid.PERMISSIONS['ACCESS_FINE_LOCATION']] ===
+            PermissionsAndroid.RESULTS['GRANTED'] ||
+          results[PermissionsAndroid.PERMISSIONS['ACCESS_COARSE_LOCATION']] ===
+            PermissionsAndroid.RESULTS['GRANTED'];
 
         const micGranted =
-          results[PermissionsAndroid.PERMISSIONS.RECORD_AUDIO] ===
-          PermissionsAndroid.RESULTS.GRANTED;
+          results[PermissionsAndroid.PERMISSIONS['RECORD_AUDIO']] ===
+          PermissionsAndroid.RESULTS['GRANTED'];
 
         setPermissions({
           location: locationGranted ? 'granted' : 'denied',

@@ -1263,10 +1263,197 @@ accelerometer
 5. 앱 복귀 → 녹음 가능
 
 ### 다음 단계 (Phase 17)
-- 녹음 히스토리 화면 구현
-- 세션 목록 표시
-- 세션 상세 정보 표시
-- 데이터 내보내기 기능
+- 녹음 히스토리 화면 구현 ✅
+- 세션 목록 표시 ✅
+- React Navigation 설정 ✅
+- Bottom Tabs 네비게이션 ✅
+
+---
+
+## Phase 17: History Screen 및 네비게이션 구현 ✅
+
+**완료 시간**: 2025-11-12 08:00
+**소요 시간**: 0.8시간
+
+### 주요 성과
+
+**1. React Navigation 설치**
+
+Bottom Tabs 네비게이션을 위한 패키지 설치:
+
+```bash
+npm install @react-navigation/native @react-navigation/bottom-tabs
+npm install react-native-safe-area-context react-native-screens
+npm install --save-dev @types/react-native-vector-icons
+```
+
+**2. HistoryScreen 구현** (279줄)
+
+녹음된 세션 목록을 표시하는 화면
+
+```typescript
+export function HistoryScreen() {
+  const [sessions, setSessions] = useState<RecordingSession[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const loadSessions = useCallback(async () => {
+    const allSessions = await sessionRepo.findAll();
+    setSessions(allSessions);
+  }, [sessionRepo]);
+}
+```
+
+**주요 기능**:
+- 📋 세션 목록 표시 (FlatList)
+- 🔄 Pull-to-refresh 새로고침
+- 📊 세션 통계 (소요 시간, 데이터 수, 샘플 레이트)
+- 🏷️ 활성 세션 표시 (🔴 녹음 중)
+- 📝 세션 메모 표시
+- ☁️ 업로드 상태 표시
+- ⚡ FAB 새로고침 버튼
+
+**세션 카드 정보**:
+```
+┌─────────────────────────────┐
+│ 세션 ABC123XY   [🔴 녹음 중] │
+│ 2025-11-12 08:00:00         │
+│                             │
+│ 소요 시간    데이터 수   샘플  │
+│  00:15:30    1,250     100Hz │
+│                             │
+│ 센서: [ACC] [GYR] [MAG]     │
+│                             │
+│ 메모: 걷기 테스트             │
+│ [☁️ 업로드 완료]             │
+└─────────────────────────────┘
+```
+
+**3. App.tsx 네비게이션 구조 업데이트** (73줄)
+
+Bottom Tabs 네비게이션 설정:
+
+```typescript
+<NavigationContainer>
+  <Tab.Navigator>
+    <Tab.Screen
+      name="Recording"
+      component={RecordingScreen}
+      options={{
+        title: '녹음',
+        tabBarIcon: ({color, size}) => (
+          <MaterialCommunityIcons name="record-circle" color={color} size={size} />
+        ),
+      }}
+    />
+    <Tab.Screen
+      name="History"
+      component={HistoryScreen}
+      options={{
+        title: '기록',
+        tabBarIcon: ({color, size}) => (
+          <MaterialCommunityIcons name="history" color={color} size={size} />
+        ),
+      }}
+    />
+  </Tab.Navigator>
+</NavigationContainer>
+```
+
+**네비게이션 기능**:
+- 🔄 Bottom Tabs: 녹음 ↔️ 기록 화면 전환
+- 🎨 Material Design 3 테마 적용
+- 🏠 Header 스타일링 (Primary 색상)
+- 📱 Tab Bar 아이콘 (Material Community Icons)
+
+**4. Android MainActivity 업데이트**
+
+react-native-screens 지원 추가:
+
+```kotlin
+override fun onCreate(savedInstanceState: Bundle?) {
+  super.onCreate(null)
+}
+```
+
+**5. TypeScript 경로 별칭 개선**
+
+tsconfig.json 및 babel.config.js에 @screens 별칭 추가:
+
+```json
+{
+  "paths": {
+    "@screens": ["src/screens"],
+    "@screens/*": ["src/screens/*"]
+  }
+}
+```
+
+**6. usePermissions 타입 안전성 개선**
+
+PermissionsAndroid 인덱스 서명 처리:
+
+```typescript
+// Before:
+PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION
+
+// After:
+PermissionsAndroid.PERMISSIONS['ACCESS_FINE_LOCATION']
+```
+
+### 화면 구조
+
+```
+KooDTX App
+├── 📱 Tab Navigator (Bottom)
+│   ├── 🔴 Recording (RecordingScreen)
+│   │   ├── 센서 선택
+│   │   ├── 녹음 시작/중지
+│   │   ├── 실시간 데이터 표시
+│   │   └── 권한 관리
+│   │
+│   └── 📋 History (HistoryScreen)
+│       ├── 세션 목록
+│       ├── Pull-to-refresh
+│       ├── 세션 통계
+│       └── FAB 새로고침
+```
+
+### 업데이트된 파일
+
+- **App.tsx** (73줄): Bottom Tabs 네비게이션
+- **src/screens/HistoryScreen.tsx** (279줄): 히스토리 화면
+- **src/screens/index.ts**: 화면 barrel export
+- **android/MainActivity.kt**: react-native-screens 지원
+- **tsconfig.json**: @screens 경로 별칭 추가
+- **src/hooks/usePermissions.ts**: 인덱스 서명 처리
+- **package.json**: React Navigation 의존성 추가
+
+### 사용자 플로우
+
+**플로우 1: 녹음 → 기록 확인**
+1. Recording 탭에서 센서 데이터 녹음
+2. "녹음 중지" 클릭
+3. History 탭으로 전환
+4. 방금 녹음한 세션 확인
+
+**플로우 2: 히스토리 새로고침**
+1. History 탭 선택
+2. 아래로 당겨서 새로고침 (Pull-to-refresh)
+3. 또는 FAB "새로고침" 버튼 클릭
+4. 최신 세션 목록 로드
+
+**플로우 3: 빈 히스토리**
+1. History 탭 선택
+2. 녹음된 세션 없음
+3. "녹음된 세션이 없습니다" 메시지
+4. "새로운 센서 데이터 녹음을 시작하세요" 안내
+
+### 다음 단계 (Phase 18)
+- 세션 상세 정보 화면
+- 센서 데이터 차트 시각화
+- 데이터 내보내기 기능 (CSV, JSON)
+- 세션 삭제 기능
 
 ---
 

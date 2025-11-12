@@ -3,12 +3,16 @@
  */
 
 import React from 'react';
-import {SafeAreaView, StatusBar, StyleSheet, useColorScheme} from 'react-native';
+import {StatusBar, useColorScheme} from 'react-native';
 import {PaperProvider} from 'react-native-paper';
+import {NavigationContainer} from '@react-navigation/native';
+import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
 import {getTheme} from '@config/theme';
+import {RecordingScreen, HistoryScreen} from '@screens';
 
-import {RecordingScreen} from './src/screens/RecordingScreen';
+const Tab = createBottomTabNavigator();
 
 function App(): React.JSX.Element {
   const colorScheme = useColorScheme();
@@ -17,21 +21,53 @@ function App(): React.JSX.Element {
 
   return (
     <PaperProvider theme={theme}>
-      <SafeAreaView style={styles.container}>
+      <NavigationContainer>
         <StatusBar
           barStyle={isDarkMode ? 'light-content' : 'dark-content'}
           backgroundColor={theme.colors.background}
         />
-        <RecordingScreen />
-      </SafeAreaView>
+        <Tab.Navigator
+          screenOptions={{
+            headerStyle: {
+              backgroundColor: theme.colors.primary,
+            },
+            headerTintColor: '#fff',
+            headerTitleStyle: {
+              fontWeight: 'bold',
+            },
+            tabBarStyle: {
+              backgroundColor: theme.colors.surface,
+            },
+            tabBarActiveTintColor: theme.colors.primary,
+            tabBarInactiveTintColor: '#999',
+          }}
+        >
+          <Tab.Screen
+            name="Recording"
+            component={RecordingScreen}
+            options={{
+              title: '녹음',
+              tabBarLabel: '녹음',
+              tabBarIcon: ({color, size}) => (
+                <MaterialCommunityIcons name="record-circle" color={color} size={size} />
+              ),
+            }}
+          />
+          <Tab.Screen
+            name="History"
+            component={HistoryScreen}
+            options={{
+              title: '기록',
+              tabBarLabel: '기록',
+              tabBarIcon: ({color, size}) => (
+                <MaterialCommunityIcons name="history" color={color} size={size} />
+              ),
+            }}
+          />
+        </Tab.Navigator>
+      </NavigationContainer>
     </PaperProvider>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-});
 
 export default App;
