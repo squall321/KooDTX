@@ -18,7 +18,7 @@ import {
   Banner,
 } from 'react-native-paper';
 import {SensorType} from '@types/sensor.types';
-import {useSensorCollectionWithDB, usePermissions} from '@hooks';
+import {useSensorCollectionWithDB, usePermissions, useAudioRecording} from '@hooks';
 import {getRecordingSessionRepository} from '@database/repositories';
 import {generateSessionId} from '@utils';
 
@@ -83,6 +83,22 @@ export function RecordingScreen() {
     },
   });
 
+  // Audio recording hook
+  const {
+    isRecording: isAudioRecording,
+    recordingDuration: audioDuration,
+    start: startAudio,
+    stop: stopAudio,
+    error: audioError,
+  } = useAudioRecording({
+    sessionId: sessionId || undefined,
+    sampleRate: 44100,
+    channels: 2,
+    onError: err => {
+      console.error('Audio recording error:', err);
+    },
+  });
+
   // Toggle sensor
   const toggleSensor = useCallback((sensorType: SensorType) => {
     if (isRunning) {
@@ -100,7 +116,11 @@ export function RecordingScreen() {
 
     try {
       // Check permissions first
-      if (permissions.location !== 'granted' && enabledSensors[SensorType.GPS]) {
+      const needsGPS = enabledSensors[SensorType.GPS];
+      const needsAudio = enabledSensors[SensorType.AUDIO];
+
+      if ((needsGPS && permissions.location !== 'granted') ||
+          (needsAudio && permissions.microphone !== 'granted')) {
         const granted = await requestPermissions();
         if (!granted) {
           openSettings();
@@ -123,23 +143,38 @@ export function RecordingScreen() {
         notes: sessionNotes,
       });
 
-      // Start sensor collection
+      // Start sensor collection (excluding AUDIO as it's handled separately)
       const sensorsToStart = Object.entries(enabledSensors)
-        .filter(([, enabled]) => enabled)
+        .filter(([type, enabled]) => enabled && type !== SensorType.AUDIO)
         .map(([type]) => type as SensorType);
 
-      await start(sensorsToStart);
+      if (sensorsToStart.length > 0) {
+        await start(sensorsToStart);
+      }
+
+      // Start audio recording if enabled
+      if (enabledSensors[SensorType.AUDIO]) {
+        await startAudio();
+      }
     } catch (err) {
       console.error('Failed to start recording:', err);
     } finally {
       setIsStarting(false);
     }
-  }, [enabledSensors, sampleRate, sessionNotes, start, sessionRepo, permissions, requestPermissions, openSettings]);
+  }, [enabledSensors, sampleRate, sessionNotes, start, startAudio, sessionRepo, permissions, requestPermissions, openSettings]);
 
   // Stop recording
   const handleStopRecording = useCallback(async () => {
     try {
-      await stop();
+      // Stop sensor collection
+      if (runningSensors.length > 0) {
+        await stop();
+      }
+
+      // Stop audio recording if it's running
+      if (isAudioRecording) {
+        await stopAudio();
+      }
 
       // Update session in database
       if (sessionId) {
@@ -154,18 +189,19 @@ export function RecordingScreen() {
     } catch (err) {
       console.error('Failed to stop recording:', err);
     }
-  }, [stop, sessionId, sessionRepo]);
+  }, [stop, stopAudio, isAudioRecording, runningSensors, sessionId, sessionRepo]);
 
   // Get statistics
   const bufferStats = isRunning ? getBufferStats() : null;
   const saverStats = isRunning ? getSaverStats() : null;
 
-  // Check if GPS is enabled but permission not granted
+  // Check if permissions are needed
   const needsLocationPermission = enabledSensors[SensorType.GPS] && permissions.location !== 'granted';
+  const needsMicrophonePermission = enabledSensors[SensorType.AUDIO] && permissions.microphone !== 'granted';
 
   return (
     <ScrollView style={styles.container}>
-      {/* Permission Banner */}
+      {/* Permission Banners */}
       {needsLocationPermission && !isRunning && (
         <Banner
           visible={true}
@@ -179,6 +215,21 @@ export function RecordingScreen() {
           icon="alert-circle"
         >
           GPS 센서를 사용하려면 위치 권한이 필요합니다.
+        </Banner>
+      )}
+      {needsMicrophonePermission && !isRunning && (
+        <Banner
+          visible={true}
+          actions={[
+            {
+              label: '권한 요청',
+              onPress: requestPermissions,
+              loading: permissionsLoading,
+            },
+          ]}
+          icon="alert-circle"
+        >
+          오디오 녹음을 사용하려면 마이크 권한이 필요합니다.
         </Banner>
       )}
 
@@ -227,6 +278,12 @@ export function RecordingScreen() {
               label="GPS"
               status={enabledSensors[SensorType.GPS] ? 'checked' : 'unchecked'}
               onPress={() => toggleSensor(SensorType.GPS)}
+              disabled={isRunning}
+            />
+            <Checkbox.Item
+              label="오디오 (Audio)"
+              status={enabledSensors[SensorType.AUDIO] ? 'checked' : 'unchecked'}
+              onPress={() => toggleSensor(SensorType.AUDIO)}
               disabled={isRunning}
             />
           </View>
@@ -282,7 +339,12 @@ export function RecordingScreen() {
           {/* Error Display */}
           {error && (
             <Text variant="bodySmall" style={styles.error}>
-              오류: {error.message}
+              센서 오류: {error.message}
+            </Text>
+          )}
+          {audioError && (
+            <Text variant="bodySmall" style={styles.error}>
+              오디오 오류: {audioError.message}
             </Text>
           )}
         </Card.Content>
@@ -293,7 +355,17 @@ export function RecordingScreen() {
         <Card style={styles.card}>
           <Card.Title title="실시간 데이터" />
           <Card.Content>
-            {runningSensors.length === 0 ? (
+            {/* Audio Recording Status */}
+            {isAudioRecording && (
+              <View style={[styles.dataItem, styles.audioStatusItem]}>
+                <Text variant="titleSmall">🎤 오디오 녹음 중</Text>
+                <Text variant="bodySmall">
+                  녹음 시간: {Math.floor(audioDuration / 1000)}초
+                </Text>
+              </View>
+            )}
+
+            {runningSensors.length === 0 && !isAudioRecording ? (
               <View style={styles.loadingContainer}>
                 <ActivityIndicator size="large" />
                 <Text variant="bodyMedium" style={styles.loadingText}>
@@ -412,6 +484,12 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#e0e0e0',
+  },
+  audioStatusItem: {
+    backgroundColor: '#e8f5e9',
+    padding: 12,
+    borderRadius: 8,
+    borderBottomWidth: 0,
   },
   waitingText: {
     color: '#999',

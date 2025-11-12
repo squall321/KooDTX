@@ -19,17 +19,21 @@ import {
   ActivityIndicator,
   Portal,
   Dialog,
+  IconButton,
+  List,
 } from 'react-native-paper';
 import type {NativeStackScreenProps} from '@react-navigation/native-stack';
-import type {RecordingSession, SensorDataRecord} from '@database/models';
+import type {RecordingSession, SensorDataRecord, AudioRecording} from '@database/models';
 import {
   getRecordingSessionRepository,
   getSensorDataRepository,
+  getAudioRecordingRepository,
 } from '@database/repositories';
 import {formatTimestamp, calculateDuration, formatDuration} from '@utils/date';
 import {SensorType} from '@types/sensor.types';
 import Share from 'react-native-share';
 import RNFS from 'react-native-fs';
+import {getAudioRecorderService} from '@services/audio/AudioRecorderService';
 
 type HistoryStackParamList = {
   HistoryList: undefined;
@@ -56,12 +60,16 @@ export function SessionDetailScreen({route, navigation}: Props) {
   const [sensorStats, setSensorStats] = useState<
     Record<SensorType, SensorStats>
   >({} as Record<SensorType, SensorStats>);
+  const [audioRecordings, setAudioRecordings] = useState<AudioRecording[]>([]);
+  const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isExporting, setIsExporting] = useState(false);
   const [deleteDialogVisible, setDeleteDialogVisible] = useState(false);
 
   const sessionRepo = getRecordingSessionRepository();
   const dataRepo = getSensorDataRepository();
+  const audioRepo = getAudioRecordingRepository();
+  const audioService = getAudioRecorderService();
 
   // Load session and sensor data
   const loadSessionData = useCallback(async () => {
@@ -79,6 +87,10 @@ export function SessionDetailScreen({route, navigation}: Props) {
       // Load sensor data
       const data = await dataRepo.findBySession(sessionId);
       setSensorData(data);
+
+      // Load audio recordings
+      const audioData = await audioRepo.findBySession(sessionId);
+      setAudioRecordings(audioData);
 
       // Calculate statistics
       const stats: Record<SensorType, SensorStats> = {} as Record<
@@ -156,6 +168,15 @@ export function SessionDetailScreen({route, navigation}: Props) {
   useEffect(() => {
     loadSessionData();
   }, [loadSessionData]);
+
+  // Cleanup: stop audio on unmount
+  useEffect(() => {
+    return () => {
+      if (playingAudioId) {
+        audioService.stopPlayer().catch(console.error);
+      }
+    };
+  }, [playingAudioId, audioService]);
 
   // Export to CSV
   const exportToCSV = useCallback(async () => {
@@ -274,12 +295,78 @@ export function SessionDetailScreen({route, navigation}: Props) {
     }
   }, [session, sensorData, sensorStats, sessionId]);
 
+  // Play/Stop audio recording
+  const toggleAudioPlayback = useCallback(async (recording: AudioRecording) => {
+    try {
+      if (playingAudioId === recording.id) {
+        // Stop current playback
+        await audioService.stopPlayer();
+        setPlayingAudioId(null);
+      } else {
+        // Stop any current playback first
+        if (playingAudioId) {
+          await audioService.stopPlayer();
+        }
+
+        // Start new playback
+        await audioService.startPlayer(recording.filePath);
+        setPlayingAudioId(recording.id);
+      }
+    } catch (error) {
+      console.error('Failed to toggle audio playback:', error);
+      Alert.alert('오류', '오디오 재생에 실패했습니다.');
+      setPlayingAudioId(null);
+    }
+  }, [playingAudioId, audioService]);
+
+  // Share audio file
+  const shareAudioFile = useCallback(async (recording: AudioRecording) => {
+    try {
+      // Check if file exists
+      const fileExists = await RNFS.exists(recording.filePath);
+      if (!fileExists) {
+        Alert.alert('오류', '오디오 파일을 찾을 수 없습니다.');
+        return;
+      }
+
+      await Share.open({
+        title: '오디오 파일 공유',
+        url: `file://${recording.filePath}`,
+        type: 'audio/m4a',
+      });
+    } catch (error: any) {
+      if (error?.message !== 'User did not share') {
+        console.error('Failed to share audio:', error);
+        Alert.alert('오류', '오디오 파일 공유에 실패했습니다.');
+      }
+    }
+  }, []);
+
   // Delete session
   const handleDelete = useCallback(async () => {
     setDeleteDialogVisible(false);
     try {
-      // Delete sensor data first
+      // Stop any playing audio
+      if (playingAudioId) {
+        await audioService.stopPlayer();
+      }
+
+      // Delete audio recordings and files
+      for (const recording of audioRecordings) {
+        try {
+          const fileExists = await RNFS.exists(recording.filePath);
+          if (fileExists) {
+            await RNFS.unlink(recording.filePath);
+          }
+        } catch (fileError) {
+          console.error('Failed to delete audio file:', fileError);
+        }
+      }
+      await audioRepo.deleteBySession(sessionId);
+
+      // Delete sensor data
       await dataRepo.deleteBySession(sessionId);
+
       // Delete session
       await sessionRepo.delete(sessionId);
 
@@ -293,7 +380,7 @@ export function SessionDetailScreen({route, navigation}: Props) {
       console.error('Failed to delete session:', error);
       Alert.alert('오류', '세션 삭제에 실패했습니다.');
     }
-  }, [sessionId, dataRepo, sessionRepo, navigation]);
+  }, [sessionId, dataRepo, sessionRepo, audioRepo, audioService, audioRecordings, playingAudioId, navigation]);
 
   // Render sensor stats
   const renderSensorStats = useCallback(
@@ -507,6 +594,51 @@ export function SessionDetailScreen({route, navigation}: Props) {
         </Card.Content>
       </Card>
 
+      {/* Audio Recordings */}
+      {audioRecordings.length > 0 && (
+        <Card style={styles.card}>
+          <Card.Content>
+            <Text variant="headlineSmall">오디오 녹음</Text>
+            <Divider style={styles.divider} />
+
+            <View style={styles.statsOverview}>
+              <Text variant="bodyMedium">
+                녹음 파일: {audioRecordings.length}개
+              </Text>
+            </View>
+
+            {audioRecordings.map((recording) => {
+              const isPlaying = playingAudioId === recording.id;
+              const durationSeconds = Math.floor(recording.duration / 1000);
+              const fileSizeMB = (recording.fileSize / (1024 * 1024)).toFixed(2);
+
+              return (
+                <Card key={recording.id} style={styles.audioCard}>
+                  <List.Item
+                    title={formatTimestamp(recording.timestamp)}
+                    description={`${durationSeconds}초 · ${fileSizeMB}MB · ${recording.format}`}
+                    left={() => (
+                      <IconButton
+                        icon={isPlaying ? 'stop' : 'play'}
+                        size={24}
+                        onPress={() => toggleAudioPlayback(recording)}
+                      />
+                    )}
+                    right={() => (
+                      <IconButton
+                        icon="share-variant"
+                        size={20}
+                        onPress={() => shareAudioFile(recording)}
+                      />
+                    )}
+                  />
+                </Card>
+              );
+            })}
+          </Card.Content>
+        </Card>
+      )}
+
       {/* Action Buttons */}
       <Card style={styles.card}>
         <Card.Content>
@@ -642,6 +774,11 @@ const styles = StyleSheet.create({
   },
   statLabel: {
     color: '#666',
+  },
+  audioCard: {
+    marginTop: 8,
+    backgroundColor: '#f5f5f5',
+    elevation: 0,
   },
   button: {
     marginTop: 12,

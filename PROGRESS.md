@@ -3604,3 +3604,358 @@ Time:        7.769 s
 ---
 
 _최종 업데이트: 2025-11-12 02:45_
+
+## Phase 21: 오디오 녹음 UI 통합 및 재생 기능 ✅
+
+**완료 시간**: 2025-11-12 11:30
+**소요 시간**: 0.5시간
+
+### 주요 성과
+
+**1. RecordingScreen에 오디오 녹음 통합**
+
+RecordingScreen을 업데이트하여 오디오 녹음 기능을 통합:
+
+```typescript
+// useAudioRecording Hook 통합
+const {
+  isRecording: isAudioRecording,
+  recordingDuration: audioDuration,
+  start: startAudio,
+  stop: stopAudio,
+  error: audioError,
+} = useAudioRecording({
+  sessionId: sessionId || undefined,
+  sampleRate: 44100,
+  channels: 2,
+  onError: err => {
+    console.error('Audio recording error:', err);
+  },
+});
+```
+
+**주요 기능**:
+- ✅ AUDIO 센서 체크박스 추가
+- ✅ 마이크 권한 체크 및 배너 표시
+- ✅ 오디오 녹음 시작/중지 통합
+- ✅ 실시간 녹음 시간 표시
+- ✅ 센서 녹음과 동기화
+
+**권한 관리**:
+```typescript
+const needsGPS = enabledSensors[SensorType.GPS];
+const needsAudio = enabledSensors[SensorType.AUDIO];
+
+if ((needsGPS && permissions.location !== 'granted') ||
+    (needsAudio && permissions.microphone !== 'granted')) {
+  const granted = await requestPermissions();
+  if (!granted) {
+    openSettings();
+    return;
+  }
+}
+```
+
+**녹음 시작 로직**:
+```typescript
+// Start sensor collection (excluding AUDIO as it's handled separately)
+const sensorsToStart = Object.entries(enabledSensors)
+  .filter(([type, enabled]) => enabled && type !== SensorType.AUDIO)
+  .map(([type]) => type as SensorType);
+
+if (sensorsToStart.length > 0) {
+  await start(sensorsToStart);
+}
+
+// Start audio recording if enabled
+if (enabledSensors[SensorType.AUDIO]) {
+  await startAudio();
+}
+```
+
+**녹음 중지 로직**:
+```typescript
+// Stop sensor collection
+if (runningSensors.length > 0) {
+  await stop();
+}
+
+// Stop audio recording if it's running
+if (isAudioRecording) {
+  await stopAudio();
+}
+```
+
+**실시간 표시**:
+```typescript
+{/* Audio Recording Status */}
+{isAudioRecording && (
+  <View style={[styles.dataItem, styles.audioStatusItem]}>
+    <Text variant="titleSmall">🎤 오디오 녹음 중</Text>
+    <Text variant="bodySmall">
+      녹음 시간: {Math.floor(audioDuration / 1000)}초
+    </Text>
+  </View>
+)}
+```
+
+**2. SessionDetailScreen에 오디오 재생 기능 추가**
+
+오디오 녹음 목록 및 재생 기능 추가:
+
+```typescript
+// Audio recordings state
+const [audioRecordings, setAudioRecordings] = useState<AudioRecording[]>([]);
+const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
+
+// Load audio recordings
+const audioData = await audioRepo.findBySession(sessionId);
+setAudioRecordings(audioData);
+```
+
+**재생/중지 기능**:
+```typescript
+const toggleAudioPlayback = useCallback(async (recording: AudioRecording) => {
+  if (playingAudioId === recording.id) {
+    // Stop current playback
+    await audioService.stopPlayer();
+    setPlayingAudioId(null);
+  } else {
+    // Stop any current playback first
+    if (playingAudioId) {
+      await audioService.stopPlayer();
+    }
+
+    // Start new playback
+    await audioService.startPlayer(recording.filePath);
+    setPlayingAudioId(recording.id);
+  }
+}, [playingAudioId, audioService]);
+```
+
+**오디오 파일 공유**:
+```typescript
+const shareAudioFile = useCallback(async (recording: AudioRecording) => {
+  // Check if file exists
+  const fileExists = await RNFS.exists(recording.filePath);
+  if (!fileExists) {
+    Alert.alert('오류', '오디오 파일을 찾을 수 없습니다.');
+    return;
+  }
+
+  await Share.open({
+    title: '오디오 파일 공유',
+    url: `file://${recording.filePath}`,
+    type: 'audio/m4a',
+  });
+}, []);
+```
+
+**오디오 UI 표시**:
+```typescript
+{/* Audio Recordings */}
+{audioRecordings.length > 0 && (
+  <Card style={styles.card}>
+    <Card.Content>
+      <Text variant="headlineSmall">오디오 녹음</Text>
+      <Divider style={styles.divider} />
+
+      <View style={styles.statsOverview}>
+        <Text variant="bodyMedium">
+          녹음 파일: {audioRecordings.length}개
+        </Text>
+      </View>
+
+      {audioRecordings.map((recording) => {
+        const isPlaying = playingAudioId === recording.id;
+        const durationSeconds = Math.floor(recording.duration / 1000);
+        const fileSizeMB = (recording.fileSize / (1024 * 1024)).toFixed(2);
+
+        return (
+          <Card key={recording.id} style={styles.audioCard}>
+            <List.Item
+              title={formatTimestamp(recording.timestamp)}
+              description={`${durationSeconds}초 · ${fileSizeMB}MB · ${recording.format}`}
+              left={() => (
+                <IconButton
+                  icon={isPlaying ? 'stop' : 'play'}
+                  size={24}
+                  onPress={() => toggleAudioPlayback(recording)}
+                />
+              )}
+              right={() => (
+                <IconButton
+                  icon="share-variant"
+                  size={20}
+                  onPress={() => shareAudioFile(recording)}
+                />
+              )}
+            />
+          </Card>
+        );
+      })}
+    </Card.Content>
+  </Card>
+)}
+```
+
+**세션 삭제 시 오디오 파일 정리**:
+```typescript
+// Stop any playing audio
+if (playingAudioId) {
+  await audioService.stopPlayer();
+}
+
+// Delete audio recordings and files
+for (const recording of audioRecordings) {
+  try {
+    const fileExists = await RNFS.exists(recording.filePath);
+    if (fileExists) {
+      await RNFS.unlink(recording.filePath);
+    }
+  } catch (fileError) {
+    console.error('Failed to delete audio file:', fileError);
+  }
+}
+await audioRepo.deleteBySession(sessionId);
+```
+
+**컴포넌트 언마운트 시 정리**:
+```typescript
+// Cleanup: stop audio on unmount
+useEffect(() => {
+  return () => {
+    if (playingAudioId) {
+      audioService.stopPlayer().catch(console.error);
+    }
+  };
+}, [playingAudioId, audioService]);
+```
+
+### 업데이트된 파일
+
+- **src/screens/RecordingScreen.tsx** (505줄): 
+  - useAudioRecording Hook 통합
+  - AUDIO 센서 체크박스 추가
+  - 마이크 권한 배너 추가
+  - 오디오 녹음 시작/중지 로직
+  - 실시간 녹음 시간 표시
+  - 오디오 에러 표시
+
+- **src/screens/SessionDetailScreen.tsx** (778줄):
+  - AudioRecording 모델 import
+  - AudioRecordingRepository 통합
+  - AudioRecorderService 통합
+  - 오디오 녹음 목록 표시
+  - 재생/중지 버튼
+  - 파일 공유 기능
+  - 세션 삭제 시 오디오 파일 정리
+  - 컴포넌트 언마운트 시 재생 중지
+
+### 기능 흐름도
+
+```
+┌──────────────────────────────────────────────┐
+│ RecordingScreen - 오디오 녹음                 │
+├──────────────────────────────────────────────┤
+│ 1. AUDIO 센서 체크박스 선택                   │
+│    ↓                                         │
+│ 2. 마이크 권한 확인                          │
+│    - 권한 없으면: 권한 요청 배너 표시         │
+│    - 권한 있으면: 녹음 시작 가능              │
+│    ↓                                         │
+│ 3. "녹음 시작" 버튼 클릭                     │
+│    ↓                                         │
+│ 4. useAudioRecording.start()                │
+│    - AudioRecorderService.startRecording()  │
+│    - 파일 경로 생성                          │
+│    - 녹음 시작                               │
+│    ↓                                         │
+│ 5. 실시간 표시                               │
+│    - 🎤 오디오 녹음 중                       │
+│    - 녹음 시간: Xs                           │
+│    ↓                                         │
+│ 6. "녹음 중지" 버튼 클릭                     │
+│    ↓                                         │
+│ 7. useAudioRecording.stop()                 │
+│    - AudioRecorderService.stopRecording()   │
+│    - AudioRecordingRepository.create()      │
+│    - 메타데이터 저장                         │
+└──────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────┐
+│ SessionDetailScreen - 오디오 재생             │
+├──────────────────────────────────────────────┤
+│ 1. 세션 상세 화면 진입                       │
+│    ↓                                         │
+│ 2. AudioRecordingRepository.findBySession() │
+│    - 오디오 녹음 목록 로드                   │
+│    ↓                                         │
+│ 3. 오디오 녹음 카드 표시                     │
+│    - 타임스탬프                              │
+│    - 길이 (초)                               │
+│    - 파일 크기 (MB)                          │
+│    - 포맷 (m4a)                              │
+│    ↓                                         │
+│ 4. Play 버튼 클릭                            │
+│    ↓                                         │
+│ 5. AudioRecorderService.startPlayer()       │
+│    - 오디오 파일 재생                        │
+│    - Play 아이콘 → Stop 아이콘               │
+│    ↓                                         │
+│ 6. Stop 버튼 클릭 또는 재생 완료             │
+│    ↓                                         │
+│ 7. AudioRecorderService.stopPlayer()        │
+│    - 재생 중지                               │
+│    - Stop 아이콘 → Play 아이콘               │
+│    ↓                                         │
+│ 8. Share 버튼 클릭 (선택사항)                │
+│    ↓                                         │
+│ 9. react-native-share                       │
+│    - 네이티브 공유 시트 표시                 │
+│    - 다른 앱으로 오디오 파일 공유            │
+└──────────────────────────────────────────────┘
+```
+
+### UI/UX 개선사항
+
+**RecordingScreen**:
+- ✅ AUDIO 센서 체크박스 추가 (센서 목록에 포함)
+- ✅ 마이크 권한 배너 (GPS 권한 배너와 동일한 스타일)
+- ✅ 실시간 오디오 녹음 상태 표시 (녹음 시간 포함)
+- ✅ 오디오 에러 별도 표시 (센서 에러와 구분)
+- ✅ 녹음 중 상태 시각화 (녹색 배경)
+
+**SessionDetailScreen**:
+- ✅ 오디오 녹음 섹션 추가 (센서 통계 다음에 표시)
+- ✅ 오디오 파일 카드 (파일 정보 및 컨트롤 버튼)
+- ✅ Play/Stop 토글 버튼 (아이콘 변경)
+- ✅ Share 버튼 (오디오 파일 공유)
+- ✅ 세션 삭제 시 오디오 파일도 함께 삭제
+
+### 기술적 세부사항
+
+**RecordingScreen 오디오 통합**:
+- AUDIO 센서는 SensorManager를 통하지 않고 직접 관리
+- useAudioRecording Hook으로 간편한 상태 관리
+- 센서 녹음과 독립적으로 시작/중지
+- 마이크 권한은 usePermissions Hook에서 통합 관리
+
+**SessionDetailScreen 오디오 재생**:
+- AudioRecorderService의 startPlayer/stopPlayer 사용
+- 한 번에 하나의 오디오만 재생 (다른 오디오 재생 시 기존 중지)
+- 컴포넌트 언마운트 시 자동 정리
+- 파일 존재 확인 후 공유
+
+**권한 처리**:
+- Android: `RECORD_AUDIO` (AndroidManifest.xml에 이미 추가됨)
+- iOS: `NSMicrophoneUsageDescription` (Info.plist에 추가 필요)
+- usePermissions Hook에 이미 마이크 권한 로직 포함
+
+### 다음 단계 (Phase 22)
+- 네트워크 동기화 인프라 구축
+- API 클라이언트 설정
+- 데이터 업로드 큐 관리
+- 백그라운드 동기화
+
+---
