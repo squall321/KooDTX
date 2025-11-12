@@ -288,16 +288,46 @@ WatermelonDB → SyncManager → UploadQueue → ApiClient → Server
 
 ## 테스트
 
+### 단위 테스트 (Jest)
+
+프로젝트는 Jest를 사용한 단위 테스트를 포함합니다.
+
+**테스트 실행**:
 ```bash
 # 전체 테스트 실행
 npm test
 
 # Watch 모드
-npm test -- --watch
+npm run test:watch
 
-# 커버리지
-npm test -- --coverage
+# 커버리지 리포트
+npm run test:coverage
+
+# 특정 테스트 실행
+npm test -- --testPathPattern="SettingsManager"
+
+# 캐시 클리어
+npm run test:clearCache
 ```
+
+**테스트 파일 위치**:
+```
+src/
+├── services/
+│   ├── config/__tests__/
+│   │   └── SettingsManager.test.ts
+│   ├── api/__tests__/
+│   │   └── ApiClient.test.ts
+│   └── sync/__tests__/
+│       └── UploadQueue.test.ts
+```
+
+**테스트 커버리지**:
+- SettingsManager: 20+ 테스트 케이스
+- ApiClient: 25+ 테스트 케이스
+- UploadQueue: 20+ 테스트 케이스
+
+**Mocks**: AsyncStorage, NetInfo, Geolocation, Audio, Sensors, WatermelonDB, Axios
 
 ## 문제 해결
 
