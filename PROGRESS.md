@@ -4407,3 +4407,392 @@ return (
 - 업로드 진행 상태 표시
 
 ---
+
+## Phase 23: 설정 및 동기화 UI 구현 ✅
+
+**완료 시간**: 2025-11-12 12:30
+**소요 시간**: 0.5시간
+
+### 주요 성과
+
+**1. AsyncStorage 설치**
+
+```bash
+npm install @react-native-async-storage/async-storage
+```
+
+- 앱 설정 저장용 로컬 스토리지
+
+**2. SettingsManager 구현** (260줄)
+
+AsyncStorage 기반 설정 관리 서비스 (Singleton Pattern)
+
+```typescript
+export class SettingsManager {
+  async initialize(): Promise<void>;
+  async saveApiSettings(settings: Partial<ApiSettings>): Promise<void>;
+  async saveSyncSettings(settings: Partial<SyncSettings>): Promise<void>;
+  getSettings(): AppSettings;
+  getApiSettings(): ApiSettings;
+  getSyncSettings(): SyncSettings;
+  async resetSettings(): Promise<void>;
+  validateApiSettings(settings: ApiSettings): string[];
+  validateSyncSettings(settings: SyncSettings): string[];
+}
+```
+
+**설정 구조**:
+```typescript
+interface AppSettings {
+  api: {
+    baseURL: string;          // API 서버 URL
+    timeout: number;          // 타임아웃 (ms)
+    retryAttempts: number;    // 재시도 횟수
+  };
+  sync: {
+    autoSync: boolean;        // 자동 동기화
+    syncInterval: number;     // 동기화 간격 (ms)
+    wifiOnly: boolean;        // Wi-Fi 전용
+    batchSize: number;        // 배치 크기
+  };
+}
+```
+
+**기본 설정**:
+```typescript
+const DEFAULT_SETTINGS = {
+  api: {
+    baseURL: 'https://api.example.com',
+    timeout: 30000,
+    retryAttempts: 3,
+  },
+  sync: {
+    autoSync: true,
+    syncInterval: 60000,  // 1분
+    wifiOnly: false,
+    batchSize: 100,
+  },
+};
+```
+
+**유효성 검사**:
+- API URL: 필수, 유효한 URL 형식
+- 타임아웃: 1초 ~ 60초
+- 재시도: 0 ~ 5회
+- 동기화 간격: 10초 ~ 1시간
+- 배치 크기: 10 ~ 1000
+
+**3. SettingsScreen 구현** (370줄)
+
+설정 편집 화면
+
+```typescript
+export function SettingsScreen({navigation}: any);
+```
+
+**주요 기능**:
+- 📡 네트워크 상태 표시 (연결 상태, 연결 타입)
+- 🌐 API 설정 (서버 URL, 타임아웃, 재시도)
+- 🔄 동기화 설정 (자동 동기화, Wi-Fi 전용, 간격, 배치 크기)
+- ⚙️ 수동 동기화 버튼
+- 📊 동기화 상태 보기 버튼
+- 🔄 설정 초기화 버튼
+
+**UI 컴포넌트**:
+- TextInput: 서버 URL, 타임아웃, 재시도, 동기화 간격, 배치 크기
+- Switch: 자동 동기화, Wi-Fi 전용
+- Button: 저장, 수동 동기화, 동기화 상태 보기, 초기화
+- Card: 섹션 구분 (네트워크 상태, API 설정, 동기화 설정, 작업, 기타)
+
+**저장 로직**:
+```typescript
+// API 설정 저장
+const handleSaveApiSettings = async () => {
+  // 유효성 검사
+  const errors = settingsManager.validateApiSettings(apiSettings);
+  if (errors.length > 0) {
+    Alert.alert('설정 오류', errors.join('\n'));
+    return;
+  }
+
+  // 저장
+  await settingsManager.saveApiSettings(apiSettings);
+
+  // API 클라이언트 재초기화
+  initializeApiClient(apiSettings);
+};
+
+// 동기화 설정 저장
+const handleSaveSyncSettings = async () => {
+  // 저장
+  await settingsManager.saveSyncSettings(syncSettings);
+
+  // 동기화 관리자 옵션 업데이트
+  syncManager.updateOptions(syncSettings);
+
+  // 자동 동기화 시작/중지
+  if (syncSettings.autoSync) {
+    await syncManager.start();
+  } else {
+    syncManager.stop();
+  }
+};
+```
+
+**4. SyncStatusScreen 구현** (240줄)
+
+동기화 상태 및 진행 상황 표시 화면
+
+```typescript
+export function SyncStatusScreen();
+```
+
+**주요 기능**:
+- 🔄 동기화 상태 (진행 중/대기 중, 마지막 동기화 시간)
+- 📊 대기 중인 데이터 수 (세션, 센서 데이터, 오디오 파일)
+- 📈 업로드 진행 상태 (전체, 완료, 실패, 진행 중, 대기)
+- 🔁 실패한 작업 재시도
+- 🗑️ 완료된 작업 삭제
+- 🔄 새로고침 (pull-to-refresh)
+- ⏱️ 1초마다 자동 갱신
+
+**진행 상태 표시**:
+```typescript
+<ProgressBar progress={completedTasks / totalTasks} />
+
+<View style={styles.progressStats}>
+  <View style={styles.statItem}>
+    <Text>전체</Text>
+    <Text>{totalTasks}</Text>
+  </View>
+  <View style={styles.statItem}>
+    <Text>완료</Text>
+    <Text style={styles.completedText}>{completedTasks}</Text>
+  </View>
+  <View style={styles.statItem}>
+    <Text>실패</Text>
+    <Text style={styles.failedText}>{failedTasks}</Text>
+  </View>
+  <View style={styles.statItem}>
+    <Text>진행 중</Text>
+    <Text style={styles.inProgressText}>{inProgressTasks}</Text>
+  </View>
+  <View style={styles.statItem}>
+    <Text>대기</Text>
+    <Text>{pendingTasks}</Text>
+  </View>
+</View>
+```
+
+**5. SettingsStack 네비게이션** (50줄)
+
+Settings 탭 내의 Stack Navigator
+
+```typescript
+type SettingsStackParamList = {
+  SettingsList: undefined;
+  SyncStatus: undefined;
+};
+
+export function SettingsStack();
+```
+
+**화면 구성**:
+- SettingsList: 설정 화면
+- SyncStatus: 동기화 상태 화면
+
+**6. App.tsx 초기화 로직**
+
+앱 시작 시 자동 초기화
+
+```typescript
+useEffect(() => {
+  const initialize = async () => {
+    // 설정 관리자 초기화
+    const settingsManager = getSettingsManager();
+    await settingsManager.initialize();
+
+    const settings = settingsManager.getSettings();
+
+    // API 클라이언트 초기화
+    initializeApiClient(settings.api);
+
+    // 동기화 관리자 초기화
+    const syncManager = initializeSyncManager(settings.sync);
+
+    // 자동 동기화 시작
+    if (settings.sync.autoSync) {
+      await syncManager.start();
+    }
+
+    setIsInitialized(true);
+  };
+
+  initialize();
+}, []);
+```
+
+**로딩 화면**:
+```typescript
+if (!isInitialized) {
+  return (
+    <View style={styles.loadingContainer}>
+      <ActivityIndicator size="large" />
+      <Text>초기화 중...</Text>
+    </View>
+  );
+}
+```
+
+**Settings 탭 추가**:
+```typescript
+<Tab.Screen
+  name="Settings"
+  component={SettingsStack}
+  options={{
+    title: '설정',
+    tabBarLabel: '설정',
+    headerShown: false,
+    tabBarIcon: ({color, size}) => (
+      <MaterialCommunityIcons name="cog" color={color} size={size} />
+    ),
+  }}
+/>
+```
+
+### 업데이트된 파일
+
+- **package.json**: @react-native-async-storage/async-storage 추가
+- **src/services/config/SettingsManager.ts** (260줄): 설정 관리 서비스
+- **src/services/config/index.ts**: Config 서비스 export
+- **src/screens/SettingsScreen.tsx** (370줄): 설정 화면
+- **src/screens/SyncStatusScreen.tsx** (240줄): 동기화 상태 화면
+- **src/screens/index.ts**: Settings, SyncStatus 화면 export
+- **src/navigation/SettingsStack.tsx** (50줄): Settings Stack Navigator
+- **src/navigation/index.ts**: SettingsStack export
+- **App.tsx**: 초기화 로직 및 Settings 탭 추가
+
+### 앱 구조
+
+```
+┌───────────────────────────────────┐
+│ Bottom Tab Navigator              │
+├───────────────────────────────────┤
+│ 1. Recording Tab                  │
+│    - RecordingScreen              │
+│                                   │
+│ 2. History Tab                    │
+│    - HistoryStack                 │
+│      ├─ HistoryList               │
+│      ├─ SessionDetail             │
+│      └─ Chart                     │
+│                                   │
+│ 3. Settings Tab (NEW)             │
+│    - SettingsStack (NEW)          │
+│      ├─ SettingsList (NEW)        │
+│      └─ SyncStatus (NEW)          │
+└───────────────────────────────────┘
+```
+
+### 초기화 플로우
+
+```
+┌─────────────────────────────────────┐
+│ App Start                           │
+├─────────────────────────────────────┤
+│ 1. 로딩 화면 표시                    │
+│    ↓                                │
+│ 2. SettingsManager.initialize()     │
+│    - AsyncStorage에서 설정 로드      │
+│    - 설정 없으면 기본값 사용         │
+│    ↓                                │
+│ 3. initializeApiClient()            │
+│    - API 클라이언트 설정             │
+│    - Axios 인스턴스 생성             │
+│    ↓                                │
+│ 4. initializeSyncManager()          │
+│    - 동기화 관리자 설정              │
+│    - 업로드 핸들러 등록              │
+│    ↓                                │
+│ 5. syncManager.start() (자동 동기화) │
+│    - 네트워크 감지 시작              │
+│    - 주기적 동기화 시작              │
+│    ↓                                │
+│ 6. 메인 화면 표시                   │
+└─────────────────────────────────────┘
+```
+
+### 사용 시나리오
+
+**1. API 설정 변경**:
+```
+Settings 탭 → API 설정 편집 → 저장
+→ API 클라이언트 재초기화
+→ 새 설정으로 통신
+```
+
+**2. 동기화 설정 변경**:
+```
+Settings 탭 → 동기화 설정 편집 → 저장
+→ 동기화 관리자 옵션 업데이트
+→ 자동 동기화 시작/중지
+```
+
+**3. 수동 동기화**:
+```
+Settings 탭 → 수동 동기화 버튼
+→ 즉시 동기화 실행
+→ 완료 알림
+```
+
+**4. 동기화 상태 확인**:
+```
+Settings 탭 → 동기화 상태 보기
+→ SyncStatus 화면
+→ 진행 상태, 대기 데이터, 실패 작업 확인
+```
+
+**5. 실패한 작업 재시도**:
+```
+SyncStatus 화면 → 실패한 작업 재시도
+→ 모든 실패 작업 PENDING 상태로 변경
+→ 자동 재시도
+```
+
+**6. 설정 초기화**:
+```
+Settings 탭 → 설정 초기화
+→ 확인 다이얼로그
+→ AsyncStorage 삭제
+→ 기본 설정으로 리셋
+```
+
+### 기술적 세부사항
+
+**AsyncStorage 키**:
+- `@koodtx:api_settings`: API 설정
+- `@koodtx:sync_settings`: 동기화 설정
+
+**설정 저장 흐름**:
+1. 사용자 입력
+2. 유효성 검사
+3. AsyncStorage 저장
+4. 관련 서비스 재초기화/업데이트
+
+**네트워크 상태 감지**:
+- useNetworkStatus Hook 사용
+- 실시간 연결 상태 표시
+- 연결 타입 표시 (Wi-Fi, 모바일 데이터)
+
+**동기화 상태 갱신**:
+- 1초마다 자동 갱신
+- Pull-to-refresh 지원
+- 업로드 진행 상태 콜백 구독
+
+### 다음 단계 (Phase 24)
+- 에러 로깅 및 리포팅 시스템
+- 앱 버전 정보 표시
+- 데이터 내보내기/가져오기
+- 데이터베이스 백업/복원
+
+---
