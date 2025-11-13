@@ -5,6 +5,12 @@
 export {useSensor} from './useSensor';
 export type {UseSensorOptions, UseSensorResult} from './useSensor';
 
+export {useSensorSettings} from './useSensorSettings';
+export type {
+  UseSensorSettingsOptions,
+  UseSensorSettingsResult,
+} from './useSensorSettings';
+
 export {useSensorCollection} from './useSensorCollection';
 export type {
   UseSensorCollectionOptions,

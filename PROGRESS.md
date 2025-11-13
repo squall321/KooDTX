@@ -22,11 +22,11 @@
 
 ## Phase 진행 현황
 
-### ✅ 완료된 Phase: 87/300
+### ✅ 완료된 Phase: 88/300
 
-### 🔄 진행 중: Phase 88
+### 🔄 진행 중: Phase 89
 
-### ⏳ 대기 중: Phase 88-300
+### ⏳ 대기 중: Phase 89-300
 
 ---
 
@@ -14267,14 +14267,318 @@ function MultiSensorView({sessionId}: {sessionId: string}) {
 
 ### 다음 Phase
 
-→ Phase 88: 센서 설정 관리
+→ Phase 89: react-native-audio-record 설치
+
+---
+
+## Phase 88: 센서 설정 관리 ✅
+
+**상태**: ✅ 완료
+**완료일**: 2025-11-13
+**실제 소요**: 0.5시간
+**우선순위**: medium
+
+### 작업 내용
+
+센서 설정을 관리하고 AsyncStorage에 저장하는 시스템을 구현했습니다.
+
+#### 구현 1: SensorSettingsService.ts (550줄)
+
+**핵심 기능**:
+
+**1. 센서 샘플링율 설정**
+- 각 센서별 샘플링 레이트 설정 (Hz)
+- `setSensorSampleRate()`: 샘플링 레이트 변경
+- 이벤트 기반 센서는 0Hz (step detector, significant motion)
+- 기본값: ACC/GYR 100Hz, MAG 50Hz, GPS 1Hz
+
+**2. 활성화할 센서 선택**
+- 14개 센서 타입 지원 (accelerometer, gyroscope, magnetometer, etc.)
+- `enableSensor()`, `disableSensor()`: 개별 센서 활성화/비활성화
+- `toggleSensor()`: 센서 토글
+- `getEnabledSensors()`: 활성화된 센서 목록
+- `getEnabledAndroidSensorTypes()`: Android 센서 타입 목록
+
+**3. GPS 정확도 설정**
+- GPS 정확도 모드 (HIGH/BALANCED/LOW)
+- 업데이트 간격 설정 (초)
+- 거리 필터 설정 (미터)
+- `setGPSAccuracyMode()`: 정확도 모드 변경
+- `updateGPSSettings()`: GPS 설정 업데이트
+
+**4. 배터리 절약 모드**
+- 3가지 모드: OFF, BALANCED, AGGRESSIVE
+- BALANCED: 샘플링 레이트 50% 감소
+- AGGRESSIVE: 최소 샘플링 레이트 사용 (25Hz)
+- 배경 GPS 비활성화 옵션
+- `setBatterySaverMode()`: 모드 변경
+- `getAdjustedSensorSettings()`: 배터리 절약 적용된 설정 반환
+
+**5. AsyncStorage에 설정 저장**
+- 자동 저장: 설정 변경 시 AsyncStorage에 저장
+- 자동 로드: 초기화 시 저장된 설정 로드
+- 기본값 병합: 새 설정 추가 시 기본값과 병합
+- Storage key: '@koodtx:sensor_settings'
+
+**6. 추가 기능**
+- `resetToDefaults()`: 기본 설정으로 리셋
+- `exportSettings()`: JSON 형식으로 설정 내보내기
+- `importSettings()`: JSON에서 설정 가져오기
+- `clearSettings()`: 모든 설정 삭제
+
+### 기본 설정
+
+**센서 기본값**:
+- Accelerometer: 100Hz, enabled
+- Gyroscope: 100Hz, enabled
+- Magnetometer: 50Hz, enabled
+- GPS: 1Hz, enabled
+- 기타 센서: disabled
+
+**GPS 기본값**:
+- 정확도: BALANCED
+- 업데이트 간격: 5초
+- 거리 필터: 10미터
+
+**배터리 절약 기본값**:
+- 모드: OFF
+- 감소된 샘플링 레이트: 25Hz
+- 배경 GPS: enabled
+- 최소 업데이트 간격: 10초
+
+#### 구현 2: useSensorSettings.ts (450줄)
+
+**React Hook for Settings**:
+
+**기능**:
+- 자동 초기화 (마운트 시)
+- 설정 상태 관리 (useState)
+- 로딩/에러 상태
+- 모든 설정 CRUD 함수 제공
+- 자동 새로고침
+
+**API**:
+```typescript
+interface UseSensorSettingsResult {
+  settings: AppSettings | null;
+  sensorSettings: SensorSettings | null;
+  gpsSettings: GPSSettings | null;
+  batterySaverSettings: BatterySaverSettings | null;
+  isInitialized: boolean;
+  isLoading: boolean;
+  error: Error | null;
+
+  // 20+ 함수
+  initialize: () => Promise<void>;
+  getSensorConfig: (type) => SensorConfiguration | null;
+  updateSensorConfig: (type, config) => Promise<void>;
+  enableSensor: (type) => Promise<void>;
+  disableSensor: (type) => Promise<void>;
+  toggleSensor: (type) => Promise<void>;
+  setSensorSampleRate: (type, rate) => Promise<void>;
+  updateGPSSettings: (settings) => Promise<void>;
+  setGPSAccuracyMode: (mode) => Promise<void>;
+  updateBatterySaverSettings: (settings) => Promise<void>;
+  setBatterySaverMode: (mode) => Promise<void>;
+  getEnabledSensors: () => string[];
+  getEnabledAndroidSensorTypes: () => AndroidSensorType[];
+  getAdjustedSensorSettings: () => SensorSettings | null;
+  resetToDefaults: () => Promise<void>;
+  exportSettings: () => string | null;
+  importSettings: (json) => Promise<void>;
+  refresh: () => void;
+}
+```
+
+### 사용 예제
+
+**1. 기본 사용**:
+```typescript
+function SettingsScreen() {
+  const settings = useSensorSettings();
+
+  if (settings.isLoading) {
+    return <Loading />;
+  }
+
+  return (
+    <View>
+      {settings.getEnabledSensors().map(sensor => (
+        <SensorSettingItem key={sensor} sensor={sensor} />
+      ))}
+    </View>
+  );
+}
+```
+
+**2. 센서 토글**:
+```typescript
+const settings = useSensorSettings();
+
+const handleToggle = async () => {
+  await settings.toggleSensor('accelerometer');
+  console.log('Accelerometer toggled');
+};
+```
+
+**3. 샘플링 레이트 변경**:
+```typescript
+const settings = useSensorSettings();
+
+const handleRateChange = async (rate: number) => {
+  await settings.setSensorSampleRate('gyroscope', rate);
+  console.log('Sample rate updated:', rate);
+};
+```
+
+**4. GPS 정확도 변경**:
+```typescript
+const settings = useSensorSettings();
+
+await settings.setGPSAccuracyMode(GPSAccuracyMode.HIGH);
+```
+
+**5. 배터리 절약 모드**:
+```typescript
+const settings = useSensorSettings();
+
+// Enable battery saver
+await settings.setBatterySaverMode(BatterySaverMode.BALANCED);
+
+// Get adjusted settings (with battery saver applied)
+const adjusted = settings.getAdjustedSensorSettings();
+console.log('Adjusted sample rates:', adjusted);
+```
+
+**6. 설정 내보내기/가져오기**:
+```typescript
+const settings = useSensorSettings();
+
+// Export
+const json = settings.exportSettings();
+await saveToFile(json);
+
+// Import
+const json = await loadFromFile();
+await settings.importSettings(json);
+```
+
+**7. 기본값으로 리셋**:
+```typescript
+const settings = useSensorSettings();
+
+await settings.resetToDefaults();
+```
+
+### 설정 UI 연동
+
+**Switch 컴포넌트**:
+```typescript
+function SensorSwitch({sensorType}: {sensorType: keyof SensorSettings}) {
+  const settings = useSensorSettings();
+  const config = settings.getSensorConfig(sensorType);
+
+  return (
+    <Switch
+      value={config?.enabled ?? false}
+      onValueChange={() => settings.toggleSensor(sensorType)}
+    />
+  );
+}
+```
+
+**Slider 컴포넌트**:
+```typescript
+function SampleRateSlider({sensorType}: {sensorType: keyof SensorSettings}) {
+  const settings = useSensorSettings();
+  const config = settings.getSensorConfig(sensorType);
+
+  return (
+    <Slider
+      value={config?.sampleRate ?? 50}
+      minimumValue={1}
+      maximumValue={200}
+      step={1}
+      onValueChange={(rate) => settings.setSensorSampleRate(sensorType, rate)}
+    />
+  );
+}
+```
+
+**Picker 컴포넌트**:
+```typescript
+function GPSAccuracyPicker() {
+  const settings = useSensorSettings();
+  const gpsSettings = settings.gpsSettings;
+
+  return (
+    <Picker
+      selectedValue={gpsSettings?.accuracyMode}
+      onValueChange={(mode) => settings.setGPSAccuracyMode(mode)}
+    >
+      <Picker.Item label="High" value={GPSAccuracyMode.HIGH} />
+      <Picker.Item label="Balanced" value={GPSAccuracyMode.BALANCED} />
+      <Picker.Item label="Low" value={GPSAccuracyMode.LOW} />
+    </Picker>
+  );
+}
+```
+
+### 산출물
+
+- ✅ src/services/settings/SensorSettingsService.ts (550줄)
+- ✅ src/services/settings/index.ts
+- ✅ src/hooks/useSensorSettings.ts (450줄)
+- ✅ src/hooks/index.ts 업데이트
+- ✅ BatterySaverMode enum (OFF/BALANCED/AGGRESSIVE)
+- ✅ SensorConfiguration 인터페이스
+- ✅ GPSSettings 인터페이스
+- ✅ BatterySaverSettings 인터페이스
+- ✅ AppSettings 인터페이스
+- ✅ AsyncStorage 통합
+- ✅ 20+ 설정 관리 함수
+- ✅ Singleton pattern (SensorSettingsService)
+- ✅ React Hook (useSensorSettings)
+
+### 주요 성과
+
+**완전한 설정 관리**:
+- ✅ 14개 센서 개별 설정
+- ✅ 센서 활성화/비활성화
+- ✅ 샘플링 레이트 조정
+- ✅ GPS 정확도 모드
+- ✅ 배터리 절약 모드
+- ✅ AsyncStorage 자동 저장/로드
+
+**배터리 최적화**:
+- ✅ 3단계 배터리 절약 모드
+- ✅ 샘플링 레이트 자동 조정
+- ✅ GPS 배경 비활성화
+- ✅ 업데이트 간격 조정
+
+**개발자 경험**:
+- ✅ 간단한 React Hook API
+- ✅ TypeScript 타입 안전성
+- ✅ 자동 초기화
+- ✅ 로딩/에러 상태 관리
+- ✅ 설정 내보내기/가져오기
+
+**UI 통합 준비**:
+- ✅ Switch, Slider, Picker 예제
+- ✅ 실시간 설정 변경
+- ✅ 자동 새로고침
+- ✅ 에러 처리
+
+### 다음 Phase
+
+→ Phase 89: react-native-audio-record 설치
 
 ---
 
 ## 통계 업데이트
 
-**완료된 Phase: 87/300**
-**진행률: 29.0%**
+**완료된 Phase: 88/300**
+**진행률: 29.3%**
 
 ---
 
