@@ -29,10 +29,18 @@ def create_app(config_class=Config):
     jwt.init_app(app)
     CORS(app, origins=app.config['CORS_ORIGINS'])
 
-    # Register blueprints
+    # Initialize Swagger API
+    from app.swagger import api
+    api.init_app(app)
+
+    # Register Swagger-documented routes
+    from app.routes.swagger_routes import auth_ns, sync_ns
+    api.add_namespace(auth_ns, path='/api/auth')
+    api.add_namespace(sync_ns, path='/api/sync')
+
+    # Register original blueprints (for backward compatibility)
     from app.routes import auth_bp, sync_bp
-    app.register_blueprint(auth_bp, url_prefix='/api/auth')
-    app.register_blueprint(sync_bp, url_prefix='/api/sync')
+    # Note: Swagger routes are primary, blueprints are for fallback
 
     # Health check endpoint
     @app.route('/health')
@@ -45,8 +53,10 @@ def create_app(config_class=Config):
         return {
             'service': 'KooDTX Backend API',
             'version': '1.0.0',
+            'documentation': '/docs',  # Swagger UI
             'endpoints': {
                 'health': '/health',
+                'docs': '/docs',
                 'auth': '/api/auth',
                 'sync': '/api/sync',
             }

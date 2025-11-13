@@ -1,6 +1,6 @@
 # KooDTX Flask Backend
 
-센서 데이터 동기화 서버 - Phase 41-45 완료
+센서 데이터 동기화 서버 - Phase 41-47 완료
 
 ## 📋 목차
 
@@ -513,8 +513,8 @@ result = cleanup_old_sensor_data.apply_async(args=[30], eta=eta)
 - [x] Phase 43: Celery 설치 및 Redis 브로커 설정
 - [x] Phase 44: 센서 데이터 처리 작업 (Pandas, 통계 분석)
 - [x] Phase 45: 파일 정리 작업 (Celery Beat 스케줄링)
-- [ ] Phase 46: Swagger/OpenAPI 문서 자동 생성
-- [ ] Phase 47: pytest 설치 및 기본 설정
+- [x] Phase 46: Swagger/OpenAPI 문서 자동 생성
+- [x] Phase 47: pytest 설치 및 기본 설정
 - [ ] Phase 48: Auth 및 Sync API 테스트 작성
 - [ ] Phase 49: Gunicorn 프로덕션 서버 설정
 - [ ] Phase 50: Supervisor 프로세스 관리 설정
@@ -522,3 +522,112 @@ result = cleanup_old_sensor_data.apply_async(args=[30], eta=eta)
 ## 라이선스
 
 MIT
+
+### Phase 46-47: API 문서화 및 테스트 설정
+
+#### Phase 46: Swagger/OpenAPI 문서
+
+**Swagger UI**: `http://localhost:5000/docs/`
+
+**flask-restx** 기반 자동 API 문서 생성:
+- 인터랙티브 API 탐색기
+- 요청/응답 스키마 정의
+- JWT 인증 지원
+- Try it out 기능
+
+**문서화된 엔드포인트**:
+```
+GET  /docs/            # Swagger UI
+GET  /                 # API 정보
+GET  /health           # 헬스 체크
+
+POST /api/auth/register  # 사용자 등록
+POST /api/auth/login     # 로그인
+POST /api/auth/refresh   # 토큰 갱신
+GET  /api/auth/me        # 현재 사용자
+
+POST /api/sync/push      # 센서 데이터 Push
+POST /api/sync/pull      # 센서 데이터 Pull
+GET  /api/sync/status    # 동기화 상태
+```
+
+**Swagger 모델**:
+- AuthRegister, AuthLogin, AuthResponse
+- SyncPushRequest, SyncPushResponse
+- SyncPullRequest, SyncPullResponse
+- SensorDataItem, RecordingSession
+- ErrorResponse
+
+#### Phase 47: pytest 테스트 설정
+
+**테스트 실행**:
+```bash
+# 모든 테스트 실행
+pytest
+
+# 특정 마커만 실행
+pytest -m unit          # 단위 테스트
+pytest -m integration   # 통합 테스트
+pytest -m api           # API 테스트
+
+# Coverage 리포트
+pytest --cov=app --cov-report=html
+open htmlcov/index.html
+
+# Verbose 출력
+pytest -v
+
+# 특정 파일만 테스트
+pytest tests/test_app.py
+```
+
+**pytest.ini 설정**:
+- Coverage 80% 목표
+- HTML, XML, Terminal 리포트
+- 마커 기반 테스트 분류
+- 자동 데이터베이스 정리
+
+**테스트 픽스처 (conftest.py)**:
+```python
+# 애플리케이션
+- app: Flask 앱 인스턴스
+- client: 테스트 클라이언트
+- db: 데이터베이스 세션
+
+# 사용자
+- user: 테스트 사용자
+- auth_headers: JWT 인증 헤더
+
+# 세션
+- recording_session: 활성 세션
+- completed_session: 완료된 세션
+
+# 센서 데이터
+- sensor_data_batch: 100개 데이터
+- gps_sensor_data: GPS 데이터
+
+# 헬퍼
+- create_user_func: 사용자 생성 함수
+- create_session_func: 세션 생성 함수
+```
+
+**테스트 마커**:
+- `@pytest.mark.unit` - 단위 테스트 (빠름)
+- `@pytest.mark.integration` - 통합 테스트
+- `@pytest.mark.api` - API 엔드포인트 테스트
+- `@pytest.mark.auth` - 인증 테스트
+- `@pytest.mark.sync` - 동기화 테스트
+- `@pytest.mark.celery` - Celery 작업 테스트
+- `@pytest.mark.smoke` - 스모크 테스트
+
+**테스트 구조**:
+```
+tests/
+├── conftest.py           # 픽스처 정의
+├── test_app.py           # 앱 기본 테스트
+├── test_models.py        # 모델 테스트
+├── test_auth.py          # 인증 API 테스트 (Phase 48)
+├── test_sync.py          # 동기화 API 테스트 (Phase 48)
+└── test_tasks.py         # Celery 작업 테스트 (Phase 48)
+```
+

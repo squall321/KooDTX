@@ -22,11 +22,11 @@
 
 ## Phase 진행 현황
 
-### ✅ 완료된 Phase: 45/300
+### ✅ 완료된 Phase: 47/300
 
-### 🔄 진행 중: Phase 46
+### 🔄 진행 중: Phase 48
 
-### ⏳ 대기 중: Phase 46-300
+### ⏳ 대기 중: Phase 48-300
 
 ---
 
@@ -9079,3 +9079,449 @@ Z = (X - μ) / σ
 - 작업 체이닝 및 그룹화
 - 작업 타임아웃 및 재시도 설정
 - Worker prefetch multiplier 최적화
+
+---
+
+## Phase 46-47: Swagger API 문서화 및 pytest 테스트 설정 ✅
+
+**상태**: ✅ 완료
+**시작일**: 2025-11-13
+**완료일**: 2025-11-13
+**실제 소요**: 1.5시간
+**우선순위**: high
+
+### 작업 내용
+
+#### Phase 46: Swagger/OpenAPI 문서 자동 생성
+- [x] flask-restx 통합
+- [x] Swagger API 초기화 (`app/swagger/__init__.py`)
+- [x] API 모델 정의 (`app/swagger/models.py`)
+- [x] Swagger 문서화된 라우트 (`app/routes/swagger_routes.py`)
+- [x] Auth API 문서화 (register, login, refresh, me)
+- [x] Sync API 문서화 (push, pull, status)
+- [x] JWT 인증 설정
+- [x] Swagger UI 활성화 (`/docs/`)
+
+#### Phase 47: pytest 설치 및 기본 설정
+- [x] pytest.ini 설정 파일
+- [x] conftest.py 픽스처 정의
+- [x] tests/ 디렉토리 구조 생성
+- [x] test_app.py - 기본 앱 테스트
+- [x] test_models.py - 모델 테스트
+- [x] Coverage 설정 (pytest-cov)
+- [x] 테스트 마커 정의
+- [x] 테스트 픽스처 (user, session, sensor_data 등)
+
+### 주요 구현 세부사항
+
+#### Phase 46: Swagger/OpenAPI 문서
+
+**Swagger API 초기화**:
+```python
+# app/swagger/__init__.py
+api = Api(
+    version='1.0.0',
+    title='KooDTX Backend API',
+    description='센서 데이터 동기화 서버 API',
+    doc='/docs/',
+    authorizations={
+        'Bearer': {
+            'type': 'apiKey',
+            'in': 'header',
+            'name': 'Authorization'
+        }
+    },
+    security='Bearer'
+)
+```
+
+**API 모델 정의**:
+```python
+# app/swagger/models.py
+auth_register = api.model('AuthRegister', {
+    'username': fields.String(required=True),
+    'email': fields.String(required=True),
+    'password': fields.String(required=True),
+    'device_id': fields.String(required=True)
+})
+
+sync_push_request = api.model('SyncPushRequest', {
+    'session': fields.Nested(recording_session),
+    'sensor_data': fields.List(fields.Nested(sensor_data_item))
+})
+```
+
+**Swagger 네임스페이스**:
+```python
+# app/routes/swagger_routes.py
+auth_ns = Namespace('auth', description='인증 API')
+sync_ns = Namespace('sync', description='동기화 API')
+
+@auth_ns.route('/register')
+class AuthRegister(Resource):
+    @auth_ns.doc('register_user', security=None)
+    @auth_ns.expect(auth_register)
+    @auth_ns.response(201, 'Success', auth_response)
+    def post(self):
+        """사용자 등록"""
+        ...
+```
+
+**Swagger UI 접근**:
+- URL: `http://localhost:5000/docs/`
+- 인터랙티브 API 탐색기
+- Try it out 기능으로 직접 테스트 가능
+- JWT 인증 지원 (Authorize 버튼)
+
+**문서화된 모델**:
+1. **Auth Models**:
+   - AuthRegister, AuthLogin, AuthRefresh
+   - AuthResponse (토큰 + 사용자 정보)
+
+2. **Sync Models**:
+   - SyncPushRequest, SyncPushResponse
+   - SyncPullRequest, SyncPullResponse
+   - SensorDataItem, RecordingSession
+   - SyncStatusResponse
+
+3. **Error Models**:
+   - ErrorResponse (에러 메시지 + 상세)
+
+4. **Task Models** (Celery):
+   - TaskResult, AnalyzeRequest
+   - StatisticsRequest, AnomalyRequest
+   - CleanupRequest
+
+#### Phase 47: pytest 테스트 설정
+
+**pytest.ini 설정**:
+```ini
+[pytest]
+pythonpath = .
+testpaths = tests
+
+addopts =
+    -v
+    --strict-markers
+    --cov=app
+    --cov-report=term-missing
+    --cov-report=html
+    --maxfail=1
+
+markers =
+    unit: Unit tests (fast, no external dependencies)
+    integration: Integration tests (database, external services)
+    slow: Slow tests (> 1 second)
+    api: API endpoint tests
+    auth: Authentication tests
+    sync: Sync API tests
+    celery: Celery task tests
+    smoke: Smoke tests (critical functionality)
+```
+
+**테스트 픽스처 (conftest.py)**:
+
+1. **Application Fixtures**:
+```python
+@pytest.fixture(scope='session')
+def app():
+    """Flask 앱 인스턴스"""
+    app = create_app(TestingConfig)
+    return app
+
+@pytest.fixture(scope='session')
+def client(app):
+    """테스트 클라이언트"""
+    return app.test_client()
+```
+
+2. **Database Fixtures**:
+```python
+@pytest.fixture(scope='session')
+def db(app):
+    """데이터베이스 (SQLite in-memory)"""
+    _db.create_all()
+    yield _db
+    _db.drop_all()
+
+@pytest.fixture(scope='function')
+def session(db):
+    """트랜잭션 롤백 세션"""
+    ...
+```
+
+3. **User Fixtures**:
+```python
+@pytest.fixture
+def user(session):
+    """테스트 사용자"""
+    user = User(username='testuser', ...)
+    user.set_password('password123')
+    return user
+
+@pytest.fixture
+def auth_headers(user):
+    """JWT 인증 헤더"""
+    token = create_access_token(identity=user.id)
+    return {'Authorization': f'Bearer {token}'}
+```
+
+4. **Session Fixtures**:
+```python
+@pytest.fixture
+def recording_session(session, user):
+    """센서 기록 세션"""
+    ...
+
+@pytest.fixture
+def completed_session(session, user):
+    """완료된 세션"""
+    ...
+```
+
+5. **Sensor Data Fixtures**:
+```python
+@pytest.fixture
+def sensor_data_batch(session, recording_session):
+    """센서 데이터 100개"""
+    ...
+
+@pytest.fixture
+def gps_sensor_data(session, recording_session):
+    """GPS 센서 데이터"""
+    ...
+```
+
+6. **Helper Functions**:
+```python
+@pytest.fixture
+def create_user_func(session):
+    """사용자 생성 헬퍼 함수"""
+    def _create_user(username=None, email=None):
+        ...
+    return _create_user
+```
+
+**기본 테스트 파일**:
+
+**test_app.py** - 앱 기본 기능 테스트:
+```python
+@pytest.mark.unit
+def test_health_endpoint(client):
+    """헬스 체크 테스트"""
+    response = client.get('/health')
+    assert response.status_code == 200
+
+@pytest.mark.smoke
+def test_swagger_ui_accessible(client):
+    """Swagger UI 접근 테스트"""
+    response = client.get('/docs/')
+    assert response.status_code in [200, 308, 301]
+```
+
+**test_models.py** - 모델 테스트:
+```python
+@pytest.mark.unit
+class TestUserModel:
+    def test_password_hashing(self, session):
+        """비밀번호 해싱 테스트"""
+        user = User(...)
+        user.set_password('password')
+        assert user.check_password('password') is True
+        assert user.check_password('wrong') is False
+```
+
+**테스트 실행**:
+```bash
+# 모든 테스트
+pytest
+
+# 마커별 실행
+pytest -m unit
+pytest -m integration
+pytest -m smoke
+
+# Coverage 리포트
+pytest --cov=app --cov-report=html
+open htmlcov/index.html
+
+# Verbose 출력
+pytest -v -s
+
+# 특정 파일
+pytest tests/test_app.py::test_health_endpoint
+```
+
+### 파일 구조
+
+```
+server/
+├── app/
+│   ├── swagger/
+│   │   ├── __init__.py          # Swagger API 초기화
+│   │   └── models.py            # API 모델 정의
+│   └── routes/
+│       └── swagger_routes.py    # Swagger 문서화 라우트
+├── tests/
+│   ├── __init__.py
+│   ├── conftest.py              # 픽스처 정의
+│   ├── test_app.py              # 앱 기본 테스트
+│   ├── test_models.py           # 모델 테스트
+│   ├── test_auth.py             # Auth API 테스트 (Phase 48)
+│   ├── test_sync.py             # Sync API 테스트 (Phase 48)
+│   └── test_tasks.py            # Celery 테스트 (Phase 48)
+├── pytest.ini                   # pytest 설정
+└── .coveragerc                  # Coverage 설정
+```
+
+### 진행 로그
+
+**2025-11-13 오후**:
+- flask-restx 통합
+- Swagger API 초기화 및 모델 정의
+- Auth 및 Sync API Swagger 문서화
+- Swagger UI 활성화
+
+- pytest 설정 파일 생성 (pytest.ini)
+- conftest.py 픽스처 정의 (20+ 픽스처)
+- 기본 테스트 파일 생성 (test_app.py, test_models.py)
+- 테스트 마커 정의 (unit, integration, api, etc.)
+- Coverage 설정 (80% 목표)
+
+- README 업데이트 (Phase 46-47 문서화)
+
+### Swagger 사용 예시
+
+1. **Swagger UI 접속**:
+   ```
+   http://localhost:5000/docs/
+   ```
+
+2. **API 테스트 (Swagger UI)**:
+   - `POST /api/auth/register` 클릭
+   - "Try it out" 버튼 클릭
+   - 요청 바디 입력:
+   ```json
+   {
+     "username": "newuser",
+     "email": "new@example.com",
+     "password": "password123",
+     "device_id": "device-uuid"
+   }
+   ```
+   - "Execute" 클릭
+
+3. **JWT 인증 설정**:
+   - "Authorize" 버튼 클릭
+   - 토큰 입력: `Bearer <access_token>`
+   - "Authorize" 클릭
+   - 이후 모든 요청에 자동으로 토큰 포함
+
+4. **API 응답 확인**:
+   - 요청/응답 예시 표시
+   - 스키마 정의 확인
+   - 에러 응답 예시
+
+### pytest 사용 예시
+
+**기본 테스트 실행**:
+```bash
+cd server
+
+# 모든 테스트 실행
+pytest
+
+# 출력:
+# tests/test_app.py::test_app_creation PASSED
+# tests/test_app.py::test_health_endpoint PASSED
+# tests/test_models.py::TestUserModel::test_create_user PASSED
+# ...
+# 15 passed in 2.5s
+```
+
+**마커별 실행**:
+```bash
+# 단위 테스트만
+pytest -m unit
+
+# API 테스트만
+pytest -m api
+
+# 스모크 테스트만 (빠른 검증)
+pytest -m smoke
+```
+
+**Coverage 리포트**:
+```bash
+pytest --cov=app --cov-report=html
+
+# 출력:
+# =========== Coverage Summary ===========
+# Name                    Stmts   Miss  Cover
+# -------------------------------------------
+# app/__init__.py            25      2    92%
+# app/models/user.py         30      0   100%
+# app/routes/auth.py         50      5    90%
+# -------------------------------------------
+# TOTAL                     500     45    91%
+```
+
+### 배운 점
+
+**Swagger/OpenAPI**:
+- **flask-restx**: Flask-RESTX는 Flask-RESTPlus의 후속 버전
+- **Namespace**: API를 논리적으로 그룹화
+- **Model 정의**: fields를 사용한 스키마 정의
+- **Decorator**: @api.doc(), @api.expect(), @api.response()
+- **인터랙티브 UI**: Swagger UI로 API 직접 테스트 가능
+
+**pytest**:
+- **Fixture Scope**: session, module, class, function
+- **자동 픽스처**: autouse=True
+- **Parametrize**: 여러 입력값으로 테스트 반복
+- **Marker**: 테스트 분류 및 선택적 실행
+- **Coverage**: pytest-cov로 코드 커버리지 측정
+
+**테스트 전략**:
+1. **Unit Tests**: 빠르고 격리된 테스트
+2. **Integration Tests**: 데이터베이스, 외부 서비스 포함
+3. **API Tests**: 엔드투엔드 API 테스트
+4. **Smoke Tests**: 핵심 기능 빠른 검증
+
+**픽스처 패턴**:
+- **Setup/Teardown**: 자동 리소스 관리
+- **Dependency Injection**: 픽스처 간 의존성
+- **Factory Functions**: 동적 테스트 데이터 생성
+- **Scope 최적화**: 불필요한 setup 방지
+
+### 다음 단계
+
+- [ ] Phase 48: Auth 및 Sync API 테스트 작성
+- [ ] Phase 49: Gunicorn 프로덕션 서버 설정
+- [ ] Phase 50: Supervisor 프로세스 관리 설정
+
+---
+
+**Phase 46-47 완료**: ✅ Swagger API 문서화 및 pytest 테스트 설정 완료
+**문서 URL**: http://localhost:5000/docs/
+**다음 단계**: Phase 48-50 (테스트 작성, 프로덕션 배포)
+
+**주요 성과**:
+- Swagger/OpenAPI 자동 문서 생성
+- 인터랙티브 API 탐색기 (Swagger UI)
+- JWT 인증 통합
+- pytest 테스트 프레임워크 설정
+- 20+ 테스트 픽스처 정의
+- Coverage 리포트 설정
+- 테스트 마커 분류 시스템
+- 기본 테스트 작성 (앱, 모델)
+
+**기술적 특징**:
+- flask-restx API 문서화
+- Swagger UI 인터랙티브 테스트
+- pytest fixture 의존성 주입
+- SQLite in-memory 테스트 DB
+- 트랜잭션 자동 롤백
+- Marker 기반 테스트 분류
+- pytest-cov 코드 커버리지
+- HTML/XML/Terminal 리포트
