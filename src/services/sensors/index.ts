@@ -22,3 +22,26 @@ export type {
   BatchSaverConfig,
   BatchSaverStats,
 } from './SensorDataBatchSaver';
+
+export {
+  SensorDataStream,
+  StreamManager,
+  streamManager,
+} from './SensorDataStream';
+export type {
+  StreamState,
+  StreamStats,
+  StreamDataHandler,
+  StreamErrorHandler,
+  StreamOptions,
+} from './SensorDataStream';
+
+export {
+  SensorDataPersistence,
+  sensorDataPersistence,
+} from './SensorDataPersistence';
+export type {
+  ChunkConfig,
+  WriteResult,
+  PersistenceStats,
+} from './SensorDataPersistence';
