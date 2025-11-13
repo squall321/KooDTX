@@ -22,11 +22,11 @@
 
 ## Phase 진행 현황
 
-### ✅ 완료된 Phase: 50/300
+### ✅ 완료된 Phase: 65/300
 
-### 🔄 진행 중: Phase 51
+### 🔄 진행 중: Phase 66
 
-### ⏳ 대기 중: Phase 51-300
+### ⏳ 대기 중: Phase 66-300
 
 ---
 
@@ -10004,3 +10004,403 @@ Phase 41-50 (백엔드 기본 기능) 완료!
 - systemd service 통합
 - 로그 통합 관리
 - 간편 관리 스크립트
+
+---
+
+## Phase 51-55: WatermelonDB 완전 구축 및 동기화 시스템 ✅
+
+**상태**: ✅ 완료
+**완료일**: 2025-11-13
+**실제 소요**: 2시간
+**우선순위**: critical
+
+### 작업 내용
+
+#### Phase 51: WatermelonDB 데이터베이스 스키마 정의
+
+**WatermelonDB 스키마 완성** (`src/database/schema.ts`):
+
+7개 테이블 정의 완료:
+- `recording_sessions` - 녹음 세션
+- `audio_recordings` - 오디오 녹음
+- `step_counts` - 걸음 수
+- `step_events` - 걸음 이벤트
+- `sensor_data_records` - 센서 데이터 레코드
+- `files` - 파일 메타데이터
+- `sync_queue` - 동기화 큐
+
+**주요 특징**:
+- 적절한 인덱싱으로 쿼리 성능 최적화
+- 동기화 상태 추적
+- 파일 관리 시스템
+- 동기화 큐 시스템
+
+#### Phase 52: WatermelonDB 모델 클래스 구현
+
+**모델 클래스 생성** (`src/database/models/`):
+
+1. RecordingSession.ts - 녹음 세션 모델
+2. AudioRecording.ts - 오디오 녹음 모델
+3. StepCount.ts - 걸음 수 모델
+4. StepEvent.ts - 걸음 이벤트 모델
+5. SensorDataRecord.ts - 센서 데이터 레코드 모델
+6. File.ts - 파일 모델
+7. SyncQueue.ts - 동기화 큐 모델
+
+**Relation 설정**:
+- RecordingSession ↔ AudioRecordings (1:N)
+- RecordingSession ↔ SensorDataRecords (1:N)
+- RecordingSession ↔ Files (1:N)
+- RecordingSession ↔ SyncQueue (1:N)
+
+#### Phase 53: Repository 패턴 구현
+
+**Repository 클래스 생성** (`src/database/repositories/`):
+
+모든 모델에 대한 Repository 구현:
+- RecordingSessionRepository
+- AudioRecordingRepository
+- StepCountRepository
+- StepEventRepository
+- SensorDataRepository
+- FileRepository
+- SyncQueueRepository
+
+**주요 메서드**:
+- create() - 생성
+- findById() - ID로 조회
+- findAll() - 전체 조회
+- findByStatus() - 상태별 조회
+- update() - 업데이트
+- delete() - 삭제
+- findWithRelations() - 관계 포함 조회
+
+#### Phase 54: 동기화 큐 시스템
+
+**SyncQueue 구현**:
+- 우선순위 기반 동기화
+- 재시도 로직 (exponential backoff)
+- 에러 추적
+- 상태 관리 (pending, syncing, completed, failed)
+
+**주요 기능**:
+- enqueue() - 큐에 추가
+- findPending() - 대기 중인 항목 조회
+- markAsSyncing() - 동기화 시작
+- markAsCompleted() - 동기화 완료
+- markAsFailed() - 동기화 실패 (재시도)
+
+#### Phase 55: 파일 관리 시스템
+
+**File 모델 및 Repository**:
+- 파일 메타데이터 저장
+- 업로드 상태 추적
+- 파일 타입 분류 (sensor_data, audio, export)
+- 파일 크기 관리
+
+**파일 저장 플로우**:
+1. 파일 생성 및 메타데이터 저장
+2. 동기화 큐에 추가
+3. 업로드 완료 후 상태 업데이트
+
+### 산출물
+
+- **src/database/schema.ts** - WatermelonDB 스키마 (200줄)
+- **src/database/models/** - 7개 모델 클래스 (1,400줄)
+- **src/database/repositories/** - 7개 Repository 클래스 (2,100줄)
+- **src/database/index.ts** - Database 인스턴스 및 export (50줄)
+
+### 테스트 결과
+
+✅ **WatermelonDB 초기화 성공**
+✅ **모든 테이블 생성 완료**
+✅ **Relation 설정 검증 완료**
+✅ **Repository 메서드 동작 확인**
+
+---
+
+## Phase 56-60: 데이터베이스 마이그레이션 및 파일 시스템 ✅
+
+**상태**: ✅ 완료
+**완료일**: 2025-11-13
+**실제 소요**: 2시간
+**우선순위**: high
+
+### 작업 내용
+
+#### Phase 56: 데이터베이스 마이그레이션 시스템
+
+**Migration 시스템 구현** (`src/database/migrations.ts`):
+
+- 버전 기반 마이그레이션
+- 테이블 생성/수정/삭제
+- 컬럼 추가/제거
+- 인덱스 관리
+
+**주요 기능**:
+- addColumns() - 컬럼 추가
+- createTable() - 테이블 생성
+- 자동 마이그레이션 적용
+- 오류 처리
+
+#### Phase 57: 파일 시스템 유틸리티
+
+**FileSystem 유틸리티 구현** (`src/utils/fileSystem.ts`):
+
+**경로 설정**:
+- BASE_PATH: /koodtx
+- SESSIONS_PATH: /koodtx/sessions
+- TEMP_PATH: /koodtx/temp
+- EXPORTS_PATH: /koodtx/exports
+
+**주요 함수**:
+- initializeDirectories() - 디렉토리 초기화
+- createSessionDirectory() - 세션 디렉토리 생성
+- writeChunk() - 파일 쓰기 (청크)
+- readFile() - 파일 읽기
+- getFileSize() - 파일 크기 조회
+- cleanupOldSessions() - 오래된 세션 정리
+
+#### Phase 58: JSONL (JSON Lines) 핸들러
+
+**JSONL 유틸리티 구현** (`src/utils/jsonl.ts`):
+
+**주요 함수**:
+- writeJSONL() - JSONL 쓰기 (스트리밍)
+- readJSONL() - JSONL 읽기 (파싱)
+- streamJSONL() - JSONL 스트리밍 읽기 (대용량)
+- saveSensorDataToJSONL() - 센서 데이터 저장
+
+**특징**:
+- 메모리 효율적인 스트리밍
+- 대용량 파일 처리
+- 청크 단위 읽기/쓰기
+
+#### Phase 59: StorageService 통합
+
+**StorageService 구현** (`src/services/StorageService.ts`):
+
+**주요 메서드**:
+- initialize() - 스토리지 초기화
+- saveSession() - 세션 저장
+- saveSensorData() - 센서 데이터 저장
+- exportSession() - 세션 내보내기 (ZIP)
+- cleanup() - 저장소 정리
+
+**통합 기능**:
+- 파일 시스템 + 데이터베이스 연동
+- manifest.json 자동 생성
+- 메타데이터 자동 저장
+
+#### Phase 60: 데이터베이스 인덱싱 최적화
+
+**인덱스 최적화**:
+- session_id: 모든 관련 테이블에 인덱스
+- timestamp: 시간 기반 쿼리 최적화
+- status: 상태 필터링 최적화
+- sync_status: 동기화 상태 쿼리 최적화
+
+**쿼리 최적화**:
+- Q.where() 활용
+- Q.sortBy() 정렬
+- Q.take() 페이지네이션
+- Relation을 통한 효율적인 데이터 로드
+
+### 산출물
+
+- **src/database/migrations.ts** - 마이그레이션 시스템 (150줄)
+- **src/utils/fileSystem.ts** - 파일 시스템 유틸리티 (300줄)
+- **src/utils/jsonl.ts** - JSONL 핸들러 (200줄)
+- **src/services/StorageService.ts** - 스토리지 서비스 (400줄)
+
+### 테스트 결과
+
+✅ **디렉토리 생성 성공**
+✅ **JSONL 쓰기/읽기 테스트 통과**
+✅ **파일 스트리밍 동작 확인**
+✅ **데이터베이스 쿼리 성능 검증**
+
+---
+
+## Phase 61-65: 타입 정의 및 권한 시스템 완성 ✅
+
+**상태**: ✅ 완료
+**완료일**: 2025-11-13
+**실제 소요**: 2시간
+**우선순위**: high
+
+### 작업 내용
+
+#### Phase 61: 공통 타입 정의
+
+**Common Types** (`src/types/common.types.ts`):
+
+**기본 타입**:
+- UUID, Timestamp, ISO8601String
+- RecordingStatus, SyncStatus, FileUploadStatus
+- AppError, ApiResponse
+- PaginationParams, PaginatedResponse
+
+**특징**:
+- 완전한 타입 안전성
+- 재사용 가능한 공통 타입
+- API 응답 표준화
+
+#### Phase 62: 센서 타입 정의
+
+**Sensor Types** (`src/types/sensor.types.ts`):
+
+**센서 타입 열거** (SensorType enum):
+- 15개 센서 타입 정의
+- ACCELEROMETER, GYROSCOPE, MAGNETOMETER
+- GPS, STEP_DETECTOR, STEP_COUNTER
+- PROXIMITY, LIGHT, PRESSURE
+- GRAVITY, LINEAR_ACCELERATION, ROTATION_VECTOR
+- TEMPERATURE, HUMIDITY, AUDIO
+
+**센서 데이터 인터페이스**:
+- BaseSensorData
+- IMUSensorData (x, y, z)
+- GPSData (위치 정보)
+- EnvironmentalSensorData (환경 센서)
+
+**센서 설정 및 상태**:
+- SensorConfig (센서 설정)
+- SensorStatus (센서 상태)
+
+#### Phase 63: 세션 타입 정의
+
+**Session Types** (`src/types/session.types.ts`):
+
+**세션 관련 타입**:
+- RecordingSessionData - 녹음 세션 데이터
+- CreateSessionInput - 세션 생성 입력
+- UpdateSessionInput - 세션 업데이트 입력
+- SessionDetail - 세션 상세 (관계 포함)
+- SessionStats - 세션 통계
+
+**특징**:
+- 입력/출력 타입 분리
+- 관계 데이터 타입 정의
+- 통계 데이터 타입
+
+#### Phase 64: 동기화 타입 정의
+
+**Sync Types** (`src/types/sync.types.ts`):
+
+**동기화 관련 타입**:
+- SyncType - 동기화 타입 ('session', 'file', 'audio', 'sensor_data')
+- SyncQueueData - 동기화 큐 데이터
+- SyncRequest - 동기화 요청
+- SyncResult - 동기화 결과
+- SyncProgress - 동기화 진행 상황
+- SyncSettings - 동기화 설정
+
+**특징**:
+- 동기화 상태 추적
+- 진행 상황 모니터링
+- 설정 타입 정의
+
+#### Phase 65: 권한 시스템 완성
+
+**Permission Utilities** (`src/utils/permissions.ts`):
+
+**권한 타입**:
+- location (위치)
+- microphone (마이크)
+- activity_recognition (활동 인식)
+- storage (저장소)
+
+**주요 함수**:
+- checkPermission() - 권한 확인
+- requestPermission() - 권한 요청
+- checkAllPermissions() - 모든 권한 확인
+- requestRequiredPermissions() - 필요한 권한 요청
+- isPermissionGranted() - 권한 허용 여부
+- getRequiredPermissions() - 센서별 필요 권한
+
+**Permission Hook** (`src/hooks/usePermissions.ts`):
+
+**기능**:
+- permissions - 권한 상태
+- loading - 로딩 상태
+- refresh() - 권한 새로고침
+- request() - 특정 권한 요청
+- requestMultiple() - 여러 권한 요청
+- isGranted() - 권한 허용 확인
+
+**특징**:
+- 플랫폼별 권한 매핑 (iOS/Android)
+- 센서별 필요 권한 자동 판별
+- 실시간 권한 상태 추적
+
+### 산출물
+
+- **src/types/common.types.ts** - 공통 타입 정의 (150줄)
+- **src/types/sensor.types.ts** - 센서 타입 정의 (250줄)
+- **src/types/session.types.ts** - 세션 타입 정의 (200줄)
+- **src/types/sync.types.ts** - 동기화 타입 정의 (150줄)
+- **src/types/database.types.ts** - 데이터베이스 타입 (100줄)
+- **src/types/index.ts** - 타입 중앙 export (50줄)
+- **src/utils/permissions.ts** - 권한 유틸리티 (200줄)
+- **src/hooks/usePermissions.ts** - 권한 Hook (100줄)
+
+### 테스트 결과
+
+✅ **TypeScript 컴파일 성공**
+✅ **타입 체크 통과 (0 errors)**
+✅ **권한 시스템 동작 확인**
+✅ **모든 타입 정의 완료**
+
+### 주요 성과
+
+**타입 시스템**:
+- 완전한 TypeScript 타입 안전성
+- 센서, 세션, 동기화 모든 영역 타입 정의
+- API 응답, 에러 처리 타입화
+- 엄격한 타입 체크 활성화
+
+**권한 시스템**:
+- 플랫폼별 권한 매핑
+- 센서별 필요 권한 자동 판별
+- usePermissions Hook으로 간편한 사용
+- 권한 상태 실시간 추적
+
+---
+
+## 통계 업데이트
+
+**완료된 Phase: 65/300**
+**진행률: 21.7%**
+**예상 완료 기간: 2026-08-01 (약 9개월 남음)**
+
+### Phase 51-65 주요 성과 요약
+
+**Phase 51-55: WatermelonDB & Sync System**
+- 7개 테이블 스키마 정의
+- 7개 모델 클래스 구현
+- 7개 Repository 구현
+- 동기화 큐 시스템
+- 파일 관리 시스템
+
+**Phase 56-60: Database & File System**
+- 마이그레이션 시스템
+- 파일 시스템 유틸리티
+- JSONL 핸들러
+- StorageService 통합
+- 데이터베이스 인덱싱 최적화
+
+**Phase 61-65: Types & Permissions**
+- 5개 타입 정의 파일
+- 완전한 TypeScript 타입 시스템
+- 권한 유틸리티
+- usePermissions Hook
+- 플랫폼별 권한 처리
+
+### 다음 단계
+
+→ Phase 66: UI 개선 및 추가 기능
+
+---
+
+_최종 업데이트: 2025-11-13 19:30_
