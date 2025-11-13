@@ -22,11 +22,11 @@
 
 ## Phase 진행 현황
 
-### ✅ 완료된 Phase: 85/300
+### ✅ 완료된 Phase: 86/300
 
-### 🔄 진행 중: Phase 86
+### 🔄 진행 중: Phase 87
 
-### ⏳ 대기 중: Phase 86-300
+### ⏳ 대기 중: Phase 87-300
 
 ---
 
@@ -13837,3 +13837,205 @@ GPS Sensor → GPSService → GPSDataStorage → SensorDataPersistence → JSONL
 ---
 
 _최종 업데이트: 2025-11-13 23:30_
+
+## Phase 86: 센서 스토어 생성 ✅
+
+**상태**: ✅ 완료
+**완료일**: 2025-11-13  
+**실제 소요**: 0.5시간
+**우선순위**: high
+
+### 작업 내용
+
+Zustand를 사용하여 센서 데이터 수집을 위한 전역 상태 관리 스토어를 구현했습니다.
+
+#### 구현: useSensorStore.ts (490줄)
+
+**핵심 기능**:
+
+**1. 녹음 상태 관리 (Recording State)**
+- 9가지 상태: IDLE, STARTING, RECORDING, PAUSING, PAUSED, RESUMING, STOPPING, STOPPED, ERROR
+- `setRecordingState()`: 상태 변경
+- `useRecordingState()`: 현재 상태 조회
+- `useIsRecording()`, `useIsPaused()`: 상태 체크
+
+**2. 센서 활성화 상태 (Sensor Configuration)**
+- 센서 설정 관리 (타입, 활성화 여부, 샘플링 레이트)
+- `setSensorConfigs()`: 전체 설정 업데이트
+- `enableSensor()`, `disableSensor()`: 개별 센서 제어
+- `toggleSensor()`: 센서 토글
+- `useSensorConfigs()`, `useEnabledSensors()`: 설정 조회
+
+**3. 실시간 센서 값 (Real-time Data)**
+- 센서 데이터 실시간 업데이트
+- GPS 데이터 별도 관리
+- `updateRealtimeData()`: 센서 데이터 업데이트
+- `updateGPSRealtimeData()`: GPS 데이터 업데이트
+- `useRealtimeData()`, `useSensorRealtimeData()`: 데이터 조회
+
+**4. 세션 정보 (Session Info)**
+- 녹음 세션 생명주기 관리
+- 세션 ID, 시작/종료 시간, 지속 시간, 샘플 수
+- `startSession()`, `endSession()`: 세션 제어
+- `updateSession()`: 세션 정보 업데이트
+- `useCurrentSession()`, `useSessionDuration()`: 세션 조회
+
+**5. 통계 (Statistics)**
+- 총 샘플 수, 드롭된 샘플 수
+- 센서별 통계 (샘플 수, 마지막 값, 타임스탬프)
+- `updateStatistics()`, `updateSensorStats()`: 통계 업데이트
+- `useStatistics()`, `useSensorStatistics()`: 통계 조회
+
+**6. 에러 상태 (Error State)**
+- 에러 저장 및 관리
+- `setError()`, `clearError()`: 에러 제어
+- `useRecordingError()`: 에러 조회
+
+**7. 액션 (Actions)**
+- 모든 상태 변경 액션 제공
+- `useSensorActions()`: 액션 번들 조회
+
+### Selector Hooks (15개)
+
+편의성을 위한 selector hooks 제공:
+- `useRecordingState()` - 녹음 상태
+- `useIsRecording()` - 녹음 중 여부
+- `useIsPaused()` - 일시정지 여부
+- `useSensorConfigs()` - 센서 설정 목록
+- `useEnabledSensors()` - 활성화된 센서
+- `useEnabledSensorTypes()` - 활성화된 센서 타입
+- `useRealtimeData()` - 전체 실시간 데이터
+- `useSensorRealtimeData(type)` - 특정 센서 데이터
+- `useGPSRealtimeData()` - GPS 데이터
+- `useCurrentSession()` - 현재 세션
+- `useSessionDuration()` - 세션 지속 시간
+- `useStatistics()` - 전체 통계
+- `useSensorStatistics(type)` - 센서별 통계
+- `useRecordingError()` - 에러
+- `useSensorActions()` - 액션 번들
+
+### 사용 예제
+
+**1. 녹음 제어**:
+```typescript
+const {setRecordingState, startSession, endSession} = useSensorActions();
+const recordingState = useRecordingState();
+const isRecording = useIsRecording();
+
+// Start recording
+startSession('session-123', [1, 4, 2]); // ACC, GYR, MAG
+setRecordingState(RecordingState.RECORDING);
+
+// Stop recording
+setRecordingState(RecordingState.STOPPING);
+endSession();
+```
+
+**2. 센서 제어**:
+```typescript
+const {enableSensor, disableSensor, toggleSensor} = useSensorActions();
+const enabledSensors = useEnabledSensors();
+
+// Enable accelerometer
+enableSensor(AndroidSensorType.ACCELEROMETER);
+
+// Toggle gyroscope
+toggleSensor(AndroidSensorType.GYROSCOPE);
+```
+
+**3. 실시간 데이터 업데이트**:
+```typescript
+const {updateRealtimeData, updateGPSRealtimeData} = useSensorActions();
+
+// Update sensor data
+updateRealtimeData({
+  sensorType: AndroidSensorType.ACCELEROMETER,
+  values: [0.1, 0.2, 9.8],
+  timestamp: Date.now(),
+  accuracy: 3,
+});
+
+// Update GPS data
+updateGPSRealtimeData({
+  position: {latitude: 37.123, longitude: 127.123, ...},
+  timestamp: Date.now(),
+});
+```
+
+**4. 실시간 데이터 조회**:
+```typescript
+const accData = useSensorRealtimeData(AndroidSensorType.ACCELEROMETER);
+const gpsData = useGPSRealtimeData();
+
+console.log('Accelerometer:', accData?.values);
+console.log('GPS:', gpsData?.position);
+```
+
+**5. 세션 정보**:
+```typescript
+const session = useCurrentSession();
+const duration = useSessionDuration();
+
+console.log('Session ID:', session?.sessionId);
+console.log('Duration:', (duration / 1000).toFixed(1), 'seconds');
+console.log('Sample count:', session?.sampleCount);
+```
+
+**6. 통계 조회**:
+```typescript
+const stats = useStatistics();
+const accStats = useSensorStatistics(AndroidSensorType.ACCELEROMETER);
+
+console.log('Total samples:', stats.totalSamples);
+console.log('ACC samples:', accStats?.sampleCount);
+console.log('Last value:', accStats?.lastValue);
+```
+
+### 산출물
+
+- ✅ src/store/useSensorStore.ts (490줄)
+- ✅ RecordingState enum
+- ✅ 상태 관리 (9가지 녹음 상태)
+- ✅ 센서 설정 관리
+- ✅ 실시간 데이터 관리
+- ✅ 세션 정보 관리
+- ✅ 통계 관리
+- ✅ 에러 관리
+- ✅ 15개 selector hooks
+- ✅ Actions bundle
+- ✅ src/store/index.ts 업데이트
+
+### 주요 성과
+
+**완전한 상태 관리**:
+- ✅ 녹음 생명주기 관리
+- ✅ 센서 활성화 제어
+- ✅ 실시간 데이터 업데이트
+- ✅ 세션 추적
+- ✅ 통계 수집
+
+**개발자 경험**:
+- ✅ TypeScript 타입 안전성
+- ✅ 편의 selector hooks
+- ✅ Actions bundle
+- ✅ 명확한 API
+
+**성능**:
+- ✅ Zustand의 최적화된 리렌더링
+- ✅ Selector hooks로 필요한 데이터만 구독
+- ✅ 효율적인 상태 업데이트
+
+### 다음 Phase
+
+→ Phase 87-100: 계속 진행
+
+---
+
+## 통계 업데이트
+
+**완료된 Phase: 86/300**
+**진행률: 28.7%**
+
+---
+
+_최종 업데이트: 2025-11-13 23:45_
