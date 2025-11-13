@@ -1,6 +1,6 @@
 # KooDTX Flask Backend
 
-센서 데이터 동기화 서버 - Phase 41-42 완료
+센서 데이터 동기화 서버 - Phase 41-45 완료
 
 ## 📋 목차
 
@@ -30,7 +30,24 @@ React Native KooDTX 앱의 백엔드 서버입니다. 센서 데이터를 수집
   - 페이지네이션 지원 (최대 100개/페이지)
   - 선택적 센서 데이터 포함/제외
   - 서버 타임스탬프 반환
-- ⏳ Phase 43-45: Celery 비동기 작업 (예정)
+- ✅ **Phase 43: Celery 설치 및 Redis 브로커 설정**
+  - Celery 비동기 작업 큐
+  - Redis 메시지 브로커
+  - Celery Beat 스케줄러 (주기적 작업)
+  - Worker 및 Beat 실행 스크립트
+- ✅ **Phase 44: 센서 데이터 처리 작업**
+  - Pandas를 이용한 센서 데이터 분석
+  - 통계 생성 (평균, 표준편차, 피크값 등)
+  - 이상치 탐지 (Z-score 방법)
+  - GPS 이동 거리 계산
+  - 세션 메트릭 계산
+- ✅ **Phase 45: 파일 정리 작업**
+  - 오래된 센서 데이터 자동 정리
+  - 동기화 로그 정리
+  - 업로드 파일 정리
+  - 실패/중단 세션 정리
+  - 데이터베이스 최적화
+  - Celery Beat 스케줄링
 - ⏳ Phase 46: Swagger API 문서 (예정)
 - ⏳ Phase 47-48: pytest 테스트 (예정)
 - ⏳ Phase 49-50: 프로덕션 배포 (예정)
@@ -73,7 +90,31 @@ GRANT ALL PRIVILEGES ON DATABASE koodtx_db TO koodtx;
 \q
 ```
 
-### 5. 데이터베이스 초기화
+### 5. Redis 설치 및 실행
+
+**Ubuntu/Debian:**
+```bash
+sudo apt update
+sudo apt install redis-server
+sudo systemctl start redis-server
+sudo systemctl enable redis-server
+
+# Redis 상태 확인
+redis-cli ping  # 응답: PONG
+```
+
+**macOS:**
+```bash
+brew install redis
+brew services start redis
+```
+
+**Docker:**
+```bash
+docker run -d -p 6379:6379 --name redis redis:7-alpine
+```
+
+### 6. 데이터베이스 초기화
 
 ```bash
 flask init-db
@@ -95,6 +136,29 @@ flask run
 
 ```bash
 gunicorn -c gunicorn_config.py run:app
+```
+
+### Celery Worker (비동기 작업 처리)
+
+**터미널 1 - Celery Worker 시작:**
+```bash
+./start_celery_worker.sh
+# 또는
+celery -A celery_app.celery worker --loglevel=info
+```
+
+**터미널 2 - Celery Beat 시작 (스케줄러):**
+```bash
+./start_celery_beat.sh
+# 또는
+celery -A celery_app.celery beat --loglevel=info
+```
+
+**Flower (Celery 모니터링 웹 UI):**
+```bash
+pip install flower
+celery -A celery_app.celery flower --port=5555
+# 브라우저에서 http://localhost:5555 접속
 ```
 
 ## API
@@ -316,13 +380,139 @@ flask db upgrade
 - `session_ids` 파라미터로 특정 세션만 요청 가능
 - 델타 동기화와 함께 사용하여 세밀한 제어
 
+### Phase 43-45: Celery 비동기 작업 시스템
+
+#### Phase 43: Celery 설치 및 설정
+
+**Celery 앱 구조:**
+```python
+# celery_app.py
+celery = Celery(
+    'koodtx',
+    broker='redis://localhost:6379/0',
+    backend='redis://localhost:6379/0',
+    include=['app.tasks.data_processing', 'app.tasks.file_cleanup']
+)
+```
+
+**설정:**
+- 작업 타임아웃: 5분 (하드), 4분 (소프트)
+- 직렬화: JSON
+- Worker prefetch: 1 (한 번에 하나씩 처리)
+- Worker 재시작 주기: 1000개 작업마다
+
+**Beat 스케줄:**
+- 센서 데이터 정리: 24시간마다 (30일 이상 된 데이터)
+- 동기화 로그 정리: 7일마다 (90일 이상 된 로그)
+
+#### Phase 44: 데이터 처리 작업
+
+**1. analyze_sensor_data(session_id)**
+- 센서 데이터 통계 분석
+- 센서 타입별 평균, 표준편차, min/max
+- GPS 이동 거리 계산 (Haversine formula)
+- 세션 지속 시간 및 레코드 수
+
+**2. generate_statistics(user_id, start_date, end_date)**
+- 사용자별 통계 생성
+- 총 세션 수, 총 데이터 레코드 수
+- 총 지속 시간, 평균 세션 시간
+- 센서 타입 사용 빈도
+
+**3. detect_anomalies(session_id, sensitivity=3.0)**
+- Z-score 기반 이상치 탐지
+- 3축 센서 magnitude 계산
+- 표준편차 3배 이상 값 감지
+- 이상치 비율 및 타임스탬프 반환
+
+**4. calculate_session_metrics(session_id)**
+- 세션 주요 메트릭 계산
+- 각 축별 통계 (mean, std, min, max, peak-to-peak)
+- 샘플 카운트 및 데이터 품질 지표
+
+**사용 예시:**
+```python
+# 비동기 작업 예약
+from app.tasks.data_processing import analyze_sensor_data
+
+result = analyze_sensor_data.delay(session_id=123)
+
+# 결과 확인
+if result.ready():
+    analysis = result.get()
+    print(analysis)
+```
+
+#### Phase 45: 파일 정리 작업
+
+**1. cleanup_old_sensor_data(days=30)**
+- 업로드 완료되고 종료된 세션의 오래된 센서 데이터 삭제
+- 기본값: 30일 이상 된 데이터
+- 세션 메타데이터는 유지 (분석용)
+
+**2. cleanup_old_sync_logs(days=90)**
+- 오래된 동기화 로그 삭제
+- 기본값: 90일 이상 된 로그
+
+**3. cleanup_uploaded_files(days=7)**
+- 임시 업로드 파일 정리
+- 처리 완료된 파일 삭제
+- 기본값: 7일 이상 된 파일
+
+**4. cleanup_failed_sessions(hours=24)**
+- 실패하거나 중단된 세션 정리
+- is_active=True 상태로 24시간 이상 방치된 세션
+- 자동으로 종료 처리 및 노트 추가
+
+**5. optimize_database()**
+- PostgreSQL VACUUM ANALYZE
+- 테이블별 통계 수집
+- 인덱스 최적화
+
+**6. generate_cleanup_report()**
+- 전체 시스템 통계 리포트
+- 디스크 사용량
+- 최근 30일 활동 통계
+
+**Celery Beat 스케줄:**
+```python
+beat_schedule = {
+    'cleanup-old-data': {
+        'task': 'app.tasks.file_cleanup.cleanup_old_sensor_data',
+        'schedule': 3600.0 * 24,  # 매일
+        'args': (30,)  # 30일
+    },
+    'cleanup-sync-logs': {
+        'task': 'app.tasks.file_cleanup.cleanup_old_sync_logs',
+        'schedule': 3600.0 * 24 * 7,  # 매주
+        'args': (90,)  # 90일
+    },
+}
+```
+
+**수동 실행:**
+```python
+from app.tasks.file_cleanup import cleanup_old_sensor_data
+
+# 즉시 실행
+result = cleanup_old_sensor_data.apply_async(args=[30])
+
+# 지연 실행 (10분 후)
+result = cleanup_old_sensor_data.apply_async(args=[30], countdown=600)
+
+# 특정 시간에 실행
+from datetime import datetime, timedelta
+eta = datetime.utcnow() + timedelta(hours=1)
+result = cleanup_old_sensor_data.apply_async(args=[30], eta=eta)
+```
+
 ## 다음 단계
 
 - [x] Phase 41: Push API 구현
 - [x] Phase 42: Pull API 구현
-- [ ] Phase 43: Celery 설치 및 Redis 브로커 설정
-- [ ] Phase 44: 센서 데이터 처리 작업 (Pandas, 통계 분석)
-- [ ] Phase 45: 파일 정리 작업 (Celery Beat 스케줄링)
+- [x] Phase 43: Celery 설치 및 Redis 브로커 설정
+- [x] Phase 44: 센서 데이터 처리 작업 (Pandas, 통계 분석)
+- [x] Phase 45: 파일 정리 작업 (Celery Beat 스케줄링)
 - [ ] Phase 46: Swagger/OpenAPI 문서 자동 생성
 - [ ] Phase 47: pytest 설치 및 기본 설정
 - [ ] Phase 48: Auth 및 Sync API 테스트 작성

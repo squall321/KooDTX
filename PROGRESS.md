@@ -22,11 +22,11 @@
 
 ## Phase 진행 현황
 
-### ✅ 완료된 Phase: 42/300
+### ✅ 완료된 Phase: 45/300
 
-### 🔄 진행 중: Phase 43
+### 🔄 진행 중: Phase 46
 
-### ⏳ 대기 중: Phase 43-300
+### ⏳ 대기 중: Phase 46-300
 
 ---
 
@@ -8629,3 +8629,453 @@ curl -X POST http://localhost:5000/api/sync/pull \
 - 배치 처리 (bulk_save_objects)
 - 트랜잭션 관리 및 롤백
 - 복합 인덱스 성능 최적화
+
+---
+
+## Phase 43-45: Flask 백엔드 - Celery 비동기 작업 시스템 ✅
+
+**상태**: ✅ 완료
+**시작일**: 2025-11-13
+**완료일**: 2025-11-13
+**실제 소요**: 2시간
+**우선순위**: high
+
+### 작업 내용
+
+#### Phase 43: Celery 설치 및 Redis 브로커 설정
+- [x] Celery 패키지 추가 (requirements.txt에 이미 포함)
+- [x] Redis 브로커 설정
+- [x] Celery 앱 초기화 (`celery_app.py`)
+- [x] Flask 앱과 Celery 통합 설정
+- [x] Celery Worker 실행 스크립트
+- [x] Celery Beat 실행 스크립트 (스케줄러)
+- [x] Beat 스케줄 설정 (주기적 작업)
+
+#### Phase 44: 센서 데이터 처리 작업
+- [x] `app/tasks/data_processing.py` 작업 모듈
+- [x] analyze_sensor_data() - 센서 데이터 통계 분석
+- [x] generate_statistics() - 사용자별 통계 생성
+- [x] detect_anomalies() - Z-score 기반 이상치 탐지
+- [x] calculate_session_metrics() - 세션 메트릭 계산
+- [x] Pandas를 이용한 데이터 분석
+- [x] GPS 이동 거리 계산 (Haversine formula)
+
+#### Phase 45: 파일 정리 작업
+- [x] `app/tasks/file_cleanup.py` 작업 모듈
+- [x] cleanup_old_sensor_data() - 오래된 센서 데이터 정리
+- [x] cleanup_old_sync_logs() - 동기화 로그 정리
+- [x] cleanup_uploaded_files() - 업로드 파일 정리
+- [x] cleanup_failed_sessions() - 실패/중단 세션 정리
+- [x] optimize_database() - 데이터베이스 최적화
+- [x] generate_cleanup_report() - 정리 리포트 생성
+- [x] Celery Beat 스케줄 설정 (자동 실행)
+
+### 주요 구현 세부사항
+
+#### Phase 43: Celery 설정
+
+**Celery 앱 구조**:
+```python
+# celery_app.py
+celery = Celery(
+    'koodtx',
+    broker='redis://localhost:6379/0',
+    backend='redis://localhost:6379/0',
+    include=['app.tasks.data_processing', 'app.tasks.file_cleanup']
+)
+```
+
+**Celery 설정**:
+- **작업 타임아웃**: 5분 (하드), 4분 (소프트)
+- **직렬화**: JSON
+- **Worker prefetch**: 1 (한 번에 하나씩 처리)
+- **Worker 재시작**: 1000개 작업마다
+- **Result 만료**: 1시간
+
+**Beat 스케줄**:
+```python
+beat_schedule = {
+    'cleanup-old-data': {
+        'task': 'app.tasks.file_cleanup.cleanup_old_sensor_data',
+        'schedule': 3600.0 * 24,  # 매일
+        'args': (30,)  # 30일 이상 된 데이터
+    },
+    'cleanup-sync-logs': {
+        'task': 'app.tasks.file_cleanup.cleanup_old_sync_logs',
+        'schedule': 3600.0 * 24 * 7,  # 매주
+        'args': (90,)  # 90일 이상 된 로그
+    },
+}
+```
+
+**Worker 실행**:
+```bash
+# start_celery_worker.sh
+celery -A celery_app.celery worker \
+    --loglevel=info \
+    --concurrency=4 \
+    --pool=prefork
+```
+
+**Beat 실행**:
+```bash
+# start_celery_beat.sh
+celery -A celery_app.celery beat \
+    --loglevel=info \
+    --schedule=logs/celerybeat-schedule
+```
+
+#### Phase 44: 데이터 처리 작업
+
+**1. analyze_sensor_data(session_id)**
+센서 데이터 통계 분석:
+```python
+{
+    'session_id': 123,
+    'total_records': 5000,
+    'sensor_types': ['accelerometer', 'gyroscope', 'gps'],
+    'analysis': {
+        'accelerometer': {
+            'count': 2000,
+            'duration_ms': 20000,
+            'statistics': {
+                'x': {'mean': 0.1, 'std': 0.5, 'min': -2.0, 'max': 2.0},
+                'y': {'mean': 0.2, 'std': 0.6, 'min': -1.8, 'max': 1.9},
+                'z': {'mean': 9.8, 'std': 0.3, 'min': 9.2, 'max': 10.4}
+            }
+        },
+        'gps': {
+            'count': 500,
+            'statistics': {
+                'latitude': {'mean': 37.5, 'min': 37.4, 'max': 37.6},
+                'longitude': {'mean': 127.0, 'min': 126.9, 'max': 127.1},
+                'distance_km': 5.2  # Haversine formula
+            }
+        }
+    }
+}
+```
+
+**2. generate_statistics(user_id, start_date, end_date)**
+사용자별 통계 생성:
+```python
+{
+    'user_id': 1,
+    'statistics': {
+        'total_sessions': 50,
+        'total_data_records': 250000,
+        'total_duration_hours': 10.5,
+        'average_session_duration_ms': 756000,
+        'sensor_types_usage': {
+            'accelerometer': 45,
+            'gyroscope': 45,
+            'gps': 30,
+            'magnetometer': 25
+        }
+    }
+}
+```
+
+**3. detect_anomalies(session_id, sensitivity=3.0)**
+Z-score 기반 이상치 탐지:
+- 3축 센서의 magnitude 계산
+- Z-score > 3.0 (기본값)인 데이터 포인트 감지
+- 이상치 타임스탬프 및 통계 반환
+
+```python
+{
+    'session_id': 123,
+    'sensitivity': 3.0,
+    'anomalies': {
+        'accelerometer': {
+            'count': 15,
+            'percentage': 0.75,
+            'mean': 9.82,
+            'std': 0.5,
+            'max_z_score': 5.2,
+            'timestamps': [1699876543210, ...]
+        }
+    },
+    'total_anomalies': 15
+}
+```
+
+**4. calculate_session_metrics(session_id)**
+세션 주요 메트릭 계산:
+- 각 축별 통계 (mean, std, min, max, peak-to-peak)
+- 샘플 카운트
+- 데이터 품질 지표
+
+**GPS 이동 거리 계산 (Haversine Formula)**:
+```python
+def _calculate_total_distance(latitudes, longitudes):
+    """지구 표면상의 두 지점 간 거리 계산"""
+    R = 6371.0  # 지구 반지름 (km)
+    
+    total_distance = 0.0
+    for i in range(1, len(latitudes)):
+        lat1, lon1 = np.radians(latitudes[i-1]), np.radians(longitudes[i-1])
+        lat2, lon2 = np.radians(latitudes[i]), np.radians(longitudes[i])
+        
+        dlat = lat2 - lat1
+        dlon = lon2 - lon1
+        
+        a = sin(dlat/2)² + cos(lat1) * cos(lat2) * sin(dlon/2)²
+        c = 2 * arctan2(√a, √(1-a))
+        
+        total_distance += R * c
+    
+    return total_distance
+```
+
+#### Phase 45: 파일 정리 작업
+
+**1. cleanup_old_sensor_data(days=30)**
+오래된 센서 데이터 자동 정리:
+- 업로드 완료되고 종료된 세션의 센서 데이터 삭제
+- 세션 메타데이터는 유지 (분석용)
+- 기본값: 30일 이상
+
+```python
+# 매일 자동 실행 (Celery Beat)
+{
+    'message': 'Successfully cleaned up old sensor data',
+    'cutoff_date': '2025-10-14T00:00:00Z',
+    'cleaned_sessions': 25,
+    'cleaned_records': 125000
+}
+```
+
+**2. cleanup_old_sync_logs(days=90)**
+동기화 로그 정리:
+- 오래된 로그 삭제
+- 기본값: 90일 이상
+
+**3. cleanup_uploaded_files(days=7)**
+임시 업로드 파일 정리:
+- 처리 완료된 파일 자동 삭제
+- 디스크 공간 확보
+
+```python
+{
+    'message': 'Successfully cleaned up old uploaded files',
+    'cleaned_files': 150,
+    'total_size_mb': 250.5
+}
+```
+
+**4. cleanup_failed_sessions(hours=24)**
+실패/중단 세션 정리:
+- `is_active=True` 상태로 24시간 이상 방치된 세션
+- 자동 종료 처리
+- 노트에 `[Auto-closed: stale session]` 추가
+
+**5. optimize_database()**
+PostgreSQL 데이터베이스 최적화:
+- 테이블별 통계 수집
+- 인덱스 최적화 준비
+
+**6. generate_cleanup_report()**
+시스템 전체 통계 리포트:
+```python
+{
+    'report': {
+        'total': {
+            'sessions': 1000,
+            'active_sessions': 5,
+            'sensor_records': 5000000,
+            'sync_logs': 2500
+        },
+        'recent_30_days': {
+            'sessions': 250,
+            'syncs': 500
+        },
+        'disk_usage': {
+            'upload_folder': './uploads',
+            'size_mb': 512.0
+        }
+    }
+}
+```
+
+### Celery 작업 사용 예시
+
+#### 비동기 작업 예약
+```python
+from app.tasks.data_processing import analyze_sensor_data
+
+# 즉시 실행
+result = analyze_sensor_data.delay(session_id=123)
+
+# 결과 확인
+if result.ready():
+    analysis = result.get()
+    print(analysis)
+else:
+    print("작업 진행 중...")
+
+# 작업 취소
+result.revoke()
+```
+
+#### 지연 실행
+```python
+from app.tasks.file_cleanup import cleanup_old_sensor_data
+
+# 10분 후 실행
+result = cleanup_old_sensor_data.apply_async(
+    args=[30],
+    countdown=600  # 초
+)
+
+# 특정 시간에 실행
+from datetime import datetime, timedelta
+eta = datetime.utcnow() + timedelta(hours=1)
+result = cleanup_old_sensor_data.apply_async(
+    args=[30],
+    eta=eta
+)
+```
+
+#### 작업 체이닝
+```python
+from celery import chain
+
+# 순차 실행
+workflow = chain(
+    analyze_sensor_data.s(session_id=123),
+    calculate_session_metrics.s(),
+)
+result = workflow.apply_async()
+```
+
+#### 작업 그룹
+```python
+from celery import group
+
+# 병렬 실행
+job = group(
+    analyze_sensor_data.s(session_id=1),
+    analyze_sensor_data.s(session_id=2),
+    analyze_sensor_data.s(session_id=3),
+)
+result = job.apply_async()
+```
+
+### 파일 구조
+
+```
+server/
+├── celery_app.py              # Celery 앱 초기화
+├── start_celery_worker.sh     # Worker 실행 스크립트
+├── start_celery_beat.sh       # Beat 실행 스크립트
+├── app/
+│   └── tasks/
+│       ├── __init__.py        # Tasks 모듈
+│       ├── data_processing.py # Phase 44: 데이터 처리 작업
+│       └── file_cleanup.py    # Phase 45: 파일 정리 작업
+└── logs/
+    ├── celery_worker.log      # Worker 로그
+    ├── celery_beat.log        # Beat 로그
+    └── celerybeat-schedule    # Beat 스케줄 DB
+```
+
+### 진행 로그
+
+**2025-11-13 오후**:
+- Celery 앱 초기화 및 설정
+- Redis 브로커 연결 설정
+- Flask 앱 컨텍스트 통합
+- Worker 및 Beat 실행 스크립트 작성
+
+- Phase 44: 데이터 처리 작업 구현
+  - 센서 데이터 통계 분석
+  - 사용자별 통계 생성
+  - Z-score 이상치 탐지
+  - GPS 이동 거리 계산 (Haversine)
+  - 세션 메트릭 계산
+
+- Phase 45: 파일 정리 작업 구현
+  - 오래된 센서 데이터 정리
+  - 동기화 로그 정리
+  - 업로드 파일 정리
+  - 실패/중단 세션 정리
+  - 데이터베이스 최적화
+  - 정리 리포트 생성
+
+- Celery Beat 스케줄 설정
+  - 매일 자동 데이터 정리
+  - 매주 로그 정리
+
+- README 업데이트 (Phase 43-45 문서화)
+
+### 배운 점
+
+**Celery 아키텍처**:
+- **Broker (Redis)**: 작업 큐 메시지 전달
+- **Worker**: 작업 실행 프로세스
+- **Beat**: 주기적 작업 스케줄러
+- **Backend (Redis)**: 작업 결과 저장
+
+**비동기 작업 패턴**:
+- `.delay()`: 간단한 비동기 호출
+- `.apply_async()`: 고급 옵션 (countdown, eta, retry)
+- `chain()`: 순차 실행
+- `group()`: 병렬 실행
+- `chord()`: 병렬 실행 후 콜백
+
+**Pandas 데이터 분석**:
+- DataFrame을 이용한 센서 데이터 처리
+- NumPy 배열 연산으로 성능 최적화
+- 벡터화된 계산 (mean, std, min, max)
+
+**Z-score 이상치 탐지**:
+```
+Z = (X - μ) / σ
+|Z| > 3.0 → 이상치
+```
+
+**Celery Beat 스케줄링**:
+- Cron-like 주기적 작업 실행
+- schedule 파일로 상태 저장
+- 서버 재시작 시에도 스케줄 유지
+
+**Flask 앱 컨텍스트**:
+- Celery 작업 내에서 Flask 앱 컨텍스트 접근
+- `with app.app_context()` 패턴
+- 데이터베이스 세션 관리
+
+### 다음 단계
+
+- [ ] Phase 46: Swagger/OpenAPI 문서 자동 생성
+- [ ] Phase 47: pytest 설치 및 기본 설정
+- [ ] Phase 48: Auth 및 Sync API 테스트 작성
+- [ ] Phase 49: Gunicorn 프로덕션 서버 설정
+- [ ] Phase 50: Supervisor 프로세스 관리 설정
+
+---
+
+**Phase 43-45 완료**: ✅ Celery 비동기 작업 시스템 구현 완료
+**기술 스택**: Celery 5.3.4 + Redis 5.0.1 + Pandas 2.1.3
+**다음 단계**: Phase 46-48 (API 문서 및 테스트)
+
+**주요 성과**:
+- Celery 비동기 작업 큐 시스템 구축
+- Redis 메시지 브로커 연동
+- 센서 데이터 분석 작업 구현 (Pandas, NumPy)
+- GPS 이동 거리 계산 (Haversine formula)
+- Z-score 이상치 탐지 알고리즘
+- 자동 파일 정리 시스템 (Celery Beat)
+- 데이터베이스 최적화 작업
+- Worker 및 Beat 실행 스크립트
+
+**기술적 특징**:
+- Celery + Redis 비동기 아키텍처
+- Flask 앱 컨텍스트 통합
+- Pandas/NumPy 데이터 분석
+- Z-score 통계적 이상치 탐지
+- Haversine 거리 계산 알고리즘
+- Celery Beat 주기적 작업 스케줄링
+- 작업 체이닝 및 그룹화
+- 작업 타임아웃 및 재시도 설정
+- Worker prefetch multiplier 최적화
