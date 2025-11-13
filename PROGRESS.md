@@ -15252,3 +15252,63 @@ _최종 업데이트: 2025-11-13 23:45_
 ---
 
 _최종 업데이트: 2025-11-13 23:50_
+
+## Phase 95: 오디오 시각화 컴포넌트 ✅
+
+**상태**: ✅ 완료
+**완료일**: 2025-11-13
+**실제 소요**: 0.5시간
+**우선순위**: medium
+
+### 작업 내용
+
+오디오 녹음을 실시간으로 시각화하는 AudioVisualizer 컴포넌트를 구현했습니다.
+
+**AudioVisualizer.tsx** (433줄):
+- ✅ 실시간 dB 레벨 표시 (색상 변화)
+- ✅ 비주얼 레벨 미터 (animated bar)
+- ✅ 녹음 타이머 (MM:SS / HH:MM:SS 형식)
+- ✅ 애니메이션 (스프링, 펄스, 파형)
+- ✅ 파형 그래프 (20개 바 애니메이션)
+- ✅ 스타일링 (카드 스타일, 그림자)
+
+**주요 기능**:
+- formatDuration(): 시간 포맷팅 (MM:SS or HH:MM:SS)
+- dbToPercentage(): dB를 0-100% 변환
+- getLevelColor(): 레벨별 색상 (Red/Orange/Green/Blue/Gray)
+- Level meter animation: Spring animation for smooth transitions
+- Pulse animation: Recording indicator pulse (1.0 → 1.1 scale)
+- Waveform animation: 20 bars with staggered delays
+
+**시각화 요소**:
+- Recording timer with pulse indicator
+- dB level display with dynamic color
+- Silence badge (🔇 무음)
+- Visual level meter with peak indicator
+- dB scale markers (0, -20, -40, -60, -80)
+- Waveform bars (optional, 20 bars)
+- Detail panel: 현재 레벨, 최고 레벨, RMS
+
+**Store 통합**:
+- useAudioLevels: Real-time dB/RMS levels
+- useAudioSessionDuration: Recording duration
+- useIsAudioRecording, useIsAudioPaused: State checks
+
+**Components Index**:
+- Created src/components/index.ts
+- Exported AudioVisualizer, StepCounter, ErrorBoundary
+
+### 다음 Phase
+
+→ Phase 96: 센서 + 오디오 동시 녹음
+
+---
+
+## 통계 업데이트
+
+**완료된 Phase: 95/300**
+**진행률: 31.7%**
+
+---
+
+_최종 업데이트: 2025-11-13 23:55_
