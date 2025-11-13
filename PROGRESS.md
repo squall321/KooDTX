@@ -22,11 +22,11 @@
 
 ## Phase 진행 현황
 
-### ✅ 완료된 Phase: 84/300
+### ✅ 완료된 Phase: 85/300
 
-### 🔄 진행 중: Phase 85
+### 🔄 진행 중: Phase 86
 
-### ⏳ 대기 중: Phase 85-300
+### ⏳ 대기 중: Phase 86-300
 
 ---
 
@@ -13439,11 +13439,401 @@ startGPSTracking({
 
 ---
 
-## 통계 업데이트
+## Phase 85: GPS 데이터 저장 ✅
 
-**완료된 Phase: 84/300**
-**진행률: 28.0%**
+**상태**: ✅ 완료
+**완료일**: 2025-11-13
+**실제 소요**: 0.8시간
+**우선순위**: high
+
+### 작업 내용
+
+GPS 위치 데이터를 JSONL 형식으로 저장하고 WatermelonDB 메타데이터를 관리하는 저장 서비스를 구현했습니다. SensorDataPersistence와 통합하여 GPS 데이터를 효율적으로 저장합니다.
+
+#### 구현: GPSDataStorage.ts (380줄)
+
+**핵심 기능**:
+
+**1. GPS 데이터 포맷 정의**
+```typescript
+interface GPSDataSample {
+  sensorType: AndroidSensorType;  // Virtual sensor type for GPS
+  sensorName: string;              // "GPS"
+  timestamp: number;               // Nanoseconds since boot
+  systemTime: number;              // UTC milliseconds
+
+  // Position data
+  latitude: number;                // Degrees
+  longitude: number;               // Degrees
+  altitude: number | null;         // Meters (null if unavailable)
+
+  // Accuracy data
+  accuracy: number;                // Horizontal accuracy (meters)
+  altitudeAccuracy: number | null; // Vertical accuracy (meters)
+
+  // Movement data
+  heading: number | null;          // Degrees (0-360)
+  speed: number | null;            // Meters per second
+}
+```
+
+**데이터 필드**:
+- ✅ **위도/경도** (latitude/longitude): WGS84 좌표계, 도 단위
+- ✅ **고도** (altitude): 해발 고도, 미터 단위
+- ✅ **정확도** (accuracy): 수평 정확도, 미터 단위
+- ✅ **고도 정확도** (altitudeAccuracy): 수직 정확도, 미터 단위
+- ✅ **방향** (heading): 진행 방향, 도 단위 (0-360)
+- ✅ **속도** (speed): 이동 속도, m/s 단위
+
+**2. 타임스탬프 동기화**
+```typescript
+private convertPositionToSample(position: GPSPosition): GPSDataSample {
+  // Synchronize timestamp
+  const systemTime = getUTC();
+
+  // Convert GPS timestamp to nanoseconds
+  // GPS timestamp is already in milliseconds, convert to nanoseconds
+  const timestampNanos = position.timestamp * 1_000_000;
+
+  return {
+    timestamp: timestampNanos,    // Sensor timestamp (nanoseconds)
+    systemTime,                   // System timestamp (UTC milliseconds)
+    latitude: position.latitude,
+    longitude: position.longitude,
+    // ... other fields
+  };
+}
+```
+
+**타임스탬프 전략**:
+- ✅ **timestamp**: GPS 타임스탬프를 나노초로 변환 (센서 데이터 호환성)
+- ✅ **systemTime**: 시스템 UTC 타임스탬프 (밀리초)
+- ✅ **동기화**: 두 타임스탬프를 함께 저장하여 시간 보정 가능
+- ✅ **정밀도**: 나노초 단위로 높은 정밀도 유지
+
+**3. JSONL 파일 저장**
+```typescript
+async savePosition(sessionId: string, position: GPSPosition): Promise<void> {
+  // Convert to data sample
+  const sample = this.convertPositionToSample(position);
+
+  // Add to buffer
+  this.buffer.push(sample);
+
+  // Auto-flush if buffer is large (50 samples)
+  if (this.buffer.length >= 50) {
+    await this.flush(sessionId);
+  }
+}
+
+async flush(sessionId: string): Promise<void> {
+  // Write to SensorDataPersistence
+  const results = await sensorDataPersistence.writeSamples(
+    sessionId,
+    this.GPS_SENSOR_TYPE,  // Virtual sensor type: 65536
+    samplesToWrite,
+  );
+
+  // Update statistics
+  for (const result of results) {
+    if (result.success) {
+      this.stats.totalSamples += result.sampleCount;
+      this.stats.totalChunks++;
+      this.stats.totalBytes += result.fileSize;
+    }
+  }
+}
+```
+
+**저장 프로세스**:
+1. ✅ GPS position을 GPSDataSample로 변환
+2. ✅ 버퍼에 추가 (배치 처리)
+3. ✅ 50개 샘플 도달 시 자동 플러시
+4. ✅ SensorDataPersistence를 통해 JSONL 저장
+5. ✅ 1분 단위 청크 파일 생성
+6. ✅ 통계 업데이트
+
+**4. WatermelonDB 메타데이터**
+
+SensorDataPersistence (Phase 81)에서 자동으로 메타데이터를 저장합니다:
+
+```typescript
+// Chunk metadata saved to WatermelonDB
+{
+  chunkId: "chunk_recording-..._65536_1731394800000",
+  sessionId: "recording-1731394800000-abc123",
+  sensorType: "65536",  // GPS virtual sensor type
+  startTime: 1731394800000,
+  endTime: 1731394860000,
+  sampleCount: 50,
+  filePath: "/path/to/chunk_..._65536_1731394800000.jsonl",
+  fileSize: 12345,
+  synced: false,
+  createdAt: 1731394860000,
+}
+```
+
+**메타데이터 내용**:
+- ✅ 청크 ID (고유 식별자)
+- ✅ 세션 ID (녹음 세션 연결)
+- ✅ 센서 타입 (GPS: 65536)
+- ✅ 시작/종료 시간
+- ✅ 샘플 수 및 파일 크기
+- ✅ 동기화 상태
+
+**5. 배치 처리 및 버퍼링**
+```typescript
+// Buffer management
+private buffer: GPSDataSample[] = [];
+private bufferFlushInterval: number = 5000; // 5 seconds
+
+// Auto-flush timer
+private startAutoFlush(sessionId: string): void {
+  this.flushTimer = setInterval(async () => {
+    if (this.buffer.length > 0) {
+      await this.flush(sessionId);
+    }
+  }, this.bufferFlushInterval);
+}
+```
+
+**버퍼링 전략**:
+- ✅ **버퍼 크기**: 50 샘플 도달 시 자동 플러시
+- ✅ **타이머**: 5초마다 자동 플러시
+- ✅ **배치 처리**: I/O 최소화
+- ✅ **실패 복구**: 실패 시 버퍼에 다시 추가
+
+**6. 통계 추적**
+```typescript
+interface GPSStorageStats {
+  totalSamples: number;    // 총 저장된 샘플 수
+  totalChunks: number;     // 총 청크 수
+  totalBytes: number;      // 총 저장 바이트 수
+  lastSaveTime: number | null;  // 마지막 저장 시간
+  failedWrites: number;    // 실패한 쓰기 수
+}
+
+// Get statistics
+const stats = gpsDataStorage.getStatistics();
+console.log('Total GPS samples:', stats.totalSamples);
+console.log('Total chunks:', stats.totalChunks);
+console.log('Storage size:', (stats.totalBytes / 1024).toFixed(2) + ' KB');
+```
+
+### 사용 예제
+
+**1. GPS 추적 및 저장 통합**:
+```typescript
+import {
+  startGPSTracking,
+  addGPSPositionListener,
+  GPSAccuracyMode,
+} from '@services/gps';
+import {saveGPSPosition} from '@services/gps';
+
+const sessionId = 'recording-1731394800000-abc123';
+
+// Start GPS tracking
+startGPSTracking({
+  accuracyMode: GPSAccuracyMode.BALANCED,
+  distanceFilter: 10,
+  interval: 5000,
+});
+
+// Save positions to storage
+const unsubscribe = addGPSPositionListener(async (position) => {
+  await saveGPSPosition(sessionId, position);
+  console.log('GPS position saved:', position);
+});
+
+// Stop and cleanup
+setTimeout(async () => {
+  unsubscribe();
+  await flushGPSData(sessionId);
+  await cleanupGPSStorage(sessionId);
+}, 60000);
+```
+
+**2. 배치 저장**:
+```typescript
+import {saveGPSPositions} from '@services/gps';
+
+// Save multiple positions at once
+const positions = [position1, position2, position3];
+await saveGPSPositions(sessionId, positions);
+```
+
+**3. 수동 플러시**:
+```typescript
+import {flushGPSData, getGPSBufferSize} from '@services/gps';
+
+// Check buffer size
+const bufferSize = getGPSBufferSize();
+console.log('Buffer size:', bufferSize);
+
+// Manually flush
+if (bufferSize > 0) {
+  await flushGPSData(sessionId);
+  console.log('GPS data flushed');
+}
+```
+
+**4. 통계 모니터링**:
+```typescript
+import {getGPSStorageStatistics} from '@services/gps';
+
+const stats = getGPSStorageStatistics();
+console.log('GPS Storage Statistics:', {
+  samples: stats.totalSamples,
+  chunks: stats.totalChunks,
+  size: (stats.totalBytes / 1024 / 1024).toFixed(2) + ' MB',
+  lastSave: new Date(stats.lastSaveTime || 0).toISOString(),
+  failures: stats.failedWrites,
+});
+```
+
+**5. 플러시 간격 조절**:
+```typescript
+import {setGPSFlushInterval} from '@services/gps';
+
+// Set flush interval to 10 seconds
+setGPSFlushInterval(10000);
+```
+
+**6. 완전한 GPS 세션 관리**:
+```typescript
+import {
+  startGPSTracking,
+  stopGPSTracking,
+  addGPSPositionListener,
+  saveGPSPosition,
+  flushGPSData,
+  cleanupGPSStorage,
+  getGPSStorageStatistics,
+} from '@services/gps';
+
+class GPSRecordingSession {
+  private sessionId: string;
+  private unsubscribe: (() => void) | null = null;
+
+  async start(sessionId: string) {
+    this.sessionId = sessionId;
+
+    // Start GPS tracking
+    startGPSTracking({
+      accuracyMode: GPSAccuracyMode.BALANCED,
+      distanceFilter: 10,
+      interval: 5000,
+    });
+
+    // Save all positions
+    this.unsubscribe = addGPSPositionListener(async (position) => {
+      await saveGPSPosition(this.sessionId, position);
+    });
+
+    console.log('GPS recording started');
+  }
+
+  async stop() {
+    // Stop tracking
+    stopGPSTracking();
+
+    // Unsubscribe listener
+    if (this.unsubscribe) {
+      this.unsubscribe();
+    }
+
+    // Flush remaining data
+    await flushGPSData(this.sessionId);
+
+    // Get final statistics
+    const stats = getGPSStorageStatistics();
+    console.log('GPS recording stopped:', stats);
+
+    // Cleanup
+    await cleanupGPSStorage(this.sessionId);
+  }
+}
+```
+
+### JSONL 파일 형식
+
+**GPS 데이터 JSONL 파일 예시**:
+```jsonl
+{"sensorType":65536,"sensorName":"GPS","timestamp":1731394800000000000,"systemTime":1731394800000,"latitude":37.123456,"longitude":127.123456,"altitude":123.45,"accuracy":10.5,"altitudeAccuracy":5.2,"heading":90,"speed":5.5}
+{"sensorType":65536,"sensorName":"GPS","timestamp":1731394805000000000,"systemTime":1731394805000,"latitude":37.123457,"longitude":127.123457,"altitude":123.46,"accuracy":10.3,"altitudeAccuracy":5.1,"heading":91,"speed":5.6}
+{"sensorType":65536,"sensorName":"GPS","timestamp":1731394810000000000,"systemTime":1731394810000,"latitude":37.123458,"longitude":127.123458,"altitude":123.47,"accuracy":10.1,"altitudeAccuracy":5.0,"heading":92,"speed":5.7}
+```
+
+**파일 저장 위치**:
+```
+/data/user/0/com.koodtx/files/sensorData/
+├── chunk_recording-1731394800000-abc123_65536_1731394800000.jsonl
+├── chunk_recording-1731394800000-abc123_65536_1731394860000.jsonl
+└── chunk_recording-1731394800000-abc123_65536_1731394920000.jsonl
+```
+
+### 산출물
+
+- ✅ src/services/gps/GPSDataStorage.ts (380줄)
+- ✅ GPS 데이터 포맷 정의 (GPSDataSample)
+- ✅ 타임스탬프 동기화 (나노초 + UTC)
+- ✅ JSONL 파일 저장
+- ✅ WatermelonDB 메타데이터 통합
+- ✅ 배치 처리 및 버퍼링
+- ✅ 자동 플러시 (5초)
+- ✅ 통계 추적
+- ✅ 편의 함수
+- ✅ src/services/gps/index.ts 업데이트
+
+### 주요 성과
+
+**완전한 GPS 데이터 저장**:
+- ✅ 표준화된 GPS 데이터 포맷
+- ✅ 정밀한 타임스탬프 동기화
+- ✅ JSONL 형식 저장
+- ✅ WatermelonDB 메타데이터
+- ✅ SensorDataPersistence 통합
+
+**효율성**:
+- ✅ 배치 처리 (50 샘플)
+- ✅ 자동 플러시 (5초)
+- ✅ 버퍼링으로 I/O 최소화
+- ✅ 1분 단위 청크 파일
+
+**신뢰성**:
+- ✅ 실패 시 재시도
+- ✅ 통계 추적
+- ✅ Cleanup 지원
+- ✅ 에러 처리
+
+**통합**:
+- ✅ GPSService와 완벽 통합
+- ✅ SensorDataPersistence 재사용
+- ✅ 센서 데이터와 동일한 저장 구조
+- ✅ SyncQueue 자동 통합
+
+### 데이터 흐름
+
+```
+GPS Sensor → GPSService → GPSDataStorage → SensorDataPersistence → JSONL Files
+                  ↓              ↓                    ↓                  ↓
+            Position       GPSDataSample         Chunk Files      WatermelonDB
+            Listener       Conversion            (1-minute)       Metadata
+                                                                   SyncQueue
+```
+
+### 다음 Phase
+
+→ Phase 86: 센서 스토어 생성
 
 ---
 
-_최종 업데이트: 2025-11-13 23:15_
+## 통계 업데이트
+
+**완료된 Phase: 85/300**
+**진행률: 28.3%**
+
+---
+
+_최종 업데이트: 2025-11-13 23:30_

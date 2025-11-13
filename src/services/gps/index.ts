@@ -23,3 +23,20 @@ export type {
   GPSErrorListener,
   GPSStatistics,
 } from './GPSService';
+
+export {
+  default as gpsDataStorage,
+  saveGPSPosition,
+  saveGPSPositions,
+  flushGPSData,
+  getGPSStorageStatistics,
+  resetGPSStorageStatistics,
+  setGPSFlushInterval,
+  getGPSBufferSize,
+  cleanupGPSStorage,
+} from './GPSDataStorage';
+
+export type {
+  GPSDataSample,
+  GPSStorageStats,
+} from './GPSDataStorage';
