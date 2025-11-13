@@ -22,11 +22,11 @@
 
 ## Phase 진행 현황
 
-### ✅ 완료된 Phase: 82/300
+### ✅ 완료된 Phase: 83/300
 
-### 🔄 진행 중: Phase 83
+### 🔄 진행 중: Phase 84
 
-### ⏳ 대기 중: Phase 83-300
+### ⏳ 대기 중: Phase 84-300
 
 ---
 
@@ -12937,11 +12937,202 @@ formatMilliseconds(123.456789, 3);
 
 ---
 
-## 통계 업데이트
+## Phase 83: @react-native-community/geolocation 설치 ✅
 
-**완료된 Phase: 82/300**
-**진행률: 27.3%**
+**상태**: ✅ 완료
+**완료일**: 2025-11-13
+**실제 소요**: 0.3시간
+**우선순위**: high
+
+### 작업 내용
+
+GPS 위치 수집을 위한 @react-native-community/geolocation 라이브러리를 설치하고 Android/iOS 설정을 완료했습니다.
+
+#### 1. 라이브러리 설치
+
+```bash
+npm install @react-native-community/geolocation --save
+```
+
+**설치된 버전**: `@react-native-community/geolocation@3.4.0`
+
+#### 2. Android 설정
+
+**AndroidManifest.xml 권한 설정** (이미 완료):
+```xml
+<!-- Location permissions -->
+<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+<uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+```
+
+**권한 설명**:
+- ✅ `ACCESS_FINE_LOCATION`: 정밀한 위치 (GPS)
+- ✅ `ACCESS_COARSE_LOCATION`: 대략적인 위치 (Network)
+
+**Google Play Services**:
+- ✅ React Native 0.60+ autolinking으로 자동 연결
+- ✅ 별도 설정 불필요
+
+**위치 권한 연동**:
+- ✅ react-native-permissions와 통합
+- ✅ usePermissionsStore에서 관리
+
+#### 3. iOS 설정
+
+**Info.plist 권한 설명** (이미 완료):
+```xml
+<key>NSLocationWhenInUseUsageDescription</key>
+<string>KooDTX needs access to your location to record GPS data during data collection sessions.</string>
+
+<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+<string>KooDTX needs access to your location to record GPS data during data collection sessions.</string>
+```
+
+**권한 설명**:
+- ✅ `NSLocationWhenInUseUsageDescription`: 앱 사용 중 위치 접근
+- ✅ `NSLocationAlwaysAndWhenInUseUsageDescription`: 항상 위치 접근
+
+#### 4. 기본 사용법
+
+```typescript
+import Geolocation from '@react-native-community/geolocation';
+
+// Get current position
+Geolocation.getCurrentPosition(
+  (position) => {
+    console.log('Position:', position);
+    // {
+    //   coords: {
+    //     latitude: 37.123456,
+    //     longitude: 127.123456,
+    //     altitude: 123.45,
+    //     accuracy: 10.5,
+    //     altitudeAccuracy: 5.2,
+    //     heading: 90,
+    //     speed: 5.5,
+    //   },
+    //   timestamp: 1731394800000,
+    // }
+  },
+  (error) => {
+    console.error('Error:', error);
+  },
+  {
+    enableHighAccuracy: true,
+    timeout: 20000,
+    maximumAge: 1000,
+  }
+);
+
+// Watch position (continuous tracking)
+const watchId = Geolocation.watchPosition(
+  (position) => {
+    console.log('Position update:', position);
+  },
+  (error) => {
+    console.error('Error:', error);
+  },
+  {
+    enableHighAccuracy: true,
+    distanceFilter: 10, // Update every 10 meters
+    interval: 1000,     // Update every 1 second (Android)
+    fastestInterval: 500, // Fastest update (Android)
+  }
+);
+
+// Clear watch
+Geolocation.clearWatch(watchId);
+```
+
+#### 5. 위치 권한 연동
+
+```typescript
+import {usePermissionsStore} from '@store';
+import {PERMISSIONS} from 'react-native-permissions';
+import Geolocation from '@react-native-community/geolocation';
+
+// Request location permission
+const {requestPermission} = usePermissionsStore();
+
+const enableGPS = async () => {
+  const result = await requestPermission('location');
+
+  if (result === 'granted') {
+    // Start tracking
+    Geolocation.getCurrentPosition(
+      (position) => console.log('Position:', position),
+      (error) => console.error('Error:', error),
+      {enableHighAccuracy: true}
+    );
+  } else {
+    console.error('Location permission denied');
+  }
+};
+```
+
+#### 6. 라이브러리 옵션
+
+**getCurrentPosition() 옵션**:
+```typescript
+interface GeoOptions {
+  timeout?: number;           // Default: infinity
+  maximumAge?: number;        // Default: infinity
+  enableHighAccuracy?: boolean; // Default: false
+}
+```
+
+**watchPosition() 옵션 (Android)**:
+```typescript
+interface GeoOptions {
+  timeout?: number;
+  maximumAge?: number;
+  enableHighAccuracy?: boolean;
+  distanceFilter?: number;    // Minimum distance (meters) for updates
+  interval?: number;          // Update interval (ms)
+  fastestInterval?: number;   // Fastest update interval (ms)
+  useSignificantChanges?: boolean; // iOS only
+}
+```
+
+### 산출물
+
+- ✅ @react-native-community/geolocation@3.4.0 설치
+- ✅ Android 권한 설정 확인 (ACCESS_FINE_LOCATION, ACCESS_COARSE_LOCATION)
+- ✅ iOS 권한 설정 확인 (NSLocationWhenInUseUsageDescription)
+- ✅ Google Play Services autolinking
+- ✅ react-native-permissions 통합
+- ✅ package.json 업데이트
+
+### 주요 성과
+
+**설정 완료**:
+- ✅ Android 위치 권한 (FINE, COARSE)
+- ✅ iOS 위치 권한 (WhenInUse, Always)
+- ✅ Google Play Services 연결
+- ✅ 권한 관리 통합
+
+**기능 준비**:
+- ✅ 현재 위치 조회 (getCurrentPosition)
+- ✅ 위치 추적 (watchPosition)
+- ✅ 고정밀도 모드 (enableHighAccuracy)
+- ✅ 배터리 최적화 (distanceFilter)
+
+**통합 준비**:
+- ✅ usePermissionsStore와 연동
+- ✅ Phase 84 GPS 서비스 구현 준비
+- ✅ Phase 85 GPS 데이터 저장 준비
+
+### 다음 Phase
+
+→ Phase 84: GPS 서비스 구현
 
 ---
 
-_최종 업데이트: 2025-11-13 22:45_
+## 통계 업데이트
+
+**완료된 Phase: 83/300**
+**진행률: 27.7%**
+
+---
+
+_최종 업데이트: 2025-11-13 23:00_
