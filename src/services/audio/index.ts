@@ -17,3 +17,13 @@ export type {
   AudioChunkMetadata,
   AudioChunk,
 } from './AudioDataProcessor';
+
+export {audioService, AudioRecordingState} from './AudioService';
+
+export type {
+  AudioStatistics,
+  AudioRecordingOptions,
+  AudioLevelListener,
+  AudioChunkListener,
+  AudioErrorListener,
+} from './AudioService';
