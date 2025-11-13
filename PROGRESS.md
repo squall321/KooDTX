@@ -22,11 +22,11 @@
 
 ## Phase 진행 현황
 
-### ✅ 완료된 Phase: 40/300
+### ✅ 완료된 Phase: 42/300
 
-### 🔄 진행 중: Phase 41
+### 🔄 진행 중: Phase 43
 
-### ⏳ 대기 중: Phase 41-300
+### ⏳ 대기 중: Phase 43-300
 
 ---
 
@@ -8248,3 +8248,384 @@ const absHumidity = humidityService.calculateAbsoluteHumidity(20, 60); // 10.4 g
 - iOS: 네이티브 API 없음 (Weather API 사용 권장)
 - 스마트홈, HVAC, 환경 모니터링용으로 유용
 - 외부 Bluetooth 센서 사용 가능
+
+---
+
+## Phase 41-42: Flask 백엔드 - 동기화 API ✅
+
+**상태**: ✅ 완료
+**시작일**: 2025-11-13
+**완료일**: 2025-11-13
+**실제 소요**: 2시간
+**우선순위**: high
+
+### 작업 내용
+
+#### Phase 41: 동기화 Push API
+- [x] Flask 백엔드 프로젝트 구조 생성 (`/server/`)
+- [x] SQLAlchemy 데이터베이스 모델 설계
+  - User (JWT 인증)
+  - RecordingSession (센서 기록 세션)
+  - SensorData (JSONB 유연한 스키마)
+  - SyncLog (동기화 로그)
+- [x] POST `/api/auth/register` - 사용자 등록
+- [x] POST `/api/auth/login` - JWT 토큰 발급
+- [x] GET `/api/auth/me` - 현재 사용자 정보
+- [x] POST `/api/sync/push` - 센서 데이터 업로드
+  - 중복 체크 (session_id + sensor_type + timestamp)
+  - Last-Write-Wins 충돌 해결
+  - 배치 처리 (bulk insert)
+  - 동기화 로그 기록
+- [x] GET `/api/sync/status` - 동기화 상태 조회
+
+#### Phase 42: 동기화 Pull API
+- [x] POST `/api/sync/pull` - 센서 데이터 다운로드
+  - 델타 동기화 (last_sync_time 기반)
+  - 페이지네이션 (최대 100개/페이지)
+  - 선택적 데이터 포함 (include_data)
+  - 특정 세션 필터링 (session_ids)
+  - 서버 타임스탬프 반환
+
+### 주요 구현 세부사항
+
+#### Push API (Phase 41)
+
+**중복 체크**:
+- 복합 인덱스: `(session_id, sensor_type, timestamp)`
+- 동일한 키를 가진 데이터는 업데이트 처리
+
+**Last-Write-Wins 전략**:
+```python
+if timestamp in existing_lookup:
+    existing.data = sensor_data_dict  # 덮어쓰기
+    updated_count += 1
+else:
+    new_records.append(SensorData(...))  # 새로 삽입
+    inserted_count += 1
+```
+
+**배치 처리**:
+```python
+db.session.bulk_save_objects(new_records)  # 성능 최적화
+```
+
+**동기화 로그**:
+```json
+{
+  "sync_type": "push",
+  "records_count": 1000,
+  "duplicates_count": 20,
+  "status": "success",
+  "metadata": {
+    "inserted": 950,
+    "updated": 30,
+    "sensor_types": ["accelerometer", "gyroscope"],
+    "total_size_bytes": 150000
+  }
+}
+```
+
+#### Pull API (Phase 42)
+
+**델타 동기화**:
+```python
+if last_sync_time:
+    query = query.filter(RecordingSession.updated_at > last_sync_dt)
+```
+
+**페이지네이션**:
+```python
+offset = (page - 1) * page_size
+sessions = query.offset(offset).limit(page_size).all()
+has_more = (offset + page_size) < total
+```
+
+**선택적 데이터 포함**:
+```python
+if include_data:
+    # 센서 데이터 포함 (기본값)
+    sensor_data = SensorData.query.filter_by(session_id=session.id).all()
+else:
+    # 메타데이터만 반환 (네트워크 최적화)
+    sensor_data = []
+```
+
+**세션 필터링**:
+```python
+if session_ids:
+    query = query.filter(RecordingSession.session_id.in_(session_ids))
+```
+
+### 데이터베이스 모델
+
+**User 테이블**:
+- id (PK)
+- username (unique)
+- email (unique)
+- password_hash (bcrypt)
+- device_id (unique)
+- created_at, updated_at
+
+**RecordingSession 테이블**:
+- id (PK)
+- user_id (FK)
+- session_id (UUID, unique)
+- start_time, end_time
+- is_active, enabled_sensors (JSONB)
+- sample_rate, data_count
+- notes, is_uploaded
+- last_synced_at, created_at, updated_at
+
+**SensorData 테이블**:
+- id (PK)
+- session_id (FK)
+- sensor_type (indexed)
+- timestamp (indexed)
+- data (JSONB) - 유연한 센서 데이터 저장
+- is_uploaded
+- created_at, updated_at
+- 복합 인덱스: `(session_id, sensor_type, timestamp)`
+
+**SyncLog 테이블**:
+- id (PK)
+- user_id (FK)
+- session_id (FK, nullable)
+- sync_type ('push' | 'pull')
+- status ('success' | 'failed')
+- records_count, duplicates_count, errors_count
+- error_message, metadata (JSONB)
+- started_at, completed_at, created_at
+
+### 기술 스택
+
+**Backend**:
+- Flask 3.0.0
+- SQLAlchemy 2.0.23 (ORM)
+- PostgreSQL (JSONB)
+- Flask-JWT-Extended 4.5.3
+- psycopg2-binary (PostgreSQL driver)
+- bcrypt (패스워드 해싱)
+
+**개발 도구**:
+- python-dotenv (환경 변수)
+- flask-cors (CORS 지원)
+- gunicorn (프로덕션 서버, 예정)
+
+**향후 추가 예정**:
+- Celery (비동기 작업)
+- Redis (Celery 브로커)
+- Pandas (데이터 분석)
+- Swagger (API 문서)
+- pytest (테스트)
+
+### API 엔드포인트
+
+**인증 API**:
+- POST `/api/auth/register` - 사용자 등록
+- POST `/api/auth/login` - 로그인 (JWT 토큰 발급)
+- POST `/api/auth/refresh` - 토큰 갱신
+- GET `/api/auth/me` - 현재 사용자 정보 (JWT 인증 필요)
+
+**동기화 API**:
+- POST `/api/sync/push` - 클라이언트 → 서버 데이터 전송 (Phase 41)
+- POST `/api/sync/pull` - 서버 → 클라이언트 델타 동기화 (Phase 42)
+- GET `/api/sync/status` - 동기화 상태 및 통계
+
+**헬스 체크**:
+- GET `/health` - 서버 상태 확인
+
+### 파일 구조
+
+```
+server/
+├── app/
+│   ├── __init__.py          # Flask 앱 팩토리
+│   ├── config.py            # 환경별 설정
+│   ├── models/
+│   │   ├── user.py          # User 모델
+│   │   ├── session.py       # RecordingSession 모델
+│   │   ├── sensor_data.py   # SensorData 모델
+│   │   └── sync_log.py      # SyncLog 모델
+│   └── routes/
+│       ├── auth.py          # 인증 API
+│       └── sync.py          # 동기화 API (Phase 41-42)
+├── run.py                   # 애플리케이션 진입점
+├── requirements.txt         # Python 의존성
+├── .env.example             # 환경 변수 템플릿
+├── .gitignore              # Python/Flask gitignore
+└── README.md               # 백엔드 문서
+```
+
+### 진행 로그
+
+**2025-11-13 오전**:
+- Flask 백엔드 프로젝트 구조 생성
+- SQLAlchemy 모델 설계 (User, RecordingSession, SensorData, SyncLog)
+- JWT 인증 시스템 구현
+- Phase 41: Push API 완전 구현
+  - 중복 체크 및 Last-Write-Wins
+  - 배치 처리 (bulk insert)
+  - 동기화 로그 기록
+  - 에러 처리 및 트랜잭션 롤백
+
+**2025-11-13 오후**:
+- Phase 42: Pull API 완전 구현
+  - 델타 동기화 (last_sync_time)
+  - 페이지네이션 (page, page_size)
+  - 선택적 데이터 포함 (include_data)
+  - 세션 필터링 (session_ids)
+  - 서버 타임스탬프 반환
+- README.md 업데이트 (API 문서화)
+- PROGRESS.md 업데이트
+
+### 사용 예시
+
+#### Push API 사용 예시
+
+```bash
+# 1. 사용자 등록
+curl -X POST http://localhost:5000/api/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "testuser",
+    "email": "test@example.com",
+    "password": "password123",
+    "device_id": "device-uuid-123"
+  }'
+
+# 2. 로그인 (JWT 토큰 획득)
+curl -X POST http://localhost:5000/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "testuser",
+    "password": "password123"
+  }'
+
+# 3. 센서 데이터 Push
+curl -X POST http://localhost:5000/api/sync/push \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <JWT_TOKEN>" \
+  -d '{
+    "session": {
+      "session_id": "uuid-123",
+      "start_time": "2025-11-13T00:00:00Z",
+      "end_time": "2025-11-13T01:00:00Z",
+      "enabled_sensors": ["accelerometer", "gyroscope"],
+      "sample_rate": 100,
+      "notes": "Morning workout"
+    },
+    "sensor_data": [
+      {
+        "sensor_type": "accelerometer",
+        "timestamp": 1699876543210,
+        "data": {"x": 0.1, "y": 0.2, "z": 9.8}
+      }
+    ]
+  }'
+```
+
+#### Pull API 사용 예시
+
+```bash
+# 1. 초기 동기화 (모든 세션)
+curl -X POST http://localhost:5000/api/sync/pull \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <JWT_TOKEN>" \
+  -d '{
+    "page": 1,
+    "page_size": 50,
+    "include_data": true
+  }'
+
+# 2. 델타 동기화 (변경사항만)
+curl -X POST http://localhost:5000/api/sync/pull \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <JWT_TOKEN>" \
+  -d '{
+    "last_sync_time": "2025-11-13T10:00:00Z",
+    "page": 1,
+    "page_size": 50,
+    "include_data": true
+  }'
+
+# 3. 메타데이터만 조회 (네트워크 최적화)
+curl -X POST http://localhost:5000/api/sync/pull \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <JWT_TOKEN>" \
+  -d '{
+    "last_sync_time": "2025-11-13T10:00:00Z",
+    "page": 1,
+    "page_size": 50,
+    "include_data": false
+  }'
+
+# 4. 특정 세션만 조회
+curl -X POST http://localhost:5000/api/sync/pull \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <JWT_TOKEN>" \
+  -d '{
+    "session_ids": ["uuid-123", "uuid-456"],
+    "include_data": true
+  }'
+```
+
+### 배운 점
+
+**SQLAlchemy 패턴**:
+- Factory 패턴으로 앱 생성 (`create_app()`)
+- Blueprint로 라우트 모듈화
+- JSONB 타입으로 유연한 센서 데이터 저장
+- 복합 인덱스로 중복 체크 성능 최적화
+
+**동기화 전략**:
+- Last-Write-Wins로 충돌 간단히 해결
+- 델타 동기화로 네트워크 대역폭 절약
+- 페이지네이션으로 대량 데이터 처리
+- 선택적 데이터 포함으로 유연성 제공
+
+**에러 처리**:
+- 트랜잭션 롤백으로 데이터 일관성 보장
+- 동기화 로그로 문제 추적
+- 세부 에러 메시지 반환
+
+**보안**:
+- JWT 인증으로 API 보호
+- bcrypt로 패스워드 해싱
+- CORS 설정 준비
+- SQL Injection 방지 (SQLAlchemy ORM)
+
+### 다음 단계
+
+- [ ] Phase 43: Celery 설치 및 Redis 브로커 설정
+- [ ] Phase 44: 센서 데이터 처리 작업 (Pandas, 통계 분석)
+- [ ] Phase 45: 파일 정리 작업 (Celery Beat 스케줄링)
+- [ ] Phase 46: Swagger/OpenAPI 문서 자동 생성
+- [ ] Phase 47: pytest 설치 및 기본 설정
+- [ ] Phase 48: Auth 및 Sync API 테스트 작성
+- [ ] Phase 49: Gunicorn 프로덕션 서버 설정
+- [ ] Phase 50: Supervisor 프로세스 관리 설정
+
+---
+
+**Phase 41-42 완료**: ✅ Flask 백엔드 동기화 API 구현 완료
+**데이터베이스**: PostgreSQL + SQLAlchemy ORM
+**다음 단계**: Phase 43-45 (Celery 비동기 작업)
+
+**주요 성과**:
+- Flask 백엔드 프로젝트 구조 완성
+- JWT 인증 시스템 구현
+- Push/Pull 동기화 API 완전 구현
+- Last-Write-Wins 충돌 해결 전략
+- 델타 동기화 및 페이지네이션
+- 동기화 로그 및 에러 처리
+- JSONB로 유연한 센서 데이터 스키마
+
+**기술적 특징**:
+- Factory 패턴 (Flask 앱 생성)
+- Blueprint 모듈화 (auth, sync)
+- SQLAlchemy ORM (PostgreSQL)
+- JWT 토큰 기반 인증
+- JSONB 유연한 스키마
+- 배치 처리 (bulk_save_objects)
+- 트랜잭션 관리 및 롤백
+- 복합 인덱스 성능 최적화
