@@ -15151,3 +15151,104 @@ Android Native Module에 완전한 실시간 오디오 녹음 기능을 구현�
 ---
 
 _최종 업데이트: 2025-11-13 23:45_
+
+## Phase 93: AudioService 구현 ✅
+
+**상태**: ✅ 완료
+**완료일**: 2025-11-13
+**실제 소요**: 0.5시간
+**우선순위**: critical
+
+### 작업 내용
+
+오디오 녹음을 관리하는 고수준 AudioService를 구현했습니다.
+
+**AudioService.ts** (457줄):
+- ✅ 오디오 시작/중지 (startRecording, stopRecording)
+- ✅ 일시정지/재개 (pauseRecording, resumeRecording)
+- ✅ 실시간 dB 레벨 모니터링 (addLevelListener)
+- ✅ 오디오 설정 관리 (sampleRate, channels, bitsPerSample)
+- ✅ 파일 저장 경로 관리 (session ID 기반)
+- ✅ 버퍼 관리 및 통계 (AudioStatistics)
+- ✅ 에러 핸들링 (addErrorListener)
+
+**AudioRecordingState enum** (6개 상태):
+- IDLE, INITIALIZING, RECORDING, PAUSED, STOPPING, ERROR
+
+**주요 기능**:
+- startRecording(): Native 초기화 및 녹음 시작
+- setupNativeListeners(): 실시간 데이터/에러 리스너 설정
+- updateStatistics(): 통계 업데이트 (샘플 수, dB 레벨, 청크 수)
+- Listener 패턴: Level, Chunk, Error 리스너 지원
+- AudioDataProcessor 통합
+
+**Services Index 업데이트**:
+- audioService, AudioRecordingState export
+- AudioStatistics, AudioRecordingOptions 등 타입 export
+
+### 다음 Phase
+
+→ Phase 94: 오디오 스토어
+
+---
+
+## Phase 94: 오디오 스토어 ✅
+
+**상태**: ✅ 완료
+**완료일**: 2025-11-13
+**실제 소요**: 0.5시간
+**우선순위**: high
+
+### 작업 내용
+
+오디오 녹음 상태를 전역으로 관리하는 Zustand 스토어를 구현했습니다.
+
+**useAudioStore.ts** (565줄):
+- ✅ 녹음 상태 관리 (AudioRecordingState)
+- ✅ 현재 dB 레벨 추적 (AudioLevels)
+- ✅ 녹음 시간 추적 (AudioSessionInfo)
+- ✅ 오디오 설정 (AudioRecordingOptions)
+- ✅ 에러 상태 관리
+
+**State 인터페이스**:
+- recordingState: 녹음 상태
+- audioConfig: 오디오 설정 (sampleRate, channels, bitsPerSample)
+- audioFormat: 현재 오디오 포맷
+- audioLevels: 실시간 레벨 (currentDbLevel, peakDbLevel, isSilent)
+- currentSession: 세션 정보 (sessionId, duration, totalChunks)
+- statistics: 오디오 통계
+- recentChunks: 최근 청크 10개 저장
+- error: 에러 상태
+
+**주요 액션**:
+- startRecording(): AudioService 연동 및 리스너 설정
+- stopRecording(): 녹음 종료 및 통계 수집
+- pauseRecording(), resumeRecording()
+- updateAudioLevels(): 실시간 dB/RMS 업데이트
+- addChunk(): 청크 저장 (최근 10개 유지)
+
+**Selector Hooks** (20개):
+- useAudioRecordingState, useIsAudioRecording
+- useCurrentDbLevel, usePeakDbLevel, useIsAudioSilent
+- useAudioSession, useAudioSessionDuration
+- useAudioStatistics, useRecentAudioChunks
+- useAudioActions (액션 묶음)
+
+**Store Index 업데이트**:
+- useAudioStore 및 모든 셀렉터 export
+- AudioSessionInfo, AudioLevels 타입 export
+
+### 다음 Phase
+
+→ Phase 95: 오디오 시각화 컴포넌트
+
+---
+
+## 통계 업데이트
+
+**완료된 Phase: 94/300**
+**진행률: 31.3%**
+
+---
+
+_최종 업데이트: 2025-11-13 23:50_

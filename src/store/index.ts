@@ -45,3 +45,28 @@ export {
   usePermissionsLoading,
   usePermissionsRequesting,
 } from './usePermissionsStore';
+export {
+  useAudioStore,
+  useAudioRecordingState,
+  useIsAudioRecording,
+  useIsAudioPaused,
+  useIsAudioIdle,
+  useAudioConfig,
+  useAudioFormat,
+  useAudioLevels,
+  useCurrentDbLevel,
+  usePeakDbLevel,
+  useCurrentRmsLevel,
+  useIsAudioSilent,
+  useAudioSession,
+  useAudioSessionDuration,
+  useAudioStatistics,
+  useRecentAudioChunks,
+  useAudioError,
+  useAudioActions,
+} from './useAudioStore';
+export type {
+  AudioSessionInfo,
+  AudioLevels,
+  AudioStoreState,
+} from './useAudioStore';
