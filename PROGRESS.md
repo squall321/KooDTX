@@ -22,11 +22,11 @@
 
 ## Phase 진행 현황
 
-### ✅ 완료된 Phase: 75/300
+### ✅ 완료된 Phase: 76/300
 
-### 🔄 진행 중: Phase 76
+### 🔄 진행 중: Phase 77
 
-### ⏳ 대기 중: Phase 76-300
+### ⏳ 대기 중: Phase 77-300
 
 ---
 
@@ -11269,3 +11269,358 @@ unsub();
 ---
 
 _최종 업데이트: 2025-11-13 21:00_
+
+---
+
+## Phase 76: 센서 데이터 스트림 처리 ✅
+
+**상태**: ✅ 완료
+**완료일**: 2025-11-13
+**실제 소요**: 0.5시간
+**우선순위**: high
+
+### 작업 내용
+
+실시간 센서 데이터 스트리밍 시스템을 구현했습니다. Backpressure 처리, 버퍼 관리, 통계 추적 등 프로덕션 수준의 스트림 처리 기능을 제공합니다.
+
+#### 구현: SensorDataStream.ts (450줄)
+
+**핵심 클래스**:
+
+**1. SensorDataStream**
+개별 센서의 데이터 스트림 관리
+
+**주요 기능**:
+- ✅ 실시간 데이터 스트리밍
+- ✅ Backpressure 처리 (버퍼 오버플로우 방지)
+- ✅ 버퍼 관리 (최대 크기 설정 가능)
+- ✅ Drop 전략 (oldest/newest)
+- ✅ 스트림 상태 관리 (IDLE, ACTIVE, PAUSED, ERROR)
+- ✅ 통계 추적 (샘플 수, 속도, 드롭 수)
+- ✅ 타임아웃 처리
+- ✅ 비동기 처리 큐
+
+**API**:
+```typescript
+class SensorDataStream {
+  constructor(sensorType: AndroidSensorType, options?: StreamOptions)
+
+  // Stream control
+  start(dataHandler: StreamDataHandler, errorHandler?: StreamErrorHandler): void
+  stop(): Promise<void>
+  pause(): void
+  resume(): void
+  flush(): Promise<void>
+
+  // State & Stats
+  getState(): StreamState
+  getStats(): StreamStats
+  cleanup(): void
+}
+```
+
+**스트림 옵션**:
+```typescript
+interface StreamOptions {
+  maxBufferSize?: number;          // 최대 버퍼 크기 (기본: 1000)
+  maxProcessingTime?: number;      // 최대 처리 시간 (기본: 100ms)
+  dropStrategy?: 'oldest' | 'newest'; // 드롭 전략 (기본: 'oldest')
+  enableBackpressure?: boolean;    // Backpressure 활성화 (기본: true)
+  statsInterval?: number;          // 통계 업데이트 간격 (ms)
+}
+```
+
+**스트림 통계**:
+```typescript
+interface StreamStats {
+  totalSamples: number;           // 총 처리된 샘플 수
+  samplesPerSecond: number;       // 초당 샘플 수
+  droppedSamples: number;         // 드롭된 샘플 수
+  lastUpdate: number;             // 마지막 업데이트 시간
+  bufferUtilization: number;      // 버퍼 사용률 (0-1)
+}
+```
+
+**2. StreamManager**
+다중 센서 스트림 관리
+
+**주요 기능**:
+- ✅ 다중 센서 스트림 관리
+- ✅ 스트림 생성 및 재사용
+- ✅ 전역 에러 핸들러
+- ✅ 일괄 중지/플러시
+- ✅ 통합 통계 조회
+
+**API**:
+```typescript
+class StreamManager {
+  getStream(sensorType, options?): SensorDataStream
+  startStream(sensorType, dataHandler, errorHandler?, options?): SensorDataStream
+  stopStream(sensorType): Promise<void>
+  stopAllStreams(): Promise<void>
+  flushAllStreams(): Promise<void>
+  getAllStats(): Map<AndroidSensorType, StreamStats>
+  setGlobalErrorHandler(handler): void
+  cleanup(): void
+}
+```
+
+**사용 예제**:
+
+**기본 사용법**:
+```typescript
+import {streamManager, AndroidSensorType} from '@services/sensors';
+
+// Start stream
+const stream = streamManager.startStream(
+  AndroidSensorType.ACCELEROMETER,
+  async (sensorType, samples) => {
+    // Process samples
+    console.log(`Received ${samples.length} samples`);
+    samples.forEach(sample => {
+      const [x, y, z] = sample.values;
+      // Save to database, etc.
+    });
+  },
+  (error) => {
+    console.error('Stream error:', error);
+  },
+  {
+    maxBufferSize: 1000,
+    maxProcessingTime: 100,
+    dropStrategy: 'oldest',
+    enableBackpressure: true,
+    statsInterval: 5000, // Update stats every 5s
+  }
+);
+
+// Check state
+console.log('Stream state:', stream.getState());
+
+// Get statistics
+const stats = stream.getStats();
+console.log('Total samples:', stats.totalSamples);
+console.log('Samples/sec:', stats.samplesPerSecond);
+console.log('Dropped:', stats.droppedSamples);
+console.log('Buffer utilization:', stats.bufferUtilization);
+
+// Pause/Resume
+stream.pause();
+stream.resume();
+
+// Stop stream
+await stream.stop();
+```
+
+**다중 센서 처리**:
+```typescript
+import {streamManager, AndroidSensorType} from '@services/sensors';
+
+// Set global error handler
+streamManager.setGlobalErrorHandler((error) => {
+  console.error('Global sensor error:', error);
+});
+
+// Start multiple streams
+const accelStream = streamManager.startStream(
+  AndroidSensorType.ACCELEROMETER,
+  handleAccelData,
+  undefined,
+  {maxBufferSize: 500}
+);
+
+const gyroStream = streamManager.startStream(
+  AndroidSensorType.GYROSCOPE,
+  handleGyroData,
+  undefined,
+  {maxBufferSize: 500}
+);
+
+const gpsStream = streamManager.startStream(
+  AndroidSensorType.GPS,
+  handleGPSData,
+  undefined,
+  {maxBufferSize: 100}
+);
+
+// Get all statistics
+const allStats = streamManager.getAllStats();
+allStats.forEach((stats, sensorType) => {
+  console.log(`Sensor ${sensorType}:`, stats);
+});
+
+// Flush all streams
+await streamManager.flushAllStreams();
+
+// Stop all streams
+await streamManager.stopAllStreams();
+
+// Cleanup
+streamManager.cleanup();
+```
+
+**Backpressure 처리 예제**:
+```typescript
+// Configure aggressive backpressure handling
+const stream = streamManager.startStream(
+  AndroidSensorType.ACCELEROMETER,
+  async (sensorType, samples) => {
+    // Slow processing
+    await heavyProcessing(samples);
+  },
+  undefined,
+  {
+    maxBufferSize: 200,        // Small buffer
+    maxProcessingTime: 500,    // Allow longer processing
+    dropStrategy: 'newest',    // Drop newest if overflow
+    enableBackpressure: true,
+  }
+);
+```
+
+### 핵심 기능
+
+**1. Backpressure 처리**
+- 버퍼 오버플로우 자동 감지
+- Drop 전략: oldest (오래된 샘플 드롭) 또는 newest (새 샘플 드롭)
+- 드롭된 샘플 수 추적
+- 경고 로그
+
+**2. 비동기 처리 큐**
+- Promise chain으로 순차 처리
+- 동시 처리 방지
+- 타임아웃 보호
+- 에러 격리
+
+**3. 버퍼 관리**
+- 설정 가능한 최대 크기
+- 실시간 버퍼 사용률 추적
+- 자동 플러시
+- 메모리 효율적
+
+**4. 통계 추적**
+- 총 샘플 수
+- 초당 샘플 수 (실시간)
+- 드롭된 샘플 수
+- 버퍼 사용률
+
+**5. 상태 관리**
+- IDLE: 비활성
+- ACTIVE: 활성 스트리밍
+- PAUSED: 일시 중지
+- ERROR: 오류 상태
+
+**6. 에러 처리**
+- 개별 스트림 에러 핸들러
+- 전역 에러 핸들러
+- 타임아웃 처리
+- 자동 상태 전환
+
+### 진행 로그
+
+**2025-11-13 21:00 - 21:30**:
+- SensorDataStream 클래스 구현 (300줄)
+  - 실시간 스트리밍
+  - Backpressure 처리
+  - 버퍼 관리
+  - 통계 추적
+  - 타임아웃 처리
+- StreamManager 클래스 구현 (150줄)
+  - 다중 스트림 관리
+  - 전역 에러 핸들러
+  - 일괄 작업
+
+### 산출물
+
+- ✅ **src/services/sensors/SensorDataStream.ts** (450줄)
+  - SensorDataStream 클래스
+  - StreamManager 클래스
+  - 타입 정의 (StreamState, StreamStats, etc.)
+  - Singleton streamManager
+
+### 테스트 시나리오
+
+**1. 정상 스트리밍**:
+```typescript
+const stream = streamManager.startStream(
+  AndroidSensorType.ACCELEROMETER,
+  (type, samples) => {
+    console.log(`Received ${samples.length} samples`);
+  }
+);
+
+// Expected: 데이터 정상 수신
+```
+
+**2. 버퍼 오버플로우**:
+```typescript
+const stream = streamManager.startStream(
+  AndroidSensorType.ACCELEROMETER,
+  async (type, samples) => {
+    // Slow processing - intentional delay
+    await delay(1000);
+  },
+  undefined,
+  {maxBufferSize: 100, dropStrategy: 'oldest'}
+);
+
+// Expected: 오래된 샘플 자동 드롭, 경고 로그
+```
+
+**3. 타임아웃**:
+```typescript
+const stream = streamManager.startStream(
+  AndroidSensorType.ACCELEROMETER,
+  async (type, samples) => {
+    await infiniteLoop(); // Never completes
+  },
+  undefined,
+  {maxProcessingTime: 100}
+);
+
+// Expected: 타임아웃 에러, 에러 핸들러 호출
+```
+
+**4. 다중 센서**:
+```typescript
+await streamManager.startStream(AndroidSensorType.ACCELEROMETER, handler1);
+await streamManager.startStream(AndroidSensorType.GYROSCOPE, handler2);
+await streamManager.startStream(AndroidSensorType.GPS, handler3);
+
+const stats = streamManager.getAllStats();
+// Expected: 3개 스트림 통계
+
+await streamManager.stopAllStreams();
+// Expected: 모든 스트림 중지
+```
+
+### 주요 성과
+
+**프로덕션 수준의 스트림 처리**:
+- ✅ 고성능 실시간 처리
+- ✅ 자동 Backpressure 관리
+- ✅ 메모리 안전성
+- ✅ 에러 복원력
+- ✅ 통계 모니터링
+- ✅ 확장 가능한 아키텍처
+
+**개발자 경험**:
+- ✅ 간단한 API
+- ✅ TypeScript 타입 안전성
+- ✅ 유연한 설정
+- ✅ 명확한 에러 메시지
+
+### 다음 Phase
+
+→ Phase 77: SensorService 구조 설계
+
+---
+
+## 통계 업데이트
+
+**완료된 Phase: 76/300**
+**진행률: 25.3%**
+
+---
+
+_최종 업데이트: 2025-11-13 21:30_
