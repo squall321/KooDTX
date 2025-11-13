@@ -22,11 +22,11 @@
 
 ## Phase 진행 현황
 
-### ✅ 완료된 Phase: 76/300
+### ✅ 완료된 Phase: 77/300
 
-### 🔄 진행 중: Phase 77
+### 🔄 진행 중: Phase 78
 
-### ⏳ 대기 중: Phase 77-300
+### ⏳ 대기 중: Phase 78-300
 
 ---
 
@@ -11624,3 +11624,419 @@ await streamManager.stopAllStreams();
 ---
 
 _최종 업데이트: 2025-11-13 21:30_
+
+---
+
+## Phase 77: SensorService 구조 설계 ✅
+
+**상태**: ✅ 완료
+**완료일**: 2025-11-13  
+**실제 소요**: 0.5시간
+**우선순위**: critical
+
+### 작업 내용
+
+센서 데이터 수집 세션을 관리하는 고수준 서비스를 구현했습니다. 싱글톤 패턴으로 전역 접근을 제공하며, 녹음 세션의 전체 생명주기를 관리합니다.
+
+#### 구현: SensorService.ts (550줄)
+
+**싱글톤 패턴**:
+```typescript
+export class SensorService {
+  private static instance: SensorService;
+  
+  static getInstance(options?: SensorServiceOptions): SensorService {
+    if (!SensorService.instance) {
+      SensorService.instance = new SensorService(options);
+    }
+    return SensorService.instance;
+  }
+}
+
+export const sensorService = SensorService.getInstance();
+```
+
+**핵심 기능**:
+
+**1. 녹음 세션 관리**
+- ✅ 세션 생성 및 ID 관리 (UUID)
+- ✅ 세션 상태 추적 (IDLE → STARTING → RECORDING → STOPPING → STOPPED)
+- ✅ 다중 센서 동시 관리
+- ✅ 센서 설정 관리
+
+**2. 센서 제어**
+- ✅ 시작/중지/일시정지/재개
+- ✅ 센서별 개별 설정 (샘플링율, 배치 크기)
+- ✅ 자동 센서 가용성 체크
+- ✅ Native 센서 연동
+
+**3. 데이터 처리**
+- ✅ 실시간 데이터 핸들러
+- ✅ 자동 플러시 (5초 간격)
+- ✅ 스트림 관리 통합
+- ✅ Backpressure 처리
+
+**4. 통계 추적**
+- ✅ 실시간 녹음 통계
+- ✅ 센서별 통계
+- ✅ 총 샘플 수, 드롭 수
+- ✅ 자동 통계 업데이트 (5초 간격)
+
+**5. 이벤트 시스템**
+- ✅ 상태 변경 이벤트
+- ✅ 에러 이벤트
+- ✅ 통계 업데이트 이벤트
+- ✅ 이벤트 리스너 관리
+
+**주요 타입 정의**:
+
+```typescript
+// 녹음 상태
+enum RecordingState {
+  IDLE = 'idle',
+  STARTING = 'starting',
+  RECORDING = 'recording',
+  PAUSING = 'pausing',
+  PAUSED = 'paused',
+  STOPPING = 'stopping',
+  STOPPED = 'stopped',
+  ERROR = 'error',
+}
+
+// 센서 설정
+interface SensorConfig {
+  sensorType: AndroidSensorType;
+  enabled: boolean;
+  samplingRate?: SensorSamplingRate;
+  batchSize?: number;
+}
+
+// 녹음 세션
+interface RecordingSession {
+  sessionId: string;
+  deviceId: string;
+  startTime: number;
+  endTime?: number;
+  state: RecordingState;
+  enabledSensors: AndroidSensorType[];
+  sensorConfigs: Map<AndroidSensorType, SensorConfig>;
+}
+
+// 녹음 통계
+interface RecordingStats {
+  sessionId: string;
+  duration: number;
+  sensorStats: Map<AndroidSensorType, StreamStats>;
+  totalSamples: number;
+  totalDropped: number;
+}
+
+// 이벤트
+interface RecordingEvent {
+  type: 'state_change' | 'error' | 'stats_update';
+  sessionId?: string;
+  state?: RecordingState;
+  error?: Error;
+  stats?: RecordingStats;
+  timestamp: number;
+}
+```
+
+**API 메서드**:
+
+```typescript
+class SensorService {
+  // Initialization
+  async initialize(): Promise<void>
+
+  // Recording control
+  async startRecording(configs: SensorConfig[], handler: SensorDataHandler): Promise<string>
+  async stopRecording(): Promise<void>
+  async pauseRecording(): Promise<void>
+  async resumeRecording(): Promise<void>
+
+  // State & Info
+  getRecordingState(): RecordingState
+  getCurrentSession(): RecordingSession | null
+  getRecordingStats(): RecordingStats | null
+
+  // Sensor queries
+  async isSensorAvailable(sensorType): Promise<boolean>
+  async getAvailableSensors(): Promise<SensorInfo[]>
+
+  // Event management
+  addEventListener(listener: RecordingEventListener): () => void
+  removeAllEventListeners(): void
+
+  // Cleanup
+  async cleanup(): Promise<void>
+}
+```
+
+**사용 예제**:
+
+**1. 기본 사용법**:
+```typescript
+import {sensorService, AndroidSensorType, SensorSamplingRate} from '@services';
+
+// Initialize
+await sensorService.initialize();
+
+// Configure sensors
+const sensorConfigs = [
+  {
+    sensorType: AndroidSensorType.ACCELEROMETER,
+    enabled: true,
+    samplingRate: SensorSamplingRate.FASTEST,
+    batchSize: 50,
+  },
+  {
+    sensorType: AndroidSensorType.GYROSCOPE,
+    enabled: true,
+    samplingRate: SensorSamplingRate.FASTEST,
+    batchSize: 50,
+  },
+  {
+    sensorType: AndroidSensorType.GPS,
+    enabled: true,
+    samplingRate: SensorSamplingRate.NORMAL,
+    batchSize: 10,
+  },
+];
+
+// Start recording
+const sessionId = await sensorService.startRecording(
+  sensorConfigs,
+  async (sessionId, sensorType, samples) => {
+    // Handle sensor data
+    console.log(`Session ${sessionId}: ${sensorType} - ${samples.length} samples`);
+    
+    // Save to database
+    await saveSensorData(sessionId, sensorType, samples);
+  }
+);
+
+console.log('Recording started:', sessionId);
+
+// ... collect data ...
+
+// Stop recording
+await sensorService.stopRecording();
+console.log('Recording stopped');
+```
+
+**2. 이벤트 리스너**:
+```typescript
+// Add event listener
+const unsubscribe = sensorService.addEventListener((event) => {
+  switch (event.type) {
+    case 'state_change':
+      console.log('State changed:', event.state);
+      break;
+    case 'error':
+      console.error('Error:', event.error);
+      break;
+    case 'stats_update':
+      console.log('Stats:', event.stats);
+      console.log('Total samples:', event.stats?.totalSamples);
+      console.log('Samples/sec:', event.stats?.duration);
+      break;
+  }
+});
+
+// ... recording ...
+
+// Cleanup
+unsubscribe();
+```
+
+**3. 일시정지/재개**:
+```typescript
+// Start recording
+const sessionId = await sensorService.startRecording(configs, handler);
+
+// Pause
+await sensorService.pauseRecording();
+console.log('Paused');
+
+// Resume
+await sensorService.resumeRecording();
+console.log('Resumed');
+
+// Stop
+await sensorService.stopRecording();
+```
+
+**4. 통계 조회**:
+```typescript
+// During recording
+const stats = sensorService.getRecordingStats();
+if (stats) {
+  console.log('Session ID:', stats.sessionId);
+  console.log('Duration:', stats.duration, 'ms');
+  console.log('Total samples:', stats.totalSamples);
+  console.log('Total dropped:', stats.totalDropped);
+  
+  // Per-sensor stats
+  stats.sensorStats.forEach((sensorStats, sensorType) => {
+    console.log(`Sensor ${sensorType}:`, sensorStats);
+  });
+}
+```
+
+**5. 센서 가용성 체크**:
+```typescript
+// Check specific sensor
+const hasAccel = await sensorService.isSensorAvailable(
+  AndroidSensorType.ACCELEROMETER
+);
+
+// Get all available sensors
+const sensors = await sensorService.getAvailableSensors();
+console.log('Available sensors:', sensors.length);
+```
+
+**서비스 옵션**:
+
+```typescript
+const sensorService = SensorService.getInstance({
+  deviceId: 'my-device-id',
+  defaultSamplingRate: SensorSamplingRate.GAME,
+  defaultBatchSize: 50,
+  enableAutoFlush: true,
+  autoFlushInterval: 5000,        // 5초마다 자동 플러시
+  maxBufferSize: 1000,
+  enableStats: true,
+  statsInterval: 5000,            // 5초마다 통계 업데이트
+});
+```
+
+### 통합 아키텍처
+
+```
+┌─────────────────────────────────────────┐
+│         SensorService (Phase 77)        │  ← 고수준 API
+├─────────────────────────────────────────┤
+│ - 세션 관리                              │
+│ - 상태 관리                              │
+│ - 이벤트 시스템                          │
+│ - 자동 플러시/통계                       │
+└──────────────┬──────────────────────────┘
+               │
+               ↓
+┌─────────────────────────────────────────┐
+│    SensorDataStream (Phase 76)          │  ← 스트림 처리
+├─────────────────────────────────────────┤
+│ - Backpressure                          │
+│ - 버퍼 관리                              │
+│ - 통계 추적                              │
+└──────────────┬──────────────────────────┘
+               │
+               ↓
+┌─────────────────────────────────────────┐
+│    NativeSensorBridge (Phase 75)        │  ← TypeScript Bridge
+├─────────────────────────────────────────┤
+│ - Type-safe API                         │
+│ - 이벤트 스트리밍                        │
+└──────────────┬──────────────────────────┘
+               │
+               ↓
+┌─────────────────────────────────────────┐
+│      SensorModule.kt (Phase 71)         │  ← Native Module
+├─────────────────────────────────────────┤
+│ - 센서 하드웨어 접근                     │
+│ - 고주파 데이터 수집                     │
+└─────────────────────────────────────────┘
+```
+
+### 진행 로그
+
+**2025-11-13 21:30 - 22:00**:
+- SensorService.ts 구현 (550줄)
+  - 싱글톤 패턴
+  - 녹음 세션 관리
+  - 센서 제어 API
+  - 이벤트 시스템
+  - 자동 플러시/통계
+  - 상태 기계 (8개 상태)
+  - 에러 처리
+
+### 산출물
+
+- ✅ **src/services/SensorService.ts** (550줄)
+  - SensorService 클래스
+  - 타입 정의 (RecordingState, SensorConfig, etc.)
+  - Singleton instance
+
+### 테스트 시나리오
+
+**1. 정상 녹음 플로우**:
+```typescript
+await sensorService.initialize();
+const sessionId = await sensorService.startRecording(configs, handler);
+// State: IDLE → STARTING → RECORDING
+await delay(10000); // 10초 녹음
+await sensorService.stopRecording();
+// State: RECORDING → STOPPING → STOPPED → IDLE
+```
+
+**2. 일시정지/재개**:
+```typescript
+await sensorService.startRecording(configs, handler);
+await sensorService.pauseRecording();  // RECORDING → PAUSING → PAUSED
+await delay(5000);
+await sensorService.resumeRecording(); // PAUSED → RECORDING
+await sensorService.stopRecording();
+```
+
+**3. 에러 처리**:
+```typescript
+try {
+  await sensorService.startRecording(configs, handler);
+  // ... error occurs ...
+} catch (error) {
+  // State: ERROR
+  console.error('Recording error:', error);
+}
+```
+
+**4. 통계 추적**:
+```typescript
+sensorService.addEventListener((event) => {
+  if (event.type === 'stats_update') {
+    console.log('Stats:', event.stats);
+  }
+});
+// Stats updated every 5 seconds
+```
+
+### 주요 성과
+
+**완전한 센서 관리 시스템**:
+- ✅ 고수준 추상화 API
+- ✅ 세션 생명주기 관리
+- ✅ 자동 리소스 관리
+- ✅ 실시간 통계 추적
+- ✅ 이벤트 기반 아키텍처
+- ✅ 에러 복원력
+
+**개발자 경험**:
+- ✅ 간단한 API (start/stop/pause/resume)
+- ✅ 타입 안전성
+- ✅ 이벤트 리스너
+- ✅ 자동 플러시
+
+### 다음 Phase
+
+→ Phase 78-80: 센서 시작/중지 로직 및 데이터 버퍼링 (Phase 77에서 이미 구현됨)
+
+---
+
+## 통계 업데이트
+
+**완료된 Phase: 77/300**
+**진행률: 25.7%**
+
+---
+
+_최종 업데이트: 2025-11-13 22:00_
