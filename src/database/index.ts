@@ -6,7 +6,15 @@
 import {Database} from '@nozbe/watermelondb';
 import SQLiteAdapter from '@nozbe/watermelondb/adapters/sqlite';
 import {schema} from './schema';
-import {RecordingSession, SensorDataRecord, AudioRecording, StepEvent, StepCount} from './models';
+import {
+  RecordingSession,
+  SensorDataRecord,
+  AudioRecording,
+  StepEvent,
+  StepCount,
+  SyncQueue,
+  File,
+} from './models';
 
 // Database adapter configuration
 const adapter = new SQLiteAdapter({
@@ -23,9 +31,25 @@ const adapter = new SQLiteAdapter({
 // Create database instance
 export const database = new Database({
   adapter,
-  modelClasses: [RecordingSession, SensorDataRecord, AudioRecording, StepEvent, StepCount],
+  modelClasses: [
+    RecordingSession,
+    SensorDataRecord,
+    AudioRecording,
+    StepEvent,
+    StepCount,
+    SyncQueue,
+    File,
+  ],
 });
 
 // Export models for convenience
-export {RecordingSession, SensorDataRecord, AudioRecording, StepEvent, StepCount};
+export {
+  RecordingSession,
+  SensorDataRecord,
+  AudioRecording,
+  StepEvent,
+  StepCount,
+  SyncQueue,
+  File,
+};
 export {schema};

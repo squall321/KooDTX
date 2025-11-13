@@ -6,7 +6,7 @@
 import {appSchema, tableSchema} from '@nozbe/watermelondb';
 
 export const schema = appSchema({
-  version: 7,
+  version: 8,
   tables: [
     // Recording Sessions
     tableSchema({
@@ -122,6 +122,46 @@ export const schema = appSchema({
         {name: 'count', type: 'number'}, // Cumulative count since boot
         {name: 'delta', type: 'number'}, // Steps since last sample
         {name: 'is_uploaded', type: 'boolean'},
+        {name: 'created_at', type: 'number'},
+        {name: 'updated_at', type: 'number'},
+      ],
+    }),
+
+    // Sync Queue (for managing data synchronization with server)
+    tableSchema({
+      name: 'sync_queue',
+      columns: [
+        {name: 'session_id', type: 'string', isIndexed: true},
+        {name: 'item_type', type: 'string', isIndexed: true}, // 'session', 'sensor_data', 'audio', 'step_event', 'step_count'
+        {name: 'item_id', type: 'string', isIndexed: true}, // ID of the item to sync
+        {name: 'status', type: 'string', isIndexed: true}, // 'pending', 'in_progress', 'completed', 'failed'
+        {name: 'retry_count', type: 'number'}, // Number of retry attempts
+        {name: 'max_retries', type: 'number'}, // Maximum retry attempts
+        {name: 'priority', type: 'number', isIndexed: true}, // Higher number = higher priority
+        {name: 'error_message', type: 'string', isOptional: true},
+        {name: 'last_attempt_at', type: 'number', isOptional: true},
+        {name: 'next_retry_at', type: 'number', isOptional: true},
+        {name: 'completed_at', type: 'number', isOptional: true},
+        {name: 'created_at', type: 'number'},
+        {name: 'updated_at', type: 'number'},
+      ],
+    }),
+
+    // Files (for tracking all file-based data like audio, exports, etc.)
+    tableSchema({
+      name: 'files',
+      columns: [
+        {name: 'session_id', type: 'string', isIndexed: true},
+        {name: 'file_type', type: 'string', isIndexed: true}, // 'audio', 'export', 'backup'
+        {name: 'file_path', type: 'string'},
+        {name: 'file_name', type: 'string'},
+        {name: 'file_size', type: 'number'},
+        {name: 'mime_type', type: 'string'},
+        {name: 'checksum', type: 'string', isOptional: true}, // MD5 or SHA256 hash
+        {name: 'is_uploaded', type: 'boolean'},
+        {name: 'uploaded_url', type: 'string', isOptional: true},
+        {name: 'uploaded_at', type: 'number', isOptional: true},
+        {name: 'metadata', type: 'string', isOptional: true}, // JSON string for additional metadata
         {name: 'created_at', type: 'number'},
         {name: 'updated_at', type: 'number'},
       ],
