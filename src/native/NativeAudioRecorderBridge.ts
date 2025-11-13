@@ -60,12 +60,16 @@ export interface RecordingState {
 
 /**
  * Audio data event
+ * Phase 91: Added RMS, dB, and silence detection
  */
 export interface AudioDataEvent {
   data: number[];
   timestamp: number;
   sampleRate: number;
   channels: number;
+  rmsLevel: number; // Root Mean Square level
+  dbLevel: number; // Decibel level
+  isSilent: boolean; // Silence detection flag
 }
 
 /**
@@ -170,6 +174,46 @@ class NativeAudioRecorderBridge {
    */
   public async getRecordingState(): Promise<RecordingState> {
     return AudioRecorderModuleNative.getRecordingState();
+  }
+
+  /**
+   * Start audio recording
+   * Phase 91: Start recording with background thread
+   *
+   * @returns Promise that resolves when recording starts
+   */
+  public async startRecording(): Promise<{success: boolean; state: string}> {
+    return AudioRecorderModuleNative.startRecording();
+  }
+
+  /**
+   * Stop audio recording
+   * Phase 91: Stop recording
+   *
+   * @returns Promise that resolves when recording stops
+   */
+  public async stopRecording(): Promise<{success: boolean; state: string}> {
+    return AudioRecorderModuleNative.stopRecording();
+  }
+
+  /**
+   * Pause audio recording
+   * Phase 91: Pause recording
+   *
+   * @returns Promise that resolves when recording pauses
+   */
+  public async pauseRecording(): Promise<{success: boolean; state: string}> {
+    return AudioRecorderModuleNative.pauseRecording();
+  }
+
+  /**
+   * Resume audio recording
+   * Phase 91: Resume recording
+   *
+   * @returns Promise that resolves when recording resumes
+   */
+  public async resumeRecording(): Promise<{success: boolean; state: string}> {
+    return AudioRecorderModuleNative.resumeRecording();
   }
 
   /**

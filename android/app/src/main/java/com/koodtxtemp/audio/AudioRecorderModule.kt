@@ -9,8 +9,12 @@ import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
 import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.WritableMap
+import com.facebook.react.bridge.WritableArray
 import com.facebook.react.bridge.Arguments
 import com.facebook.react.modules.core.DeviceEventManagerModule
+import java.util.concurrent.atomic.AtomicBoolean
+import kotlin.math.sqrt
+import kotlin.math.log10
 
 /**
  * AudioRecorderModule - Native Module for Audio Recording
@@ -48,6 +52,7 @@ class AudioRecorderModule(reactContext: ReactApplicationContext) :
     private var audioRecord: AudioRecord? = null
     private var isRecording = false
     private var isPaused = false
+    private val shouldContinueRecording = AtomicBoolean(false)
 
     // Audio configuration
     private var sampleRate: Int = DEFAULT_SAMPLE_RATE
@@ -55,6 +60,22 @@ class AudioRecorderModule(reactContext: ReactApplicationContext) :
     private var audioFormat: Int = DEFAULT_AUDIO_FORMAT
     private var audioSource: Int = DEFAULT_AUDIO_SOURCE
     private var bufferSize: Int = 0
+
+    // Recording thread
+    private var recordingThread: Thread? = null
+
+    // Audio data buffering
+    private val audioDataBuffer = mutableListOf<Short>()
+    private val BUFFER_SEND_SIZE = 4096 // Send data in chunks of 4096 samples
+
+    // RMS and dB calculation
+    private var lastRmsLevel: Double = 0.0
+    private var lastDbLevel: Double = -96.0 // -96 dB is essentially silence
+
+    // Silence detection
+    private val SILENCE_THRESHOLD_DB = -50.0 // dB threshold for silence
+    private var silenceDuration: Long = 0
+    private var lastSoundTime: Long = System.currentTimeMillis()
 
     override fun getName(): String {
         return MODULE_NAME
@@ -280,6 +301,303 @@ class AudioRecorderModule(reactContext: ReactApplicationContext) :
         } catch (e: Exception) {
             Log.e(TAG, "Failed to get recording state", e)
             promise.reject("STATE_ERROR", "Failed to get recording state: ${e.message}", e)
+        }
+    }
+
+    /**
+     * Start audio recording
+     * Phase 91: AudioRecord start with background thread
+     *
+     * @param promise Promise to resolve/reject
+     */
+    @ReactMethod
+    fun startRecording(promise: Promise) {
+        try {
+            if (isRecording) {
+                promise.reject("ALREADY_RECORDING", "Already recording audio")
+                return
+            }
+
+            // Create AudioRecord if not exists
+            if (audioRecord == null) {
+                audioRecord = createAudioRecord()
+            }
+
+            // Start recording
+            audioRecord?.startRecording()
+            isRecording = true
+            isPaused = false
+            shouldContinueRecording.set(true)
+
+            // Start recording thread
+            startRecordingThread()
+
+            Log.i(TAG, "Audio recording started")
+            promise.resolve(Arguments.createMap().apply {
+                putBoolean("success", true)
+                putString("state", "RECORDING")
+            })
+
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to start recording", e)
+            promise.reject("START_ERROR", "Failed to start recording: ${e.message}", e)
+        }
+    }
+
+    /**
+     * Stop audio recording
+     * Phase 91: AudioRecord stop
+     *
+     * @param promise Promise to resolve/reject
+     */
+    @ReactMethod
+    fun stopRecording(promise: Promise) {
+        try {
+            if (!isRecording) {
+                promise.reject("NOT_RECORDING", "Not currently recording")
+                return
+            }
+
+            // Signal thread to stop
+            shouldContinueRecording.set(false)
+
+            // Wait for thread to finish
+            recordingThread?.join(1000)
+
+            // Stop AudioRecord
+            audioRecord?.let {
+                if (it.recordingState == AudioRecord.RECORDSTATE_RECORDING) {
+                    it.stop()
+                }
+            }
+
+            isRecording = false
+            isPaused = false
+
+            // Clear buffer
+            audioDataBuffer.clear()
+
+            Log.i(TAG, "Audio recording stopped")
+            promise.resolve(Arguments.createMap().apply {
+                putBoolean("success", true)
+                putString("state", "IDLE")
+            })
+
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to stop recording", e)
+            promise.reject("STOP_ERROR", "Failed to stop recording: ${e.message}", e)
+        }
+    }
+
+    /**
+     * Pause audio recording
+     * Phase 91: Pause recording
+     *
+     * @param promise Promise to resolve/reject
+     */
+    @ReactMethod
+    fun pauseRecording(promise: Promise) {
+        try {
+            if (!isRecording || isPaused) {
+                promise.reject("INVALID_STATE", "Cannot pause: not recording or already paused")
+                return
+            }
+
+            isPaused = true
+            Log.i(TAG, "Audio recording paused")
+
+            promise.resolve(Arguments.createMap().apply {
+                putBoolean("success", true)
+                putString("state", "PAUSED")
+            })
+
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to pause recording", e)
+            promise.reject("PAUSE_ERROR", "Failed to pause recording: ${e.message}", e)
+        }
+    }
+
+    /**
+     * Resume audio recording
+     * Phase 91: Resume recording
+     *
+     * @param promise Promise to resolve/reject
+     */
+    @ReactMethod
+    fun resumeRecording(promise: Promise) {
+        try {
+            if (!isRecording || !isPaused) {
+                promise.reject("INVALID_STATE", "Cannot resume: not paused")
+                return
+            }
+
+            isPaused = false
+            Log.i(TAG, "Audio recording resumed")
+
+            promise.resolve(Arguments.createMap().apply {
+                putBoolean("success", true)
+                putString("state", "RECORDING")
+            })
+
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to resume recording", e)
+            promise.reject("RESUME_ERROR", "Failed to resume recording: ${e.message}", e)
+        }
+    }
+
+    /**
+     * Start recording thread
+     * Phase 91: Background thread recording with PCM data reading
+     */
+    private fun startRecordingThread() {
+        recordingThread = Thread {
+            android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_AUDIO)
+
+            val audioData = ShortArray(bufferSize / 2) // 16-bit = 2 bytes per sample
+            Log.d(TAG, "Recording thread started, buffer size: ${audioData.size}")
+
+            while (shouldContinueRecording.get()) {
+                try {
+                    // Read PCM data
+                    val readResult = audioRecord?.read(audioData, 0, audioData.size) ?: 0
+
+                    if (readResult > 0 && !isPaused) {
+                        // Calculate RMS and dB
+                        val rms = calculateRMS(audioData, readResult)
+                        val db = calculateDB(rms)
+
+                        lastRmsLevel = rms
+                        lastDbLevel = db
+
+                        // Detect silence
+                        val isSilent = detectSilence(db)
+
+                        // Buffer audio data
+                        synchronized(audioDataBuffer) {
+                            for (i in 0 until readResult) {
+                                audioDataBuffer.add(audioData[i])
+                            }
+
+                            // Send data when buffer is full
+                            if (audioDataBuffer.size >= BUFFER_SEND_SIZE) {
+                                sendAudioData()
+                            }
+                        }
+
+                    } else if (readResult == AudioRecord.ERROR_INVALID_OPERATION) {
+                        Log.e(TAG, "Invalid operation error")
+                        sendErrorEvent("Invalid operation during recording")
+                        break
+                    } else if (readResult == AudioRecord.ERROR_BAD_VALUE) {
+                        Log.e(TAG, "Bad value error")
+                        sendErrorEvent("Bad value error during recording")
+                        break
+                    }
+
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error in recording thread", e)
+                    sendErrorEvent("Recording error: ${e.message}")
+                    break
+                }
+            }
+
+            // Send remaining buffered data
+            synchronized(audioDataBuffer) {
+                if (audioDataBuffer.isNotEmpty()) {
+                    sendAudioData()
+                }
+            }
+
+            Log.d(TAG, "Recording thread finished")
+        }
+
+        recordingThread?.start()
+    }
+
+    /**
+     * Calculate RMS (Root Mean Square) level
+     * Phase 91: RMS level calculation
+     *
+     * @param audioData PCM audio data
+     * @param length Number of samples to process
+     * @return RMS level
+     */
+    private fun calculateRMS(audioData: ShortArray, length: Int): Double {
+        var sum = 0.0
+        for (i in 0 until length) {
+            val normalized = audioData[i].toDouble() / Short.MAX_VALUE
+            sum += normalized * normalized
+        }
+        return sqrt(sum / length)
+    }
+
+    /**
+     * Calculate dB level from RMS
+     * Phase 91: dB conversion
+     *
+     * @param rms RMS level
+     * @return dB level
+     */
+    private fun calculateDB(rms: Double): Double {
+        return if (rms > 0) {
+            20 * log10(rms)
+        } else {
+            -96.0 // Minimum dB level
+        }
+    }
+
+    /**
+     * Detect silence
+     * Phase 91: Silence detection
+     *
+     * @param db Current dB level
+     * @return True if silence detected
+     */
+    private fun detectSilence(db: Double): Boolean {
+        val currentTime = System.currentTimeMillis()
+
+        return if (db < SILENCE_THRESHOLD_DB) {
+            // Silence detected
+            if (silenceDuration == 0L) {
+                silenceDuration = currentTime - lastSoundTime
+            }
+            true
+        } else {
+            // Sound detected
+            lastSoundTime = currentTime
+            silenceDuration = 0
+            false
+        }
+    }
+
+    /**
+     * Send audio data to React Native
+     * Phase 91: RN Bridge data transmission
+     */
+    private fun sendAudioData() {
+        try {
+            val dataToSend = audioDataBuffer.toList()
+            audioDataBuffer.clear()
+
+            val audioArray = Arguments.createArray()
+            dataToSend.forEach { sample ->
+                audioArray.pushInt(sample.toInt())
+            }
+
+            val params = Arguments.createMap().apply {
+                putArray("data", audioArray)
+                putDouble("timestamp", System.currentTimeMillis().toDouble())
+                putInt("sampleRate", sampleRate)
+                putInt("channels", if (channelConfig == AudioFormat.CHANNEL_IN_MONO) 1 else 2)
+                putDouble("rmsLevel", lastRmsLevel)
+                putDouble("dbLevel", lastDbLevel)
+                putBoolean("isSilent", lastDbLevel < SILENCE_THRESHOLD_DB)
+            }
+
+            sendEvent(EVENT_AUDIO_DATA, params)
+
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to send audio data", e)
         }
     }
 
