@@ -1,6 +1,6 @@
 # KooDTX Flask Backend
 
-센서 데이터 동기화 서버 - Phase 41-47 완료
+센서 데이터 동기화 서버 - Phase 41-50 완료
 
 ## 📋 목차
 
@@ -515,9 +515,9 @@ result = cleanup_old_sensor_data.apply_async(args=[30], eta=eta)
 - [x] Phase 45: 파일 정리 작업 (Celery Beat 스케줄링)
 - [x] Phase 46: Swagger/OpenAPI 문서 자동 생성
 - [x] Phase 47: pytest 설치 및 기본 설정
-- [ ] Phase 48: Auth 및 Sync API 테스트 작성
-- [ ] Phase 49: Gunicorn 프로덕션 서버 설정
-- [ ] Phase 50: Supervisor 프로세스 관리 설정
+- [x] Phase 48: Auth 및 Sync API 테스트 작성
+- [x] Phase 49: Gunicorn 프로덕션 서버 설정
+- [x] Phase 50: Supervisor 프로세스 관리 설정
 
 ## 라이선스
 
@@ -630,4 +630,232 @@ tests/
 ├── test_sync.py          # 동기화 API 테스트 (Phase 48)
 └── test_tasks.py         # Celery 작업 테스트 (Phase 48)
 ```
+
+
+### Phase 48-50: 테스트 작성 및 프로덕션 배포 설정
+
+#### Phase 48: Auth 및 Sync API 테스트 작성
+
+**테스트 파일**:
+- `tests/test_auth.py` - Auth API 테스트 (40+ tests)
+- `tests/test_sync.py` - Sync API 테스트 (35+ tests)
+- `tests/test_tasks.py` - Celery 작업 테스트 (20+ tests)
+
+**test_auth.py** - 인증 API 테스트:
+```python
+# 사용자 등록 테스트
+- test_register_success
+- test_register_duplicate_username
+- test_register_duplicate_email
+
+# 로그인 테스트
+- test_login_success
+- test_login_wrong_password
+
+# 토큰 갱신 테스트
+- test_refresh_token_success
+
+# 전체 플로우 테스트
+- test_complete_auth_flow (등록→로그인→정보조회→토큰갱신)
+```
+
+**test_sync.py** - 동기화 API 테스트:
+```python
+# Push API 테스트
+- test_push_new_session_success
+- test_push_update_existing_session
+- test_push_duplicate_data (Last-Write-Wins)
+- test_push_large_batch (100개 데이터)
+
+# Pull API 테스트
+- test_pull_with_data
+- test_pull_delta_sync
+- test_pull_pagination
+- test_pull_specific_sessions
+
+# 전체 플로우 테스트
+- test_complete_sync_flow (Push→Pull→Status)
+```
+
+**test_tasks.py** - Celery 작업 테스트:
+```python
+# 데이터 처리 테스트
+- test_analyze_sensor_data
+- test_generate_statistics
+- test_detect_anomalies
+- test_calculate_session_metrics
+
+# 파일 정리 테스트
+- test_cleanup_old_sensor_data
+- test_cleanup_old_sync_logs
+- test_cleanup_failed_sessions
+
+# 성능 테스트
+- test_analyze_large_dataset (1000개 데이터)
+```
+
+**테스트 실행**:
+```bash
+# 모든 테스트
+pytest
+
+# Auth 테스트만
+pytest tests/test_auth.py -v
+
+# Sync 테스트만
+pytest tests/test_sync.py -v
+
+# 마커별 실행
+pytest -m unit
+pytest -m integration
+pytest -m api
+
+# Coverage 리포트
+pytest --cov=app --cov-report=html
+```
+
+#### Phase 49: Gunicorn 프로덕션 서버 설정
+
+**gunicorn_config.py** - Gunicorn 설정:
+```python
+# Worker 설정
+workers = CPU * 2 + 1
+worker_class = 'sync'
+timeout = 30
+keepalive = 2
+
+# 로깅
+accesslog = '-'  # stdout
+errorlog = '-'   # stderr
+loglevel = 'info'
+
+# 최적화
+preload_app = True
+max_requests = 1000
+max_requests_jitter = 50
+```
+
+**프로덕션 서버 시작**:
+```bash
+# 스크립트 사용
+./start_production.sh
+
+# 또는 직접 실행
+gunicorn --config gunicorn_config.py run:app
+
+# 데몬 모드
+gunicorn --config gunicorn_config.py --daemon run:app
+```
+
+**systemd service** (선택):
+```bash
+# Service 파일 복사
+sudo cp koodtx-backend.service /etc/systemd/system/
+
+# 서비스 활성화
+sudo systemctl enable koodtx-backend
+sudo systemctl start koodtx-backend
+
+# 상태 확인
+sudo systemctl status koodtx-backend
+```
+
+#### Phase 50: Supervisor 프로세스 관리 설정
+
+**supervisor.conf** - Supervisor 설정:
+```ini
+[group:koodtx]
+programs=koodtx-backend,koodtx-celery-worker,koodtx-celery-beat
+
+# Flask Backend (Gunicorn)
+[program:koodtx-backend]
+command=gunicorn --config gunicorn_config.py run:app
+autostart=true
+autorestart=true
+
+# Celery Worker
+[program:koodtx-celery-worker]
+command=celery -A celery_app.celery worker --loglevel=info
+
+# Celery Beat
+[program:koodtx-celery-beat]
+command=celery -A celery_app.celery beat --loglevel=info
+```
+
+**Supervisor 설치 및 설정**:
+```bash
+# Supervisor 설치 및 설정
+./supervisor_setup.sh
+
+# 프로세스 관리 (간편 스크립트)
+./manage_processes.sh start    # 모두 시작
+./manage_processes.sh stop     # 모두 중지
+./manage_processes.sh restart  # 모두 재시작
+./manage_processes.sh status   # 상태 확인
+./manage_processes.sh logs     # 로그 보기
+
+# 개별 프로세스 관리
+./manage_processes.sh backend-restart
+./manage_processes.sh worker-restart
+./manage_processes.sh beat-restart
+
+# 또는 직접 supervisorctl 사용
+sudo supervisorctl status koodtx:*
+sudo supervisorctl start koodtx:*
+sudo supervisorctl stop koodtx:*
+sudo supervisorctl restart koodtx:*
+```
+
+**프로세스 로그**:
+```bash
+# 실시간 로그
+sudo supervisorctl tail -f koodtx-backend
+sudo supervisorctl tail -f koodtx-celery-worker
+sudo supervisorctl tail -f koodtx-celery-beat
+
+# 로그 파일 위치
+/var/log/supervisor/koodtx-backend.log
+/var/log/supervisor/koodtx-celery-worker.log
+/var/log/supervisor/koodtx-celery-beat.log
+```
+
+### 프로덕션 배포 체크리스트
+
+1. **환경 변수 설정**:
+   ```bash
+   cp .env.example .env
+   # .env 파일 수정 (비밀키, 데이터베이스 URL 등)
+   ```
+
+2. **데이터베이스 초기화**:
+   ```bash
+   flask db upgrade
+   ```
+
+3. **정적 파일 수집** (필요시):
+   ```bash
+   # Nginx/Apache 설정에 따라
+   ```
+
+4. **Gunicorn 테스트**:
+   ```bash
+   gunicorn --config gunicorn_config.py run:app
+   ```
+
+5. **Supervisor 설정**:
+   ```bash
+   ./supervisor_setup.sh
+   ./manage_processes.sh start
+   ```
+
+6. **상태 확인**:
+   ```bash
+   ./manage_processes.sh status
+   curl http://localhost:5000/health
+   ```
+
+7. **모니터링 설정** (권장):
+   - Prometheus + Grafana
+   - ELK Stack (로그)
+   - Sentry (에러 트래킹)
 
