@@ -22,11 +22,11 @@
 
 ## Phase 진행 현황
 
-### ✅ 완료된 Phase: 86/300
+### ✅ 완료된 Phase: 87/300
 
-### 🔄 진행 중: Phase 87
+### 🔄 진행 중: Phase 88
 
-### ⏳ 대기 중: Phase 87-300
+### ⏳ 대기 중: Phase 88-300
 
 ---
 
@@ -14027,14 +14027,254 @@ console.log('Last value:', accStats?.lastValue);
 
 ### 다음 Phase
 
-→ Phase 87-100: 계속 진행
+→ Phase 87: 커스텀 Hook (useSensor)
+
+---
+
+## Phase 87: 커스텀 Hook (useSensor) ✅
+
+**상태**: ✅ 완료
+**완료일**: 2025-11-13
+**실제 소요**: 0.5시간
+**우선순위**: high
+
+### 작업 내용
+
+센서 데이터 수집을 위한 React Hook을 구현하고 Phase 86의 useSensorStore와 통합했습니다.
+
+#### 구현: hooks/useSensor.ts (370줄)
+
+**핵심 기능**:
+
+**1. 센서 시작 Hook**
+- `start()`: 센서 시작 함수
+- 세션 ID 검증
+- 센서 가용성 체크
+- 샘플링 레이트 설정
+- 자동으로 스토어 업데이트
+
+**2. 센서 중지 Hook**
+- `stop()`: 센서 중지 함수
+- 안전한 센서 종료
+- 상태 초기화
+- 에러 처리
+
+**3. 실시간 센서 데이터 구독**
+- 센서 데이터 콜백 처리
+- 로컬 state 업데이트 (latestData)
+- 스토어 실시간 데이터 업데이트
+- 샘플 카운트 자동 증가
+- 커스텀 onData 콜백 지원
+
+**4. 생명주기 관리**
+- enabled 옵션에 따른 자동 시작/중지
+- recordingState 변경 감지 (STOPPED/ERROR 시 자동 중지)
+- 센서 가용성 체크 (마운트 시)
+- 콜백 ref 업데이트
+
+**5. 클린업**
+- 언마운트 시 자동 센서 중지
+- 에러 처리
+- 안전한 리소스 해제
+
+**6. 스토어 통합**
+- useSensorStore와 연동
+- 실시간 데이터 자동 업데이트
+- 에러 상태 동기화
+- 샘플 카운트 추적
+- updateStore 플래그로 선택적 통합
+
+### 인터페이스
+
+**UseSensorOptions**:
+```typescript
+interface UseSensorOptions {
+  enabled?: boolean;          // 자동 시작/중지 활성화
+  sampleRate?: number;        // 샘플링 레이트 (Hz)
+  onData?: (data: SensorData) => void;  // 데이터 콜백
+  onError?: (error: Error) => void;     // 에러 콜백
+  updateStore?: boolean;      // 스토어 업데이트 (기본: true)
+}
+```
+
+**UseSensorResult**:
+```typescript
+interface UseSensorResult {
+  isAvailable: boolean;       // 센서 가용성
+  isRunning: boolean;         // 센서 실행 상태
+  latestData: SensorData | null;  // 최신 데이터
+  error: Error | null;        // 에러
+  start: () => Promise<void>; // 시작 함수
+  stop: () => Promise<void>;  // 중지 함수
+  clearError: () => void;     // 에러 클리어
+}
+```
+
+### 사용 예제
+
+**1. 기본 사용 (자동 시작)**:
+```typescript
+function AccelerometerDisplay({sessionId}: {sessionId: string}) {
+  const sensor = useSensor('accelerometer', sessionId, {
+    enabled: true,
+    sampleRate: 100,
+    onData: (data) => console.log('ACC data:', data.values),
+  });
+
+  if (!sensor.isAvailable) {
+    return <Text>Accelerometer not available</Text>;
+  }
+
+  return (
+    <View>
+      <Text>Status: {sensor.isRunning ? 'Running' : 'Stopped'}</Text>
+      {sensor.latestData && (
+        <Text>Values: {sensor.latestData.values.join(', ')}</Text>
+      )}
+      {sensor.error && <Text>Error: {sensor.error.message}</Text>}
+    </View>
+  );
+}
+```
+
+**2. 수동 제어**:
+```typescript
+function ManualSensorControl({sessionId}: {sessionId: string}) {
+  const sensor = useSensor('gyroscope', sessionId, {
+    sampleRate: 50,
+  });
+
+  const handleStart = async () => {
+    try {
+      await sensor.start();
+      console.log('Sensor started');
+    } catch (err) {
+      console.error('Failed to start:', err);
+    }
+  };
+
+  const handleStop = async () => {
+    await sensor.stop();
+    console.log('Sensor stopped');
+  };
+
+  return (
+    <View>
+      <Button
+        title={sensor.isRunning ? 'Stop' : 'Start'}
+        onPress={sensor.isRunning ? handleStop : handleStart}
+      />
+    </View>
+  );
+}
+```
+
+**3. 스토어 통합 없이 사용**:
+```typescript
+const sensor = useSensor('magnetometer', sessionId, {
+  enabled: true,
+  updateStore: false,  // 스토어 업데이트 비활성화
+  onData: (data) => {
+    // 커스텀 데이터 처리
+    processData(data);
+  },
+});
+```
+
+**4. 복수 센서 사용**:
+```typescript
+function MultiSensorView({sessionId}: {sessionId: string}) {
+  const acc = useSensor('accelerometer', sessionId, {enabled: true});
+  const gyr = useSensor('gyroscope', sessionId, {enabled: true});
+  const mag = useSensor('magnetometer', sessionId, {enabled: true});
+
+  return (
+    <View>
+      <SensorCard title="Accelerometer" sensor={acc} />
+      <SensorCard title="Gyroscope" sensor={gyr} />
+      <SensorCard title="Magnetometer" sensor={mag} />
+    </View>
+  );
+}
+```
+
+### 통합 흐름
+
+**센서 시작 시**:
+1. `sensor.start()` 호출
+2. SensorService를 통해 네이티브 센서 시작
+3. 데이터 콜백 등록
+4. 데이터 수신 시:
+   - `latestData` state 업데이트 (로컬)
+   - `sensorActions.updateRealtimeData()` 호출 (스토어)
+   - `sensorActions.incrementSampleCount()` 호출 (스토어)
+   - 커스텀 `onData` 콜백 호출
+5. 에러 발생 시:
+   - `error` state 업데이트 (로컬)
+   - `sensorActions.setError()` 호출 (스토어)
+   - 커스텀 `onError` 콜백 호출
+
+**센서 중지 시**:
+1. `sensor.stop()` 호출
+2. SensorService를 통해 네이티브 센서 중지
+3. 로컬 state 초기화
+4. 에러 처리
+
+**자동 생명주기**:
+- `enabled=true` + 세션 활성 → 자동 시작
+- `enabled=false` → 자동 중지
+- `recordingState=STOPPED/ERROR` → 자동 중지
+- 컴포넌트 언마운트 → 자동 중지
+
+### 산출물
+
+- ✅ src/hooks/useSensor.ts (370줄)
+- ✅ 센서 시작/중지 함수
+- ✅ 실시간 데이터 구독
+- ✅ useSensorStore 통합
+- ✅ 자동 생명주기 관리
+- ✅ 클린업 로직
+- ✅ clearError 함수
+- ✅ TypeScript 타입 정의
+- ✅ 사용 예제 문서화
+
+### 주요 성과
+
+**React Hook 패턴**:
+- ✅ 표준 React Hook API
+- ✅ useEffect를 통한 생명주기 관리
+- ✅ useCallback을 통한 함수 메모이제이션
+- ✅ useRef를 통한 콜백 안정성
+
+**스토어 통합**:
+- ✅ useSensorStore 실시간 업데이트
+- ✅ 에러 상태 동기화
+- ✅ 샘플 카운트 추적
+- ✅ 선택적 통합 (updateStore 플래그)
+
+**개발자 경험**:
+- ✅ 간단한 API
+- ✅ 자동 시작/중지
+- ✅ 타입 안전성
+- ✅ 에러 처리
+- ✅ 명확한 상태 관리
+
+**안정성**:
+- ✅ 안전한 언마운트 클린업
+- ✅ recordingState 변경 감지
+- ✅ 에러 복구
+- ✅ 센서 가용성 체크
+
+### 다음 Phase
+
+→ Phase 88: 센서 설정 관리
 
 ---
 
 ## 통계 업데이트
 
-**완료된 Phase: 86/300**
-**진행률: 28.7%**
+**완료된 Phase: 87/300**
+**진행률: 29.0%**
 
 ---
 
