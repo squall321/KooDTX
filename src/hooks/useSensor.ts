@@ -1,43 +1,131 @@
 /**
  * useSensor Hook
- * Manages individual sensor data collection
+ * Phase 87: Custom Hook for sensor data collection with store integration
+ *
+ * Features:
+ * - Sensor start/stop control
+ * - Real-time sensor data subscription
+ * - Integration with useSensorStore
+ * - Lifecycle management
+ * - Automatic cleanup
  */
 
 import {useEffect, useRef, useState, useCallback} from 'react';
 import type {SensorType, SensorData} from '@app-types/sensor.types';
 import {getSensorManager} from '@services/sensors';
+import {
+  useSensorStore,
+  useSensorActions,
+  useRecordingState,
+  RecordingState,
+} from '@store';
+import type {AndroidSensorType} from '@native';
 
 export interface UseSensorOptions {
+  /**
+   * Enable automatic sensor start/stop
+   */
   enabled?: boolean;
+
+  /**
+   * Sample rate in Hz
+   */
   sampleRate?: number;
+
+  /**
+   * Custom data callback (in addition to store updates)
+   */
   onData?: (data: SensorData) => void;
+
+  /**
+   * Error callback
+   */
   onError?: (error: Error) => void;
+
+  /**
+   * Update store with real-time data
+   * @default true
+   */
+  updateStore?: boolean;
 }
 
 export interface UseSensorResult {
+  /**
+   * Sensor availability
+   */
   isAvailable: boolean;
+
+  /**
+   * Sensor running state
+   */
   isRunning: boolean;
+
+  /**
+   * Latest sensor data (local state)
+   */
   latestData: SensorData | null;
+
+  /**
+   * Latest error
+   */
   error: Error | null;
+
+  /**
+   * Start sensor
+   */
   start: () => Promise<void>;
+
+  /**
+   * Stop sensor
+   */
   stop: () => Promise<void>;
+
+  /**
+   * Reset error
+   */
+  clearError: () => void;
 }
 
 /**
- * Hook for managing a single sensor
+ * Hook for managing a single sensor with store integration
+ *
+ * @example
+ * ```tsx
+ * const sensor = useSensor('accelerometer', sessionId, {
+ *   enabled: true,
+ *   sampleRate: 100,
+ *   onData: (data) => console.log(data),
+ * });
+ *
+ * // Manual control
+ * await sensor.start();
+ * await sensor.stop();
+ * ```
  */
 export function useSensor(
   sensorType: SensorType,
   sessionId: string | null,
   options: UseSensorOptions = {},
 ): UseSensorResult {
-  const {enabled = false, sampleRate = 100, onData, onError} = options;
+  const {
+    enabled = false,
+    sampleRate = 100,
+    onData,
+    onError,
+    updateStore = true,
+  } = options;
 
+  // Local state
   const [isAvailable, setIsAvailable] = useState<boolean>(false);
   const [isRunning, setIsRunning] = useState<boolean>(false);
   const [latestData, setLatestData] = useState<SensorData | null>(null);
   const [error, setError] = useState<Error | null>(null);
 
+  // Store integration
+  const recordingState = useRecordingState();
+  const sensorActions = useSensorActions();
+
+  // Refs
   const sensorManager = useRef(getSensorManager());
   const dataCallbackRef = useRef(onData);
   const errorCallbackRef = useRef(onError);
@@ -48,7 +136,9 @@ export function useSensor(
     errorCallbackRef.current = onError;
   }, [onData, onError]);
 
-  // Check sensor availability on mount
+  /**
+   * Check sensor availability on mount
+   */
   useEffect(() => {
     const checkAvailability = async () => {
       try {
@@ -61,20 +151,38 @@ export function useSensor(
         }
       } catch (err) {
         setIsAvailable(false);
-        setError(err instanceof Error ? err : new Error(String(err)));
+        const errorObj = err instanceof Error ? err : new Error(String(err));
+        setError(errorObj);
+
+        // Report error to store
+        if (updateStore) {
+          sensorActions.setError(errorObj);
+        }
       }
     };
 
     checkAvailability();
-  }, [sensorType]);
+  }, [sensorType, updateStore, sensorActions]);
 
-  // Start sensor
+  /**
+   * Clear error
+   */
+  const clearError = useCallback(() => {
+    setError(null);
+  }, []);
+
+  /**
+   * Start sensor
+   */
   const start = useCallback(async () => {
     if (!sessionId) {
       const err = new Error('Session ID is required to start sensor');
       setError(err);
       if (errorCallbackRef.current) {
         errorCallbackRef.current(err);
+      }
+      if (updateStore) {
+        sensorActions.setError(err);
       }
       return;
     }
@@ -84,6 +192,9 @@ export function useSensor(
       setError(err);
       if (errorCallbackRef.current) {
         errorCallbackRef.current(err);
+      }
+      if (updateStore) {
+        sensorActions.setError(err);
       }
       return;
     }
@@ -106,7 +217,26 @@ export function useSensor(
       await service.start(
         sessionId,
         data => {
+          // Update local state
           setLatestData(data);
+
+          // Update store with real-time data
+          if (updateStore) {
+            // Convert SensorType to AndroidSensorType if needed
+            const androidSensorType = data.sensorType as unknown as AndroidSensorType;
+
+            sensorActions.updateRealtimeData({
+              sensorType: androidSensorType,
+              values: data.values,
+              timestamp: data.timestamp,
+              accuracy: data.accuracy,
+            });
+
+            // Increment sample count
+            sensorActions.incrementSampleCount(1);
+          }
+
+          // Call custom callback
           if (dataCallbackRef.current) {
             dataCallbackRef.current(data);
           }
@@ -114,6 +244,13 @@ export function useSensor(
         err => {
           setError(err);
           setIsRunning(false);
+
+          // Report error to store
+          if (updateStore) {
+            sensorActions.setError(err);
+          }
+
+          // Call error callback
           if (errorCallbackRef.current) {
             errorCallbackRef.current(err);
           }
@@ -122,16 +259,32 @@ export function useSensor(
 
       setIsRunning(true);
     } catch (err) {
-      const error = err instanceof Error ? err : new Error(String(err));
-      setError(error);
+      const errorObj = err instanceof Error ? err : new Error(String(err));
+      setError(errorObj);
       setIsRunning(false);
+
+      // Report error to store
+      if (updateStore) {
+        sensorActions.setError(errorObj);
+      }
+
       if (errorCallbackRef.current) {
-        errorCallbackRef.current(error);
+        errorCallbackRef.current(errorObj);
       }
     }
-  }, [sessionId, sensorType, isAvailable, isRunning, sampleRate]);
+  }, [
+    sessionId,
+    sensorType,
+    isAvailable,
+    isRunning,
+    sampleRate,
+    updateStore,
+    sensorActions,
+  ]);
 
-  // Stop sensor
+  /**
+   * Stop sensor
+   */
   const stop = useCallback(async () => {
     if (!isRunning) {
       return;
@@ -145,15 +298,23 @@ export function useSensor(
       setIsRunning(false);
       setLatestData(null);
     } catch (err) {
-      const error = err instanceof Error ? err : new Error(String(err));
-      setError(error);
+      const errorObj = err instanceof Error ? err : new Error(String(err));
+      setError(errorObj);
+
+      // Report error to store
+      if (updateStore) {
+        sensorActions.setError(errorObj);
+      }
+
       if (errorCallbackRef.current) {
-        errorCallbackRef.current(error);
+        errorCallbackRef.current(errorObj);
       }
     }
-  }, [sensorType, isRunning]);
+  }, [sensorType, isRunning, updateStore, sensorActions]);
 
-  // Auto start/stop based on enabled option
+  /**
+   * Auto start/stop based on enabled option
+   */
   useEffect(() => {
     if (enabled && sessionId && isAvailable && !isRunning) {
       start();
@@ -162,14 +323,35 @@ export function useSensor(
     }
   }, [enabled, sessionId, isAvailable, isRunning, start, stop]);
 
-  // Cleanup on unmount
+  /**
+   * Auto stop when recording stops
+   */
+  useEffect(() => {
+    if (
+      isRunning &&
+      (recordingState === RecordingState.STOPPED ||
+        recordingState === RecordingState.ERROR)
+    ) {
+      stop();
+    }
+  }, [recordingState, isRunning, stop]);
+
+  /**
+   * Cleanup on unmount
+   */
   useEffect(() => {
     return () => {
       if (isRunning) {
-        stop();
+        const service = sensorManager.current.getService(sensorType);
+        if (service) {
+          service.stop().catch(err => {
+            console.error('Failed to stop sensor on cleanup:', err);
+          });
+        }
       }
     };
-  }, [isRunning, stop]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return {
     isAvailable,
@@ -178,5 +360,11 @@ export function useSensor(
     error,
     start,
     stop,
+    clearError,
   };
 }
+
+/**
+ * Export default
+ */
+export default useSensor;

@@ -6,6 +6,10 @@
 // Date utilities
 export * from './date';
 
+// Timestamp utilities
+export * from './timestamp';
+export {default as timestampManager} from './timestamp';
+
 // Validation utilities
 export * from './validation';
 
