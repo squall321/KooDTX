@@ -22,11 +22,11 @@
 
 ## Phase 진행 현황
 
-### ✅ 완료된 Phase: 81/300
+### ✅ 완료된 Phase: 82/300
 
-### 🔄 진행 중: Phase 82
+### 🔄 진행 중: Phase 83
 
-### ⏳ 대기 중: Phase 82-300
+### ⏳ 대기 중: Phase 83-300
 
 ---
 
@@ -12599,15 +12599,349 @@ interface PersistenceStats {
 
 ### 다음 Phase
 
-→ Phase 82: 센서 서비스 통합 테스트
+→ Phase 82: 타임스탬프 유틸리티
+
+---
+
+## Phase 82: 타임스탬프 유틸리티 ✅
+
+**상태**: ✅ 완료
+**완료일**: 2025-11-13
+**실제 소요**: 0.5시간
+**우선순위**: high
+
+### 작업 내용
+
+센서 데이터 수집을 위한 고정밀 타임스탬프 유틸리티를 구현했습니다. UTC epoch, 고정밀 elapsed time, 타임존 정보, 서버 시간 동기화 지원을 포함합니다.
+
+#### 구현: timestamp.ts (550줄)
+
+**핵심 기능**:
+
+**1. UTC Epoch 타임스탬프**
+```typescript
+// Get current UTC timestamp in milliseconds
+export function getUTC(): number {
+  return timestampManager.getUTC();
+}
+
+// With time sync offset
+getUTC(): number {
+  return Date.now() + this.timeSyncOffset;
+}
+```
+
+**2. 고정밀 Elapsed Time (performance.now())**
+```typescript
+// High-precision elapsed time since app start
+export function getElapsedTime(): number {
+  return timestampManager.getElapsedTime();
+}
+
+// Uses performance.now() for sub-millisecond precision
+getElapsedTime(): number {
+  return this.getPerformanceNow() - this.performanceStartTime;
+}
+```
+
+**특징**:
+- ✅ 서브 밀리초 정밀도
+- ✅ 단조 증가 (monotonic)
+- ✅ 시스템 시간 변경에 영향 없음
+- ✅ 센서 타이밍 측정에 이상적
+
+**3. 타임존 정보**
+```typescript
+interface Timestamp {
+  utc: number;
+  elapsed: number;
+  bootTime?: number;
+  timezoneOffset: number;  // Minutes
+  timezoneName: string;    // "Asia/Seoul"
+}
+
+// Get complete timestamp info
+export function now(): Timestamp {
+  return {
+    utc: getUTC(),
+    elapsed: getElapsedTime(),
+    bootTime: timestampManager.getBootTime() || undefined,
+    timezoneOffset: getTimezoneOffset(),
+    timezoneName: getTimezoneName(),
+  };
+}
+```
+
+**4. Android 센서 타임스탬프 변환**
+```typescript
+// Convert Android sensor timestamp (nanoseconds since boot) to UTC
+export function sensorTimestampToUTC(sensorTimestampNanos: number): number {
+  if (!this.bootTime) {
+    return Date.now() + this.timeSyncOffset;
+  }
+
+  // Convert nanoseconds to milliseconds
+  const sensorTimestampMs = sensorTimestampNanos / 1_000_000;
+
+  // Add boot time to get UTC
+  return this.bootTime + sensorTimestampMs + this.timeSyncOffset;
+}
+```
+
+**변환 로직**:
+- ✅ 나노초 → 밀리초 변환
+- ✅ 부트 타임 기반 UTC 변환
+- ✅ 시간 동기화 오프셋 적용
+- ✅ Fallback 처리
+
+**5. 타임스탬프 변환 유틸리티**
+```typescript
+// Convert elapsed time to UTC
+export function elapsedToUTC(elapsed: number): number {
+  const elapsedSinceStart = elapsed - this.performanceStartTime;
+  return this.performanceStartDate + elapsedSinceStart + this.timeSyncOffset;
+}
+
+// Convert UTC to elapsed time
+export function utcToElapsed(utc: number): number {
+  const timeSinceStart = utc - this.performanceStartDate - this.timeSyncOffset;
+  return this.performanceStartTime + timeSinceStart;
+}
+```
+
+**6. 서버 시간 동기화**
+```typescript
+async syncWithServer(serverUrl: string): Promise<TimeSyncResult> {
+  const startTime = Date.now();
+
+  const response = await fetch(serverUrl, {
+    method: 'GET',
+    headers: {'Cache-Control': 'no-cache'},
+  });
+
+  const endTime = Date.now();
+  const rtt = endTime - startTime;
+
+  // Get server time from Date header
+  const serverTime = new Date(response.headers.get('Date')!).getTime();
+  const localTime = startTime + rtt / 2; // RTT compensation
+
+  const offset = serverTime - localTime;
+
+  return {
+    serverTime,
+    localTime,
+    offset,
+    rtt,
+    accuracy: Math.abs(rtt / 2),
+    syncedAt: Date.now(),
+  };
+}
+```
+
+**동기화 과정**:
+1. ✅ 서버에 HTTP 요청
+2. ✅ RTT (Round-Trip Time) 측정
+3. ✅ 서버 Date 헤더 파싱
+4. ✅ RTT 보상 계산
+5. ✅ 오프셋 계산 및 적용
+6. ✅ 정확도 추정
+
+**7. NTP 클라이언트 (준비)**
+```typescript
+async syncWithNTP(ntpServer: string = 'pool.ntp.org'): Promise<NTPResponse> {
+  // Note: NTP uses UDP port 123, not accessible from React Native
+  // Placeholder for future native module implementation
+  throw new Error('NTP sync requires native module implementation');
+}
+```
+
+**참고**: NTP는 UDP를 사용하므로 React Native에서 직접 구현 불가. 향후 native module이나 HTTP 기반 NTP 서비스로 구현 가능.
+
+**포매팅 유틸리티**:
+```typescript
+// ISO 8601 format
+formatISO(utc: number): string
+
+// Local format
+formatLocal(utc: number): string
+
+// Duration format
+formatDuration(ms: number): string
+// Example: "1h 23m 45s"
+
+// Milliseconds with precision
+formatMilliseconds(ms: number, precision: number = 3): string
+// Example: "123.456ms"
+
+// Parse ISO string
+parseISO(isoString: string): number
+```
+
+**검증 유틸리티**:
+```typescript
+// Check if timestamp is valid
+isValidTimestamp(timestamp: number): boolean
+
+// Check if timestamps are synchronized
+areSynchronized(
+  timestamp1: number,
+  timestamp2: number,
+  thresholdMs: number = 100,
+): boolean
+```
+
+**상수**:
+```typescript
+export const MILLISECONDS_PER_SECOND = 1000;
+export const MILLISECONDS_PER_MINUTE = 60 * 1000;
+export const MILLISECONDS_PER_HOUR = 60 * 60 * 1000;
+export const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1000;
+export const NANOSECONDS_PER_MILLISECOND = 1_000_000;
+```
+
+### 사용 예제
+
+**1. 기본 사용**:
+```typescript
+import {now, getUTC, getElapsedTime} from '@utils/timestamp';
+
+// Get complete timestamp
+const timestamp = now();
+console.log(timestamp);
+// {
+//   utc: 1731394800000,
+//   elapsed: 12345.678,
+//   bootTime: 1731382454322,
+//   timezoneOffset: -540,  // KST (UTC+9)
+//   timezoneName: "Asia/Seoul"
+// }
+
+// Get UTC only
+const utc = getUTC();
+
+// Get high-precision elapsed time
+const elapsed = getElapsedTime();
+```
+
+**2. 센서 타임스탬프 변환**:
+```typescript
+import {sensorTimestampToUTC} from '@utils/timestamp';
+
+// Android sensor timestamp (nanoseconds)
+const sensorTimestamp = 1234567890123456789n;
+
+// Convert to UTC milliseconds
+const utc = sensorTimestampToUTC(Number(sensorTimestamp));
+```
+
+**3. 서버 시간 동기화**:
+```typescript
+import {syncWithServer, getLastSyncResult} from '@utils/timestamp';
+
+// Sync with server
+try {
+  const result = await syncWithServer('https://api.example.com/time');
+  console.log('Synced:', result);
+  // {
+  //   serverTime: 1731394800000,
+  //   localTime: 1731394799950,
+  //   offset: 50,
+  //   rtt: 100,
+  //   accuracy: 50,
+  //   syncedAt: 1731394800000
+  // }
+} catch (error) {
+  console.error('Sync failed:', error);
+}
+
+// Check last sync
+const lastSync = getLastSyncResult();
+if (lastSync) {
+  console.log(`Time offset: ${lastSync.offset}ms`);
+  console.log(`Accuracy: ±${lastSync.accuracy}ms`);
+}
+```
+
+**4. 타임스탬프 변환**:
+```typescript
+import {elapsedToUTC, utcToElapsed} from '@utils/timestamp';
+
+// Convert elapsed time to UTC
+const utc = elapsedToUTC(12345.678);
+
+// Convert UTC to elapsed time
+const elapsed = utcToElapsed(1731394800000);
+```
+
+**5. 포매팅**:
+```typescript
+import {formatISO, formatDuration, formatMilliseconds} from '@utils/timestamp';
+
+const utc = Date.now();
+
+// ISO format
+formatISO(utc);
+// "2023-11-12T14:20:00.000Z"
+
+// Duration
+formatDuration(5430000);
+// "1h 30m 30s"
+
+// Milliseconds
+formatMilliseconds(123.456789, 3);
+// "123.457ms"
+```
+
+### 산출물
+
+- ✅ src/utils/timestamp.ts (550줄)
+- ✅ TimestampManager 클래스 (싱글톤)
+- ✅ UTC epoch 타임스탬프
+- ✅ 고정밀 elapsed time (performance.now())
+- ✅ 타임존 정보
+- ✅ 서버 시간 동기화
+- ✅ 센서 타임스탬프 변환
+- ✅ 포매팅/검증 유틸리티
+- ✅ NTP 클라이언트 준비
+- ✅ src/utils/index.ts 업데이트
+
+### 주요 성과
+
+**정밀도**:
+- ✅ 서브 밀리초 정밀도 (performance.now())
+- ✅ 나노초 단위 센서 타임스탬프 지원
+- ✅ 단조 증가 타임스탬프
+
+**신뢰성**:
+- ✅ 시스템 시간 변경에 안전
+- ✅ 서버 시간 동기화 지원
+- ✅ RTT 보상 및 정확도 추정
+- ✅ Fallback 메커니즘
+
+**호환성**:
+- ✅ Android 센서 타임스탬프 변환
+- ✅ 부트 타임 기반 변환
+- ✅ 크로스 플랫폼 지원
+- ✅ 타임존 처리
+
+**개발자 경험**:
+- ✅ 간단한 API
+- ✅ TypeScript 타입 안전성
+- ✅ 유틸리티 함수 풍부
+- ✅ 명확한 문서
+
+### 다음 Phase
+
+→ Phase 83: @react-native-community/geolocation 설치
 
 ---
 
 ## 통계 업데이트
 
-**완료된 Phase: 81/300**
-**진행률: 27.0%**
+**완료된 Phase: 82/300**
+**진행률: 27.3%**
 
 ---
 
-_최종 업데이트: 2025-11-13 22:30_
+_최종 업데이트: 2025-11-13 22:45_
