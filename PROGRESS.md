@@ -22,11 +22,11 @@
 
 ## Phase 진행 현황
 
-### ✅ 완료된 Phase: 71/300
+### ✅ 완료된 Phase: 75/300
 
-### 🔄 진행 중: Phase 72
+### 🔄 진행 중: Phase 76
 
-### ⏳ 대기 중: Phase 72-300
+### ⏳ 대기 중: Phase 76-300
 
 ---
 
@@ -10941,3 +10941,331 @@ await SensorModule.startSensor(
 ---
 
 _최종 업데이트: 2025-11-13 20:30_
+
+---
+
+## Phase 72-75: 센서 구현 및 TypeScript Bridge ✅
+
+**상태**: ✅ 완료
+**완료일**: 2025-11-13
+**실제 소요**: 0.5시간
+**우선순위**: critical
+
+### 작업 내용
+
+#### Phase 72-74: 가속도계, 자이로스코프, 지자기 센서 구현 ✅
+
+**Phase 71에서 이미 완료됨**:
+
+Phase 71의 SensorModule.kt가 **모든 센서 타입을 범용으로 지원**하므로, Phase 72-74의 개별 센서 구현은 이미 완료되었습니다.
+
+**지원되는 센서** (SensorModule.kt):
+- ✅ Accelerometer (TYPE_ACCELEROMETER = 1)
+- ✅ Gyroscope (TYPE_GYROSCOPE = 4)
+- ✅ Magnetometer (TYPE_MAGNETIC_FIELD = 2)
+- ✅ Gravity (TYPE_GRAVITY = 9)
+- ✅ Linear Acceleration (TYPE_LINEAR_ACCELERATION = 10)
+- ✅ Rotation Vector (TYPE_ROTATION_VECTOR = 11)
+- ✅ Step Detector (TYPE_STEP_DETECTOR = 18)
+- ✅ Step Counter (TYPE_STEP_COUNTER = 19)
+- ✅ Light (TYPE_LIGHT = 5)
+- ✅ Pressure (TYPE_PRESSURE = 6)
+- ✅ Proximity (TYPE_PROXIMITY = 8)
+- ✅ Temperature (TYPE_AMBIENT_TEMPERATURE = 13)
+- ✅ Humidity (TYPE_RELATIVE_HUMIDITY = 12)
+- ✅ 기타 모든 Android 센서 타입
+
+#### Phase 75: TypeScript Bridge 구현 ✅
+
+**신규 구현** (`src/native/NativeSensorBridge.ts` - 520줄):
+
+**완전한 TypeScript 브릿지**:
+
+**주요 기능**:
+- ✅ Type-safe API for Android sensors
+- ✅ Event-based data streaming
+- ✅ 13+ convenience functions
+- ✅ Automatic error handling
+- ✅ Memory-efficient listener management
+- ✅ Complete TypeScript types
+
+**클래스 구조**:
+```typescript
+class NativeSensorBridge {
+  // Core methods
+  async getAvailableSensors(): Promise<SensorInfo[]>
+  async isSensorAvailable(sensorType): Promise<boolean>
+  async startSensor(sensorType, samplingRate, batchSize): Promise<boolean>
+  async stopSensor(sensorType): Promise<boolean>
+  async stopAllSensors(): Promise<boolean>
+
+  // Listener management
+  addDataListener(sensorType, listener): () => void
+  addErrorListener(listener): () => void
+  removeAllListeners(): void
+  cleanup(): void
+}
+```
+
+**Enum Definitions**:
+
+```typescript
+// Android Sensor Types (35+ types)
+enum AndroidSensorType {
+  ACCELEROMETER = 1,
+  MAGNETIC_FIELD = 2,
+  GYROSCOPE = 4,
+  LIGHT = 5,
+  PRESSURE = 6,
+  PROXIMITY = 8,
+  GRAVITY = 9,
+  LINEAR_ACCELERATION = 10,
+  ROTATION_VECTOR = 11,
+  RELATIVE_HUMIDITY = 12,
+  AMBIENT_TEMPERATURE = 13,
+  STEP_DETECTOR = 18,
+  STEP_COUNTER = 19,
+  // ... and more
+}
+
+// Sampling Rates
+enum SensorSamplingRate {
+  FASTEST = 0,  // ~200Hz
+  GAME = 1,     // ~50Hz
+  UI = 2,       // ~16Hz
+  NORMAL = 3,   // ~5Hz
+}
+```
+
+**Type Definitions**:
+
+```typescript
+interface SensorInfo {
+  type: number;
+  name: string;
+  vendor: string;
+  version: number;
+  power: number;
+  resolution: number;
+  maxRange: number;
+  minDelay: number;
+  maxDelay: number;
+}
+
+interface SensorDataSample {
+  sensorType: number;
+  sensorName: string;
+  timestamp: number;      // nanoseconds
+  systemTime: number;     // milliseconds
+  values: number[];       // [x, y, z] or [value]
+  accuracy: number;
+}
+
+interface SensorDataBatch {
+  sensorType: number;
+  count: number;
+  data: SensorDataSample[];
+}
+```
+
+**Convenience Functions** (13개):
+
+```typescript
+// IMU Sensors
+startAccelerometer(samplingRate, batchSize)
+startGyroscope(samplingRate, batchSize)
+startMagnetometer(samplingRate, batchSize)
+startGravity(samplingRate, batchSize)
+startLinearAcceleration(samplingRate, batchSize)
+startRotationVector(samplingRate, batchSize)
+
+// Step Sensors
+startStepDetector()
+startStepCounter()
+
+// Environmental Sensors
+startLight(samplingRate)
+startPressure(samplingRate)
+startProximity()
+startTemperature(samplingRate)
+startHumidity(samplingRate)
+
+// Control
+stopSensor(sensorType)
+stopAllSensors()
+```
+
+**Usage Example**:
+
+```typescript
+import {
+  NativeSensorBridge,
+  AndroidSensorType,
+  SensorSamplingRate,
+} from '@native';
+
+// Get available sensors
+const sensors = await NativeSensorBridge.getAvailableSensors();
+
+// Add listener
+const unsubscribe = NativeSensorBridge.addDataListener(
+  AndroidSensorType.ACCELEROMETER,
+  (batch) => {
+    console.log(`Received ${batch.count} samples`);
+    batch.data.forEach(sample => {
+      const [x, y, z] = sample.values;
+      console.log(`Accel: x=${x}, y=${y}, z=${z}`);
+    });
+  }
+);
+
+// Start sensor
+await NativeSensorBridge.startSensor(
+  AndroidSensorType.ACCELEROMETER,
+  SensorSamplingRate.FASTEST,
+  50
+);
+
+// Stop sensor
+await NativeSensorBridge.stopSensor(AndroidSensorType.ACCELEROMETER);
+
+// Cleanup
+unsubscribe();
+```
+
+**Simplified Usage**:
+
+```typescript
+import {startAccelerometer, stopAllSensors} from '@native';
+
+// Start with defaults
+await startAccelerometer();
+
+// Stop all
+await stopAllSensors();
+```
+
+**Error Handling**:
+
+```typescript
+// Add error listener
+const unsubError = NativeSensorBridge.addErrorListener((error) => {
+  console.error('Sensor error:', error.message);
+});
+```
+
+**Features**:
+- ✅ Singleton pattern for global access
+- ✅ Automatic event cleanup
+- ✅ Type-safe listener management
+- ✅ Promise-based async API
+- ✅ Linking error detection
+- ✅ Memory-efficient Map storage
+
+### 진행 로그
+
+**2025-11-13 20:30 - 21:00**:
+- Phase 72-74 확인: SensorModule에 이미 구현됨
+- Phase 75 구현: NativeSensorBridge.ts (520줄)
+  - TypeScript 클래스 및 타입 정의
+  - 35+ Android 센서 타입 enum
+  - 이벤트 리스너 관리
+  - 13개 convenience functions
+- src/native/index.ts 생성 (export)
+- src/native/README.md 생성 (문서화)
+
+### 산출물
+
+**Phase 72-74 (이미 완료)**:
+- ✅ SensorModule.kt (Phase 71) - 모든 센서 지원
+
+**Phase 75 (신규)**:
+- ✅ **src/native/NativeSensorBridge.ts** (520줄) - TypeScript Bridge
+- ✅ **src/native/index.ts** (30줄) - Central export
+- ✅ **src/native/README.md** (문서화)
+
+### 테스트 결과
+
+✅ **TypeScript 컴파일 성공**
+✅ **타입 정의 완료**
+✅ **Event emitter 설정 완료**
+✅ **Convenience functions 생성 완료**
+
+### 검증 방법
+
+**1. TypeScript 타입 체크**:
+```bash
+npx tsc --noEmit
+```
+
+**2. 센서 가용성 확인**:
+```typescript
+import {NativeSensorBridge} from '@native';
+
+const sensors = await NativeSensorBridge.getAvailableSensors();
+console.log('Available:', sensors);
+```
+
+**3. 데이터 수집 테스트**:
+```typescript
+import {startAccelerometer, NativeSensorBridge, AndroidSensorType} from '@native';
+
+// Add listener
+const unsub = NativeSensorBridge.addDataListener(
+  AndroidSensorType.ACCELEROMETER,
+  (batch) => {
+    console.log('Batch:', batch.count, 'samples');
+  }
+);
+
+// Start
+await startAccelerometer();
+
+// ... collect data ...
+
+// Stop
+await NativeSensorBridge.stopSensor(AndroidSensorType.ACCELEROMETER);
+unsub();
+```
+
+### 주요 성과
+
+**완전한 Native Bridge**:
+- Type-safe TypeScript API
+- 35+ Android 센서 타입 지원
+- 4단계 샘플링율 옵션
+- 배치 처리 지원
+- 이벤트 기반 스트리밍
+- 자동 메모리 관리
+
+**개발자 경험**:
+- IntelliSense 자동완성
+- 타입 안전성
+- 간편한 convenience functions
+- 완전한 문서화
+- 예제 코드 제공
+
+**성능 최적화**:
+- Map 기반 리스너 관리
+- 배치 데이터 전송
+- 메모리 효율적인 구조
+- 자동 정리 (cleanup)
+
+### 다음 Phase
+
+→ Phase 76+: 추가 기능 또는 UI 통합
+
+---
+
+## 통계 업데이트
+
+**완료된 Phase: 75/300**
+**진행률: 25.0%**
+
+**Phase 72-75 완료 내용**:
+- Phase 72-74: 가속도계, 자이로, 지자기 (Phase 71에서 완료)
+- Phase 75: TypeScript Bridge 구현 (신규 520줄)
+
+---
+
+_최종 업데이트: 2025-11-13 21:00_
