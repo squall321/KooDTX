@@ -33,3 +33,18 @@ export type {
   SensorDataListener,
   SensorErrorListener,
 } from './NativeSensorBridge';
+
+export {
+  default as NativeAudioRecorderBridge,
+  NativeAudioRecorderBridgeInstance,
+} from './NativeAudioRecorderBridge';
+
+export type {
+  AudioConfiguration,
+  AudioAvailability,
+  RecordingState,
+  AudioDataEvent,
+  AudioErrorEvent,
+  AudioDataListener,
+  AudioErrorListener,
+} from './NativeAudioRecorderBridge';

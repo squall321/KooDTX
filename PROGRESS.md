@@ -22,11 +22,11 @@
 
 ## Phase 진행 현황
 
-### ✅ 완료된 Phase: 89/300
+### ✅ 완료된 Phase: 90/300
 
-### 🔄 진행 중: Phase 90
+### 🔄 진행 중: Phase 91
 
-### ⏳ 대기 중: Phase 90-300
+### ⏳ 대기 중: Phase 91-300
 
 ---
 
@@ -14776,14 +14776,311 @@ try {
 
 ### 다음 Phase
 
-→ Phase 90: Native Audio Module 구조
+→ Phase 91: 오디오 녹음 구현 (Kotlin)
+
+---
+
+## Phase 90: Native Audio Module 구조 ✅
+
+**상태**: ✅ 완료
+**완료일**: 2025-11-13
+**실제 소요**: 0.5시간
+**우선순위**: critical
+
+### 작업 내용
+
+Android Native Audio Module을 구현하여 React Native에서 오디오 녹음을 제어할 수 있는 구조를 완성했습니다.
+
+#### 1. AudioRecorderModule.kt 파일 생성 (350줄)
+
+**위치**: `android/app/src/main/java/com/koodtxtemp/audio/AudioRecorderModule.kt`
+
+**핵심 기능**:
+
+**AudioRecord 초기화**:
+- `initialize(sampleRate, channels, bitsPerSample)`: AudioRecord 설정
+- 샘플링 레이트 검증 (8000, 11025, 16000, 22050, 44100, 48000Hz)
+- 채널 검증 (1 = Mono, 2 = Stereo)
+- 비트 심도 검증 (8-bit, 16-bit)
+
+**샘플링율 설정 (44100Hz)**:
+- 기본값: 44100Hz (CD 품질)
+- 지원: 8000Hz ~ 48000Hz
+- AudioFormat.ENCODING_PCM_16BIT
+
+**오디오 포맷 (PCM_16BIT)**:
+- PCM_8BIT: 8비트 샘플
+- PCM_16BIT: 16비트 샘플 (기본값)
+- 채널 설정: CHANNEL_IN_MONO / CHANNEL_IN_STEREO
+
+**버퍼 크기 계산**:
+- `AudioRecord.getMinBufferSize()` 사용
+- 최소 버퍼 크기 × 2 (BUFFER_SIZE_MULTIPLIER)
+- 부드러운 녹음을 위한 여유 버퍼
+- 에러 검증 (ERROR, ERROR_BAD_VALUE)
+
+**패키지 등록**:
+- AudioPackage.kt 생성
+- MainApplication.kt에 등록
+- React Native Bridge 연결
+
+### React Native Bridge 메서드
+
+**1. initialize(sampleRate, channels, bitsPerSample)**:
+```kotlin
+@ReactMethod
+fun initialize(
+    sampleRate: Int,
+    channels: Int,
+    bitsPerSample: Int,
+    promise: Promise
+)
+```
+- AudioRecord 설정 초기화
+- 버퍼 크기 자동 계산
+- 설정 정보 반환 (sampleRate, channels, bufferSize 등)
+
+**2. getConfiguration()**:
+```kotlin
+@ReactMethod
+fun getConfiguration(promise: Promise)
+```
+- 현재 오디오 설정 조회
+- 녹음 상태 정보 포함
+
+**3. isAvailable()**:
+```kotlin
+@ReactMethod
+fun isAvailable(promise: Promise)
+```
+- AudioRecord 사용 가능 여부 확인
+- 최소 버퍼 크기 반환
+
+**4. getRecordingState()**:
+```kotlin
+@ReactMethod
+fun getRecordingState(promise: Promise)
+```
+- 녹음 상태 조회 (IDLE/RECORDING/PAUSED)
+- isRecording, isPaused 플래그
+
+### 버퍼 크기 계산 로직
+
+```kotlin
+private fun calculateBufferSize(): Int {
+    val minBufferSize = AudioRecord.getMinBufferSize(
+        sampleRate,
+        channelConfig,
+        audioFormat
+    )
+
+    if (minBufferSize == AudioRecord.ERROR ||
+        minBufferSize == AudioRecord.ERROR_BAD_VALUE) {
+        return -1
+    }
+
+    // Apply multiplier for smoother recording
+    return minBufferSize * BUFFER_SIZE_MULTIPLIER
+}
+```
+
+**계산 예시** (44100Hz, Mono, 16-bit):
+- 최소 버퍼: ~8KB
+- 계산된 버퍼: 16KB (×2 multiplier)
+
+#### 2. AudioPackage.kt 생성
+
+**위치**: `android/app/src/main/java/com/koodtxtemp/audio/AudioPackage.kt`
+
+```kotlin
+class AudioPackage : ReactPackage {
+    override fun createNativeModules(
+        reactContext: ReactApplicationContext
+    ): List<NativeModule> {
+        return listOf(AudioRecorderModule(reactContext))
+    }
+
+    override fun createViewManagers(
+        reactContext: ReactApplicationContext
+    ): List<ViewManager<*, *>> {
+        return emptyList()
+    }
+}
+```
+
+#### 3. MainApplication.kt 등록
+
+```kotlin
+import com.koodtxtemp.audio.AudioPackage
+
+// ...
+
+override fun getPackages(): List<ReactPackage> {
+    val packages = PackageList(this).packages.toMutableList()
+    packages.add(SensorPackage())
+    packages.add(AudioPackage())  // 추가
+    return packages
+}
+```
+
+#### 4. TypeScript Bridge (NativeAudioRecorderBridge.ts)
+
+**위치**: `src/native/NativeAudioRecorderBridge.ts` (240줄)
+
+**인터페이스**:
+```typescript
+interface AudioConfiguration {
+  sampleRate: number;
+  channels: number;
+  bitsPerSample: number;
+  bufferSize?: number;
+  channelConfig?: string;
+  audioFormat?: string;
+}
+
+interface AudioAvailability {
+  available: boolean;
+  minBufferSize: number;
+}
+
+interface RecordingState {
+  isRecording: boolean;
+  isPaused: boolean;
+  state: 'IDLE' | 'RECORDING' | 'PAUSED';
+  hasAudioRecord: boolean;
+}
+```
+
+**메서드**:
+```typescript
+class NativeAudioRecorderBridge {
+  async initialize(
+    sampleRate: number,
+    channels: number,
+    bitsPerSample: number
+  ): Promise<AudioConfiguration>;
+
+  async getConfiguration(): Promise<AudioConfiguration>;
+
+  async isAvailable(): Promise<AudioAvailability>;
+
+  async getRecordingState(): Promise<RecordingState>;
+
+  addDataListener(listener: AudioDataListener): () => void;
+
+  addErrorListener(listener: AudioErrorListener): () => void;
+}
+```
+
+### 사용 예제
+
+**1. 초기화 및 설정 조회**:
+```typescript
+import {NativeAudioRecorderBridgeInstance} from '@native';
+
+// Initialize
+const config = await NativeAudioRecorderBridgeInstance.initialize(
+  44100,  // 44.1kHz
+  1,      // Mono
+  16      // 16-bit
+);
+
+console.log('Configuration:', config);
+// {
+//   sampleRate: 44100,
+//   channels: 1,
+//   bitsPerSample: 16,
+//   bufferSize: 16384,
+//   channelConfig: "MONO",
+//   audioFormat: "PCM_16BIT"
+// }
+```
+
+**2. 가용성 확인**:
+```typescript
+const availability = await NativeAudioRecorderBridgeInstance.isAvailable();
+console.log('Available:', availability.available);
+console.log('Min buffer size:', availability.minBufferSize);
+```
+
+**3. 상태 조회**:
+```typescript
+const state = await NativeAudioRecorderBridgeInstance.getRecordingState();
+console.log('State:', state.state);  // "IDLE", "RECORDING", "PAUSED"
+console.log('Is recording:', state.isRecording);
+```
+
+**4. 이벤트 리스너**:
+```typescript
+// Add data listener
+const removeDataListener = NativeAudioRecorderBridgeInstance.addDataListener(
+  (event) => {
+    console.log('Audio data:', event.data.length, 'samples');
+  }
+);
+
+// Add error listener
+const removeErrorListener = NativeAudioRecorderBridgeInstance.addErrorListener(
+  (event) => {
+    console.error('Audio error:', event.error);
+  }
+);
+
+// Clean up
+removeDataListener();
+removeErrorListener();
+```
+
+### 산출물
+
+- ✅ android/app/src/main/java/com/koodtxtemp/audio/AudioRecorderModule.kt (350줄)
+- ✅ android/app/src/main/java/com/koodtxtemp/audio/AudioPackage.kt (27줄)
+- ✅ android/app/src/main/java/com/koodtxtemp/MainApplication.kt (AudioPackage 등록)
+- ✅ src/native/NativeAudioRecorderBridge.ts (240줄)
+- ✅ src/native/index.ts (exports 추가)
+- ✅ AudioRecord 초기화 로직
+- ✅ 샘플링율 설정 (44100Hz 기본)
+- ✅ 오디오 포맷 (PCM_16BIT)
+- ✅ 버퍼 크기 계산 (×2 multiplier)
+- ✅ React Native Bridge 연결
+- ✅ TypeScript 타입 정의
+
+### 주요 성과
+
+**Native Module 구조**:
+- ✅ Android AudioRecord API 통합
+- ✅ React Native Bridge 패턴 구현
+- ✅ Singleton pattern (TypeScript Bridge)
+- ✅ Event emitter (데이터/에러 이벤트)
+
+**오디오 설정**:
+- ✅ 다양한 샘플링 레이트 (8kHz ~ 48kHz)
+- ✅ Mono/Stereo 지원
+- ✅ 8-bit / 16-bit 샘플 지원
+- ✅ 자동 버퍼 크기 계산
+
+**개발자 경험**:
+- ✅ TypeScript 타입 안전성
+- ✅ Promise 기반 API
+- ✅ 에러 처리 및 검증
+- ✅ 명확한 인터페이스
+
+**품질 및 안정성**:
+- ✅ 입력 검증 (샘플링 레이트, 채널, 비트)
+- ✅ 버퍼 크기 에러 체크
+- ✅ AudioRecord 상태 검증
+- ✅ 리소스 정리 (onCatalystInstanceDestroy)
+
+### 다음 Phase
+
+→ Phase 91: 오디오 녹음 구현 (Kotlin)
 
 ---
 
 ## 통계 업데이트
 
-**완료된 Phase: 89/300**
-**진행률: 29.7%**
+**완료된 Phase: 90/300**
+**진행률: 30.0%**
 
 ---
 

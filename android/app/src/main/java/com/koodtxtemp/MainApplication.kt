@@ -12,6 +12,7 @@ import com.facebook.react.defaults.DefaultReactNativeHost
 import com.facebook.react.flipper.ReactNativeFlipper
 import com.facebook.soloader.SoLoader
 import com.koodtxtemp.sensors.SensorPackage
+import com.koodtxtemp.audio.AudioPackage
 
 class MainApplication : Application(), ReactApplication {
 
@@ -23,6 +24,8 @@ class MainApplication : Application(), ReactApplication {
           val packages = PackageList(this).packages.toMutableList()
           // Add SensorPackage
           packages.add(SensorPackage())
+          // Add AudioPackage
+          packages.add(AudioPackage())
           return packages
         }
 
