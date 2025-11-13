@@ -22,11 +22,11 @@
 
 ## Phase 진행 현황
 
-### ✅ 완료된 Phase: 38/300
+### ✅ 완료된 Phase: 40/300
 
-### 🔄 진행 중: Phase 39
+### 🔄 진행 중: Phase 41
 
-### ⏳ 대기 중: Phase 39-300
+### ⏳ 대기 중: Phase 41-300
 
 ---
 
@@ -8088,3 +8088,163 @@ const angleDiff = service.quaternionAngularDifference(q1, q2); // degrees
 - iOS: CMDeviceMotion (gravity, userAcceleration, attitude)
 - 쿼터니언 사용으로 짐벌 락(Gimbal Lock) 문제 해결
 - 네이티브 모듈 구현 가이드 포함
+
+---
+
+## Phase 39: 온도 센서 (Temperature Sensor)
+
+**완료 날짜**: 2025-11-12
+
+### 구현 내용
+
+#### 1. 타입 정의
+- `SensorType.TEMPERATURE` 추가
+- `TemperatureData` 인터페이스: celsius, fahrenheit, kelvin
+
+#### 2. TemperatureService 구현
+**파일**: `src/services/sensors/TemperatureService.ts` (350+ 라인)
+
+**핵심 기능**:
+- 주변 온도 측정 (Celsius 기준)
+- 온도 단위 변환 (°C ↔ °F ↔ K)
+- 온도 범주 분류 (freezing/very_cold/cold/cool/comfortable/warm/hot/very_hot)
+- 체감온도 계산:
+  - `calculateHeatIndex()`: 더위 지수 (온도 + 습도)
+  - `calculateWindChill()`: 바람 한기 지수 (온도 + 풍속)
+- 온도 추세 감지 (rising/falling/stable, °C/hour)
+- 의류 추천 (suggestClothing)
+
+**온도 단위 변환**:
+```typescript
+celsius → fahrenheit: F = C × 9/5 + 32
+celsius → kelvin: K = C + 273.15
+```
+
+**사용 예시**:
+```typescript
+const tempService = new TemperatureService();
+const fahrenheit = tempService.celsiusToFahrenheit(25); // 77°F
+const category = tempService.categorizeTemperature(22); // 'comfortable'
+const heatIndex = tempService.calculateHeatIndex(30, 70); // 체감온도
+const trend = tempService.detectTemperatureTrend(history); // { trend: 'rising', ratePerHour: 2.5 }
+```
+
+**중요 사항**: 
+- 주변 온도 센서는 스마트폰에 매우 드묾
+- 대부분의 기기는 내부 온도 센서(배터리/CPU)만 보유
+- iOS는 네이티브 API 미제공
+
+---
+
+## Phase 40: 습도 센서 (Humidity Sensor)
+
+**완료 날짜**: 2025-11-12
+
+### 구현 내용
+
+#### 1. 타입 정의
+- `SensorType.HUMIDITY` 추가
+- `HumidityData` 인터페이스: humidity (%), dewPoint (°C)
+
+#### 2. HumidityService 구현
+**파일**: `src/services/sensors/HumidityService.ts` (400+ 라인)
+
+**핵심 기능**:
+- 상대 습도 측정 (0-100%)
+- 이슬점 온도 계산 (Magnus formula)
+- 습도 범주 분류 (very_dry/dry/comfortable/humid/very_humid)
+- 쾌적도 평가 (온도 + 습도 조합)
+- 절대 습도 계산 (g/m³)
+- 곰팡이 위험도 평가 (low/moderate/high/very_high)
+- 습도가 체감온도에 미치는 영향
+- 습도 추세 감지 (rising/falling/stable, %/hour)
+
+**이슬점 계산 (Magnus formula)**:
+```typescript
+calculateDewPoint(T, RH):
+  α = (17.27 × T) / (237.7 + T) + ln(RH/100)
+  dewPoint = (237.7 × α) / (17.27 - α)
+```
+
+**쾌적도 평가**:
+```typescript
+assessComfort(temp, humidity):
+  ideal: 18-26°C & 40-60% 습도
+  comfortable: 16-28°C & 30-70% 습도
+  uncomfortable: 범위 벗어남
+  very_uncomfortable: 극단적 조건 (예: 고온다습)
+```
+
+**곰팡이 위험도**:
+```typescript
+assessMoldRisk(temp, humidity):
+  - 습도 < 60%: low risk
+  - 습도 60-70% & 온도 15-30°C: moderate
+  - 습도 70-80% & 온도 15-30°C: high
+  - 습도 > 80% & 온도 15-30°C: very_high
+```
+
+**사용 예시**:
+```typescript
+const humidityService = new HumidityService();
+humidityService.setTemperature(25); // 온도 설정 (이슬점 계산용)
+
+const dewPoint = humidityService.calculateDewPoint(25, 60); // 16.7°C
+const category = humidityService.categorizeHumidity(55); // 'comfortable'
+const comfort = humidityService.assessComfort(22, 50); // { level: 'ideal', reason: '...' }
+const moldRisk = humidityService.assessMoldRisk(22, 75); // { risk: 'high', advice: '...' }
+const absHumidity = humidityService.calculateAbsoluteHumidity(20, 60); // 10.4 g/m³
+```
+
+**활용 사례**:
+- 실내 공기질 모니터링
+- HVAC 시스템 최적화
+- 곰팡이 예방
+- 농업 애플리케이션
+- 박물관/아카이브 보존
+- 산업 공정 제어
+
+---
+
+### 데이터베이스 업데이트 (v6 → v7)
+
+**스키마 버전**: v7
+
+**sensor_data 테이블에 추가된 컬럼**:
+```typescript
+// Temperature data
+{name: 'celsius', type: 'number', isOptional: true},
+{name: 'fahrenheit', type: 'number', isOptional: true},
+{name: 'kelvin', type: 'number', isOptional: true},
+
+// Humidity data
+{name: 'humidity', type: 'number', isOptional: true},
+{name: 'dew_point', type: 'number', isOptional: true},
+```
+
+**SensorDataRecord 모델**: 새 필드 추가 완료
+**SensorDataRepository**: create/createBatch 메서드 업데이트 완료
+
+---
+
+**Phase 39-40 완료**: ✅ 환경 센서 2종 (온도, 습도) 구현 완료
+**데이터베이스 버전**: v6 → v7
+**다음 단계**: Phase 41-42
+
+**주요 성과**:
+- 환경 센서 확장 (온도, 습도)
+- 고급 환경 분석 알고리즘:
+  - 체감온도 (열지수, 풍한지수)
+  - 이슬점 온도
+  - 쾌적도 평가
+  - 곰팡이 위험도 평가
+- 데이터베이스 스키마 v7 업그레이드 완료
+- 센서 가용성 체크 패턴 지속 적용
+
+**기술적 특징**:
+- 온도와 습도 센서는 스마트폰에 매우 드묾
+- 대부분의 기기는 이 센서를 보유하지 않음
+- Android: TYPE_AMBIENT_TEMPERATURE, TYPE_RELATIVE_HUMIDITY (rare)
+- iOS: 네이티브 API 없음 (Weather API 사용 권장)
+- 스마트홈, HVAC, 환경 모니터링용으로 유용
+- 외부 Bluetooth 센서 사용 가능

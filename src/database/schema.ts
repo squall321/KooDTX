@@ -6,7 +6,7 @@
 import {appSchema, tableSchema} from '@nozbe/watermelondb';
 
 export const schema = appSchema({
-  version: 6,
+  version: 7,
   tables: [
     // Recording Sessions
     tableSchema({
@@ -63,6 +63,13 @@ export const schema = appSchema({
         {name: 'qw', type: 'number', isOptional: true},
         {name: 'pitch', type: 'number', isOptional: true},
         {name: 'roll', type: 'number', isOptional: true},
+        // Temperature data
+        {name: 'celsius', type: 'number', isOptional: true},
+        {name: 'fahrenheit', type: 'number', isOptional: true},
+        {name: 'kelvin', type: 'number', isOptional: true},
+        // Humidity data
+        {name: 'humidity', type: 'number', isOptional: true},
+        {name: 'dew_point', type: 'number', isOptional: true},
         // Metadata
         {name: 'is_uploaded', type: 'boolean'},
         {name: 'created_at', type: 'number'},

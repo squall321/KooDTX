@@ -22,6 +22,8 @@ export enum SensorType {
   GRAVITY = 'gravity',
   LINEAR_ACCELERATION = 'linear_acceleration',
   ROTATION_VECTOR = 'rotation_vector',
+  TEMPERATURE = 'temperature',
+  HUMIDITY = 'humidity',
 }
 
 /**
@@ -223,6 +225,25 @@ export interface RotationVectorData extends BaseSensorData {
 }
 
 /**
+ * Temperature sensor data (ambient temperature)
+ */
+export interface TemperatureData extends BaseSensorData {
+  sensorType: SensorType.TEMPERATURE;
+  celsius: number; // Temperature in Celsius (°C)
+  fahrenheit?: number; // Temperature in Fahrenheit (°F) - calculated
+  kelvin?: number; // Temperature in Kelvin (K) - calculated
+}
+
+/**
+ * Humidity sensor data (relative humidity)
+ */
+export interface HumidityData extends BaseSensorData {
+  sensorType: SensorType.HUMIDITY;
+  humidity: number; // Relative humidity percentage (0-100%)
+  dewPoint?: number; // Dew point temperature in Celsius (calculated from humidity + temperature)
+}
+
+/**
  * Union type for all sensor data
  */
 export type SensorData =
@@ -239,7 +260,9 @@ export type SensorData =
   | PressureData
   | GravityData
   | LinearAccelerationData
-  | RotationVectorData;
+  | RotationVectorData
+  | TemperatureData
+  | HumidityData;
 
 /**
  * Sensor recording session
@@ -313,5 +336,13 @@ export interface SensorSettings {
   [SensorType.ROTATION_VECTOR]: SensorConfig & {
     calculateEulerAngles: boolean; // Convert quaternion to Euler angles
     angleUnit: 'degrees' | 'radians'; // Unit for Euler angles (default: degrees)
+  };
+  [SensorType.TEMPERATURE]: SensorConfig & {
+    unit: 'celsius' | 'fahrenheit' | 'kelvin'; // Temperature unit (default: celsius)
+    calculateAllUnits: boolean; // Calculate all temperature units
+  };
+  [SensorType.HUMIDITY]: SensorConfig & {
+    calculateDewPoint: boolean; // Calculate dew point temperature
+    requiresTemperature: boolean; // Requires temperature sensor for dew point calculation
   };
 }

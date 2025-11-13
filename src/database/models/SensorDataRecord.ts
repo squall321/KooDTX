@@ -50,6 +50,15 @@ export class SensorDataRecord extends Model {
   @field('pitch') pitch?: number;
   @field('roll') roll?: number;
 
+  // Temperature data
+  @field('celsius') celsius?: number;
+  @field('fahrenheit') fahrenheit?: number;
+  @field('kelvin') kelvin?: number;
+
+  // Humidity data
+  @field('humidity') humidity?: number;
+  @field('dew_point') dewPoint?: number;
+
   // Metadata
   @field('is_uploaded') isUploaded!: boolean;
 

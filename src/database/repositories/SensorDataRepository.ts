@@ -72,6 +72,19 @@ export class SensorDataRepository {
           record.roll = data.roll;
         }
 
+        // Temperature data
+        if ('celsius' in data) {
+          record.celsius = data.celsius;
+          record.fahrenheit = data.fahrenheit;
+          record.kelvin = data.kelvin;
+        }
+
+        // Humidity data
+        if ('humidity' in data) {
+          record.humidity = data.humidity;
+          record.dewPoint = data.dewPoint;
+        }
+
         record.isUploaded = data.isUploaded ?? false;
       });
     });
@@ -139,6 +152,19 @@ export class SensorDataRepository {
               record.qw = data.qw;
               record.pitch = data.pitch;
               record.roll = data.roll;
+            }
+
+            // Temperature data
+            if ('celsius' in data) {
+              record.celsius = data.celsius;
+              record.fahrenheit = data.fahrenheit;
+              record.kelvin = data.kelvin;
+            }
+
+            // Humidity data
+            if ('humidity' in data) {
+              record.humidity = data.humidity;
+              record.dewPoint = data.dewPoint;
             }
 
             record.isUploaded = data.isUploaded ?? false;
