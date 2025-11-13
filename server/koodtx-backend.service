@@ -1,0 +1,26 @@
+[Unit]
+Description=KooDTX Flask Backend (Gunicorn)
+After=network.target postgresql.service redis.service
+
+[Service]
+Type=notify
+User=www-data
+Group=www-data
+WorkingDirectory=/home/user/KooDTX/server
+Environment="PATH=/home/user/KooDTX/server/venv/bin"
+Environment="FLASK_ENV=production"
+Environment="DATABASE_URL=postgresql://koodtx:password@localhost:5432/koodtx_db"
+Environment="REDIS_URL=redis://localhost:6379/0"
+ExecStart=/home/user/KooDTX/server/venv/bin/gunicorn \
+    --config gunicorn_config.py \
+    --bind 0.0.0.0:5000 \
+    run:app
+ExecReload=/bin/kill -s HUP $MAINPID
+KillMode=mixed
+TimeoutStopSec=5
+PrivateTmp=true
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

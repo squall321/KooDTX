@@ -19,6 +19,11 @@ export enum SensorType {
   PROXIMITY = 'proximity',
   LIGHT = 'light',
   PRESSURE = 'pressure',
+  GRAVITY = 'gravity',
+  LINEAR_ACCELERATION = 'linear_acceleration',
+  ROTATION_VECTOR = 'rotation_vector',
+  TEMPERATURE = 'temperature',
+  HUMIDITY = 'humidity',
 }
 
 /**
@@ -177,6 +182,68 @@ export interface PressureData extends BaseSensorData {
 }
 
 /**
+ * Gravity sensor data (gravity force vector)
+ * Measures the direction and magnitude of gravity in m/s²
+ */
+export interface GravityData extends BaseSensorData {
+  sensorType: SensorType.GRAVITY;
+  x: number; // Gravity force along X-axis (m/s²)
+  y: number; // Gravity force along Y-axis (m/s²)
+  z: number; // Gravity force along Z-axis (m/s²)
+  magnitude?: number; // Total gravity magnitude (should be ~9.81 m/s²)
+}
+
+/**
+ * Linear acceleration sensor data (acceleration without gravity)
+ * Measures device acceleration excluding gravity in m/s²
+ */
+export interface LinearAccelerationData extends BaseSensorData {
+  sensorType: SensorType.LINEAR_ACCELERATION;
+  x: number; // Linear acceleration along X-axis (m/s²)
+  y: number; // Linear acceleration along Y-axis (m/s²)
+  z: number; // Linear acceleration along Z-axis (m/s²)
+  magnitude?: number; // Total acceleration magnitude (m/s²)
+}
+
+/**
+ * Rotation vector sensor data (device orientation)
+ * Represents device orientation as a quaternion and Euler angles
+ */
+export interface RotationVectorData extends BaseSensorData {
+  sensorType: SensorType.ROTATION_VECTOR;
+  // Quaternion components (unit quaternion representing rotation)
+  qx: number; // x * sin(θ/2) - rotation axis x component
+  qy: number; // y * sin(θ/2) - rotation axis y component
+  qz: number; // z * sin(θ/2) - rotation axis z component
+  qw: number; // cos(θ/2) - scalar component
+  // Euler angles (derived from quaternion, in degrees)
+  heading?: number; // Yaw: rotation around Z-axis (0-360°, 0=North)
+  pitch?: number; // Rotation around X-axis (-180 to 180°)
+  roll?: number; // Rotation around Y-axis (-90 to 90°)
+  // Accuracy estimate
+  accuracy?: number; // Estimated heading accuracy in degrees (lower is better)
+}
+
+/**
+ * Temperature sensor data (ambient temperature)
+ */
+export interface TemperatureData extends BaseSensorData {
+  sensorType: SensorType.TEMPERATURE;
+  celsius: number; // Temperature in Celsius (°C)
+  fahrenheit?: number; // Temperature in Fahrenheit (°F) - calculated
+  kelvin?: number; // Temperature in Kelvin (K) - calculated
+}
+
+/**
+ * Humidity sensor data (relative humidity)
+ */
+export interface HumidityData extends BaseSensorData {
+  sensorType: SensorType.HUMIDITY;
+  humidity: number; // Relative humidity percentage (0-100%)
+  dewPoint?: number; // Dew point temperature in Celsius (calculated from humidity + temperature)
+}
+
+/**
  * Union type for all sensor data
  */
 export type SensorData =
@@ -190,7 +257,12 @@ export type SensorData =
   | SignificantMotionData
   | ProximityData
   | LightData
-  | PressureData;
+  | PressureData
+  | GravityData
+  | LinearAccelerationData
+  | RotationVectorData
+  | TemperatureData
+  | HumidityData;
 
 /**
  * Sensor recording session
@@ -253,5 +325,24 @@ export interface SensorSettings {
   [SensorType.PRESSURE]: SensorConfig & {
     altitudeCalculation: boolean; // Calculate altitude from pressure
     seaLevelPressure: number; // Reference pressure for altitude calculation (default: 1013.25 hPa)
+  };
+  [SensorType.GRAVITY]: SensorConfig & {
+    calculateMagnitude: boolean; // Calculate total gravity magnitude
+  };
+  [SensorType.LINEAR_ACCELERATION]: SensorConfig & {
+    calculateMagnitude: boolean; // Calculate total acceleration magnitude
+    noiseFilter: boolean; // Apply noise filtering to reduce jitter
+  };
+  [SensorType.ROTATION_VECTOR]: SensorConfig & {
+    calculateEulerAngles: boolean; // Convert quaternion to Euler angles
+    angleUnit: 'degrees' | 'radians'; // Unit for Euler angles (default: degrees)
+  };
+  [SensorType.TEMPERATURE]: SensorConfig & {
+    unit: 'celsius' | 'fahrenheit' | 'kelvin'; // Temperature unit (default: celsius)
+    calculateAllUnits: boolean; // Calculate all temperature units
+  };
+  [SensorType.HUMIDITY]: SensorConfig & {
+    calculateDewPoint: boolean; // Calculate dew point temperature
+    requiresTemperature: boolean; // Requires temperature sensor for dew point calculation
   };
 }

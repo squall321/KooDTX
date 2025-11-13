@@ -22,5 +22,7 @@ module.exports = {
         },
       },
     ],
+    // WatermelonDB babel plugin for decorators and model generation
+    ['@nozbe/watermelondb/babel/plugin'],
   ],
 };

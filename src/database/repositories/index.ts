@@ -31,8 +31,22 @@ export {
   resetStepCountRepository,
 } from './StepCountRepository';
 
+export {
+  SyncQueueRepository,
+  getSyncQueueRepository,
+  resetSyncQueueRepository,
+} from './SyncQueueRepository';
+
+export {
+  FileRepository,
+  getFileRepository,
+  resetFileRepository,
+} from './FileRepository';
+
 export type {CreateSessionData, UpdateSessionData} from './RecordingSessionRepository';
 export type {
   CreateAudioRecordingInput,
   UpdateAudioRecordingInput,
 } from './AudioRecordingRepository';
+export type {CreateSyncQueueData, UpdateSyncQueueData} from './SyncQueueRepository';
+export type {CreateFileData, UpdateFileData} from './FileRepository';

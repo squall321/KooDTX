@@ -11,10 +11,16 @@
 
     <!-- Audio recording permission (for future phases) -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+
+    <!-- File storage permissions -->
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <!-- For Android 11+ (API 30+) if needed -->
+    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE"
+                     android:maxSdkVersion="32" />
 
     <application
+      android:requestLegacyExternalStorage="true"
       android:name=".MainApplication"
       android:label="@string/app_name"
       android:icon="@mipmap/ic_launcher"
