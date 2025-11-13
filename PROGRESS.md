@@ -22,11 +22,11 @@
 
 ## Phase 진행 현황
 
-### ✅ 완료된 Phase: 83/300
+### ✅ 완료된 Phase: 84/300
 
-### 🔄 진행 중: Phase 84
+### 🔄 진행 중: Phase 85
 
-### ⏳ 대기 중: Phase 84-300
+### ⏳ 대기 중: Phase 85-300
 
 ---
 
@@ -13128,11 +13128,322 @@ interface GeoOptions {
 
 ---
 
-## 통계 업데이트
+## Phase 84: GPS 서비스 구현 ✅
 
-**완료된 Phase: 83/300**
-**진행률: 27.7%**
+**상태**: ✅ 완료
+**완료일**: 2025-11-13
+**실제 소요**: 1시간
+**우선순위**: high
+
+### 작업 내용
+
+@react-native-community/geolocation을 기반으로 완전한 GPS 위치 추적 서비스를 구현했습니다. 현재 위치 조회, 연속 추적, 정확도 설정, 배터리 최적화, 통계 추적 기능을 포함합니다.
+
+#### 구현: GPSService.ts (520줄)
+
+**핵심 기능**:
+
+**1. 현재 위치 조회 (getCurrentPosition)**
+```typescript
+// One-time position query
+const position = await gpsService.getCurrentPosition({
+  accuracyMode: GPSAccuracyMode.HIGH,
+  timeout: 20000,
+  maximumAge: 1000,
+});
+
+console.log(position);
+// {
+//   latitude: 37.123456,
+//   longitude: 127.123456,
+//   altitude: 123.45,
+//   accuracy: 10.5,
+//   altitudeAccuracy: 5.2,
+//   heading: 90,
+//   speed: 5.5,
+//   timestamp: 1731394800000,
+// }
+```
+
+**2. 연속 위치 추적 (watchPosition)**
+```typescript
+// Start continuous tracking
+gpsService.startTracking({
+  accuracyMode: GPSAccuracyMode.BALANCED,
+  distanceFilter: 10, // Update every 10 meters
+  interval: 5000,     // Update every 5 seconds
+  fastestInterval: 2000, // Fastest update: 2 seconds
+});
+
+// Listen to position updates
+const unsubscribe = gpsService.addPositionListener((position) => {
+  console.log('Position update:', position);
+});
+
+// Stop tracking
+gpsService.stopTracking();
+
+// Unsubscribe
+unsubscribe();
+```
+
+**3. 정확도 설정 (3가지 모드)**
+```typescript
+export enum GPSAccuracyMode {
+  HIGH = 'high',       // Best accuracy, high battery usage
+  BALANCED = 'balanced', // Balanced accuracy and battery
+  LOW = 'low',         // Lower accuracy, low battery usage
+}
+```
+
+**정확도 모드별 설정**:
+
+| Mode | High Accuracy | Distance Filter | Interval | Fastest Interval | Battery Usage |
+|------|---------------|-----------------|----------|------------------|---------------|
+| **HIGH** | ✅ true | 5m | 1s | 0.5s | 높음 |
+| **BALANCED** | ✅ true | 10m | 5s | 2s | 중간 |
+| **LOW** | ❌ false | 50m | 30s | 10s | 낮음 |
+
+**4. 배터리 최적화 (distanceFilter)**
+```typescript
+interface GPSTrackingOptions {
+  // Minimum distance (meters) for position updates
+  // Higher value = better battery life
+  distanceFilter?: number;
+
+  // Update interval (Android only)
+  interval?: number;
+
+  // Fastest update interval (Android only)
+  fastestInterval?: number;
+}
+
+// Example: Update only when moved 50 meters
+gpsService.startTracking({
+  accuracyMode: GPSAccuracyMode.LOW,
+  distanceFilter: 50,
+});
+```
+
+**배터리 최적화 전략**:
+- ✅ **Distance Filter**: 최소 이동 거리 설정
+- ✅ **Interval Control**: 업데이트 간격 조절
+- ✅ **Accuracy Mode**: 저정밀도 모드 사용
+- ✅ **Selective Tracking**: 필요시에만 추적
+
+**5. 에러 처리**
+```typescript
+// Add error listener
+const unsubscribe = gpsService.addErrorListener((error) => {
+  console.error('GPS error:', error.message);
+
+  // Error types:
+  // - Permission denied (code: 1)
+  // - Position unavailable (code: 2)
+  // - Timeout (code: 3)
+});
+
+// Error codes
+const error = {
+  code: 1, // PERMISSION_DENIED
+  message: 'Location permission denied',
+};
+```
+
+**에러 타입**:
+- ✅ **Permission Denied** (code: 1): 위치 권한 거부
+- ✅ **Position Unavailable** (code: 2): 위치 확인 불가
+- ✅ **Timeout** (code: 3): 요청 시간 초과
+
+**6. 통계 추적**
+```typescript
+interface GPSStatistics {
+  totalPositions: number;     // 총 위치 업데이트 수
+  totalErrors: number;        // 총 에러 수
+  lastPosition: GPSPosition | null; // 마지막 위치
+  lastError: Error | null;    // 마지막 에러
+  lastUpdateTime: number | null; // 마지막 업데이트 시간
+  averageAccuracy: number;    // 평균 정확도
+  isTracking: boolean;        // 추적 활성 상태
+}
+
+// Get statistics
+const stats = gpsService.getStatistics();
+console.log('Total positions:', stats.totalPositions);
+console.log('Average accuracy:', stats.averageAccuracy, 'meters');
+console.log('Last position:', stats.lastPosition);
+
+// Reset statistics
+gpsService.resetStatistics();
+```
+
+**7. Listener 패턴**
+```typescript
+// Position listener
+const positionUnsubscribe = gpsService.addPositionListener((position) => {
+  console.log('New position:', position);
+  // Save to database, update UI, etc.
+});
+
+// Error listener
+const errorUnsubscribe = gpsService.addErrorListener((error) => {
+  console.error('GPS error:', error);
+  // Show error to user, retry, etc.
+});
+
+// Cleanup
+positionUnsubscribe();
+errorUnsubscribe();
+
+// Or remove all listeners
+gpsService.removeAllListeners();
+```
+
+### 사용 예제
+
+**1. 현재 위치 조회**:
+```typescript
+import {getCurrentPosition, GPSAccuracyMode} from '@services/gps';
+
+// Get high-accuracy position
+try {
+  const position = await getCurrentPosition({
+    accuracyMode: GPSAccuracyMode.HIGH,
+    timeout: 20000,
+  });
+
+  console.log(`Location: ${position.latitude}, ${position.longitude}`);
+  console.log(`Accuracy: ${position.accuracy}m`);
+} catch (error) {
+  console.error('Failed to get position:', error);
+}
+```
+
+**2. 연속 위치 추적**:
+```typescript
+import {
+  startGPSTracking,
+  stopGPSTracking,
+  addGPSPositionListener,
+  GPSAccuracyMode,
+} from '@services/gps';
+
+// Start tracking with balanced mode
+startGPSTracking({
+  accuracyMode: GPSAccuracyMode.BALANCED,
+  distanceFilter: 10,
+  interval: 5000,
+});
+
+// Listen to updates
+const unsubscribe = addGPSPositionListener((position) => {
+  console.log('Position update:', position);
+  // Save to database
+});
+
+// Stop tracking later
+setTimeout(() => {
+  stopGPSTracking();
+  unsubscribe();
+}, 60000); // Stop after 1 minute
+```
+
+**3. 권한 요청**:
+```typescript
+import {requestGPSAuthorization} from '@services/gps';
+
+// Request authorization
+try {
+  await requestGPSAuthorization();
+  console.log('Location permission granted');
+} catch (error) {
+  console.error('Location permission denied:', error);
+}
+```
+
+**4. 통계 모니터링**:
+```typescript
+import {getGPSStatistics, addGPSPositionListener} from '@services/gps';
+
+// Monitor statistics
+const unsubscribe = addGPSPositionListener((position) => {
+  const stats = getGPSStatistics();
+
+  console.log('Stats:', {
+    total: stats.totalPositions,
+    avgAccuracy: stats.averageAccuracy.toFixed(2) + 'm',
+    lastUpdate: new Date(stats.lastUpdateTime || 0).toISOString(),
+  });
+});
+```
+
+**5. 배터리 절약 모드**:
+```typescript
+import {startGPSTracking, GPSAccuracyMode} from '@services/gps';
+
+// Low battery mode: update only when moved 50m or every 30s
+startGPSTracking({
+  accuracyMode: GPSAccuracyMode.LOW,
+  distanceFilter: 50,
+  interval: 30000,
+  fastestInterval: 10000,
+});
+```
+
+### 산출물
+
+- ✅ src/services/gps/GPSService.ts (520줄)
+- ✅ src/services/gps/index.ts (exports)
+- ✅ GPSService 클래스 (싱글톤)
+- ✅ getCurrentPosition() 메서드
+- ✅ startTracking()/stopTracking() 메서드
+- ✅ 3가지 정확도 모드 (HIGH, BALANCED, LOW)
+- ✅ 배터리 최적화 옵션
+- ✅ Position/Error 리스너
+- ✅ 통계 추적
+- ✅ 에러 처리
+- ✅ 타입 정의
+
+### 주요 성과
+
+**완전한 GPS 서비스**:
+- ✅ 현재 위치 조회
+- ✅ 연속 위치 추적
+- ✅ 설정 가능한 정확도
+- ✅ 배터리 최적화
+- ✅ 통계 추적
+- ✅ 에러 핸들링
+
+**배터리 효율성**:
+- ✅ Distance filter (최소 이동 거리)
+- ✅ Update interval 조절
+- ✅ 3단계 정확도 모드
+- ✅ 선택적 추적
+
+**개발자 경험**:
+- ✅ 간단한 API
+- ✅ Listener 패턴
+- ✅ TypeScript 타입 안전성
+- ✅ 편의 함수 제공
+- ✅ 통계 모니터링
+
+**신뢰성**:
+- ✅ 에러 처리 및 복구
+- ✅ 권한 관리
+- ✅ Timeout 설정
+- ✅ Cleanup 지원
+
+### 다음 Phase
+
+→ Phase 85: GPS 데이터 저장
 
 ---
 
-_최종 업데이트: 2025-11-13 23:00_
+## 통계 업데이트
+
+**완료된 Phase: 84/300**
+**진행률: 28.0%**
+
+---
+
+_최종 업데이트: 2025-11-13 23:15_
