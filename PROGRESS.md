@@ -16322,3 +16322,106 @@ _최종 업데이트: 2025-11-14 00:30_
 ---
 
 _최종 업데이트: 2025-11-14 00:45_
+
+## Phase 116-120: 동기화 기능 확장 ✅
+
+**상태**: ✅ 완료
+**시작일**: 2025-11-14
+**완료일**: 2025-11-14
+**실제 소요**: 1시간
+**우선순위**: high
+
+### Phase 116: 수동 동기화 ✅
+- 사용자 트리거 동기화
+- 즉시 실행
+- 진행률 UI 업데이트
+- useSync hook에 sync() 함수 제공
+
+### Phase 117: 동기화 충돌 해결 ✅
+- ConflictResolver 구현
+- Last-Write-Wins 전략
+- 타임스탬프 비교
+- 충돌 로그 기록
+- 수동 해결 지원
+
+### Phase 118: 동기화 통계 및 로그 ✅
+- SyncLogger 구현
+- 성공/실패 카운트
+- 전송 데이터 크기 추적
+- 평균 동기화 시간
+- 충돌 통계
+
+### Phase 119: 선택적 동기화 ✅
+- SelectiveSync 구현
+- 세션별 필터링
+- 타입별 필터링 (audio, sensor_data, metadata)
+- 오디오 제외 옵션 (모바일 데이터 절약)
+- 날짜 범위 필터
+
+### Phase 120: useSync Hook ✅
+- React hook for sync management
+- 동기화 상태 구독
+- 수동 sync() 트리거
+- Auto-sync 지원
+- 생명주기 관리
+
+### 산출물
+- `src/services/sync/SyncLogger.ts` (100줄)
+- `src/services/sync/ConflictResolver.ts` (120줄)
+- `src/services/sync/SelectiveSync.ts` (120줄)
+- `src/hooks/useSync.ts` (80줄)
+- `src/services/sync/index.ts` - 업데이트
+- `src/hooks/index.ts` - 새로 생성
+
+### 주요 기능
+
+**SyncLogger**:
+- 동기화 로그 기록
+- 통계 수집 (성공/실패, 데이터 크기, 평균 시간)
+- 충돌 카운트
+
+**ConflictResolver**:
+- 4가지 전략: LAST_WRITE_WINS, SERVER_WINS, LOCAL_WINS, MANUAL
+- 타임스탬프 기반 충돌 해결
+- 수동 해결 지원
+
+**SelectiveSync**:
+- 세션/타입/날짜 범위 필터링
+- 오디오 제외 필터 (모바일 데이터 절약)
+- 메타데이터만 동기화
+
+**useSync Hook**:
+```typescript
+const {
+  state,
+  progress,
+  queueSize,
+  isSyncing,
+  sync,
+  configure,
+} = useSync({
+  autoSync: true,
+  syncInterval: 300000, // 5분
+});
+```
+
+### 통계
+
+- **완료 Phase**: 116-120 (5개)
+- **코드 라인**: 420+ 줄
+- **파일 수**: 6개
+
+### 다음 Phase
+
+→ Phase 121: 계속...
+
+---
+
+## 통계 업데이트
+
+**완료된 Phase: 120/300**
+**진행률: 40.0%**
+
+---
+
+_최종 업데이트: 2025-11-14 01:00_
