@@ -6,11 +6,14 @@ import {
   TouchableOpacity,
   ScrollView,
   RefreshControl,
+  Alert,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { useSyncStore } from '../store/useSyncStore';
+import { useRecording, createRecordingConfig } from '../hooks';
+import { RecordingMode } from '../services/RecordingService';
 
 type RootStackParamList = {
   Recording: undefined;
@@ -35,18 +38,42 @@ export const HomeScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
   const { state: syncState, progress: syncProgress, queueSize } = useSyncStore();
 
+  // Phase 126: Recording control logic integration
+  const {
+    isRecording,
+    isStarting,
+    isStopping,
+    sessionId,
+    state: recordingState,
+    stats,
+    startRecording,
+    stopRecording,
+    error: recordingError,
+  } = useRecording({
+    onError: (error) => {
+      Alert.alert('녹음 오류', error.message);
+    },
+  });
+
   const [status, setStatus] = useState<AppStatus>({
     isRecording: false,
     totalSessions: 0,
     pendingSyncItems: 0,
   });
   const [refreshing, setRefreshing] = useState(false);
+  const [recordingDuration, setRecordingDuration] = useState(0);
 
   const loadStatus = async () => {
-    // TODO: Load actual status from services
-    // This will be implemented when integrating with RecordingService and DatabaseService
+    // TODO: Load actual status from DatabaseService
     setStatus({
-      isRecording: false,
+      isRecording,
+      currentSession: sessionId
+        ? {
+            id: sessionId,
+            name: `Session ${sessionId.slice(0, 8)}`,
+            duration: recordingDuration,
+          }
+        : undefined,
       totalSessions: 0,
       pendingSyncItems: queueSize,
     });
@@ -60,10 +87,38 @@ export const HomeScreen: React.FC = () => {
 
   useEffect(() => {
     loadStatus();
-  }, [queueSize]);
+  }, [queueSize, isRecording, sessionId, recordingDuration]);
 
-  const handleStartRecording = () => {
-    navigation.navigate('Recording');
+  // Recording duration timer
+  useEffect(() => {
+    if (!isRecording) {
+      setRecordingDuration(0);
+      return;
+    }
+
+    const interval = setInterval(() => {
+      setRecordingDuration((prev) => prev + 1000);
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [isRecording]);
+
+  const handleStartRecording = async () => {
+    try {
+      // Create recording configuration with sensors and audio
+      const config = createRecordingConfig(RecordingMode.SENSOR_AND_AUDIO);
+      await startRecording(config);
+    } catch (error) {
+      console.error('Failed to start recording:', error);
+    }
+  };
+
+  const handleStopRecording = async () => {
+    try {
+      await stopRecording();
+    } catch (error) {
+      console.error('Failed to stop recording:', error);
+    }
   };
 
   const getSyncStatusColor = (): string => {
@@ -131,14 +186,14 @@ export const HomeScreen: React.FC = () => {
         )}
       </View>
 
-      {/* Start Recording Button */}
+      {/* Start/Stop Recording Button */}
       <TouchableOpacity
         style={[
           styles.recordButton,
           status.isRecording && styles.recordButtonActive,
         ]}
-        onPress={handleStartRecording}
-        disabled={status.isRecording}
+        onPress={status.isRecording ? handleStopRecording : handleStartRecording}
+        disabled={isStarting || isStopping}
       >
         <Icon
           name={status.isRecording ? 'stop-circle' : 'mic'}
@@ -146,7 +201,13 @@ export const HomeScreen: React.FC = () => {
           color="#FFFFFF"
         />
         <Text style={styles.recordButtonText}>
-          {status.isRecording ? '녹음 중...' : '녹음 시작'}
+          {isStarting
+            ? '시작 중...'
+            : isStopping
+            ? '중지 중...'
+            : status.isRecording
+            ? '녹음 중지'
+            : '녹음 시작'}
         </Text>
       </TouchableOpacity>
 

@@ -6,9 +6,12 @@ import {
   TouchableOpacity,
   StyleSheet,
   RefreshControl,
+  TextInput,
+  Modal,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import Icon from 'react-native-vector-icons/Ionicons';
 
 interface Session {
   id: string;
@@ -18,6 +21,7 @@ interface Session {
   duration: number;
   sensorCount: number;
   audioFile?: string;
+  isSynced?: boolean;
 }
 
 type RootStackParamList = {
@@ -27,10 +31,19 @@ type RootStackParamList = {
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Sessions'>;
 
+type SortOption = 'date-desc' | 'date-asc' | 'duration-desc' | 'duration-asc' | 'name-asc' | 'name-desc';
+
 export const SessionsScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
   const [sessions, setSessions] = useState<Session[]>([]);
+  const [filteredSessions, setFilteredSessions] = useState<Session[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+
+  // Phase 127: Filter/Sort/Search features
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortOption, setSortOption] = useState<SortOption>('date-desc');
+  const [showSortModal, setShowSortModal] = useState(false);
+  const [filterSynced, setFilterSynced] = useState<'all' | 'synced' | 'unsynced'>('all');
 
   const loadSessions = async () => {
     // TODO: Load sessions from database
@@ -47,6 +60,48 @@ export const SessionsScreen: React.FC = () => {
   useEffect(() => {
     loadSessions();
   }, []);
+
+  // Apply filters and sorting
+  useEffect(() => {
+    let result = [...sessions];
+
+    // Search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter((session) =>
+        session.name.toLowerCase().includes(query)
+      );
+    }
+
+    // Sync status filter
+    if (filterSynced === 'synced') {
+      result = result.filter((session) => session.isSynced);
+    } else if (filterSynced === 'unsynced') {
+      result = result.filter((session) => !session.isSynced);
+    }
+
+    // Sorting
+    result.sort((a, b) => {
+      switch (sortOption) {
+        case 'date-desc':
+          return b.startTime - a.startTime;
+        case 'date-asc':
+          return a.startTime - b.startTime;
+        case 'duration-desc':
+          return b.duration - a.duration;
+        case 'duration-asc':
+          return a.duration - b.duration;
+        case 'name-asc':
+          return a.name.localeCompare(b.name);
+        case 'name-desc':
+          return b.name.localeCompare(a.name);
+        default:
+          return 0;
+      }
+    });
+
+    setFilteredSessions(result);
+  }, [sessions, searchQuery, sortOption, filterSynced]);
 
   const formatDuration = (ms: number): string => {
     const seconds = Math.floor(ms / 1000);
@@ -73,6 +128,18 @@ export const SessionsScreen: React.FC = () => {
     });
   };
 
+  const getSortLabel = (): string => {
+    switch (sortOption) {
+      case 'date-desc': return '최신순';
+      case 'date-asc': return '오래된순';
+      case 'duration-desc': return '긴 시간순';
+      case 'duration-asc': return '짧은 시간순';
+      case 'name-asc': return '이름 오름차순';
+      case 'name-desc': return '이름 내림차순';
+      default: return '정렬';
+    }
+  };
+
   const renderSession = ({ item }: { item: Session }) => (
     <TouchableOpacity
       style={styles.sessionCard}
@@ -80,7 +147,16 @@ export const SessionsScreen: React.FC = () => {
     >
       <View style={styles.sessionHeader}>
         <Text style={styles.sessionName}>{item.name}</Text>
-        <Text style={styles.sessionDuration}>{formatDuration(item.duration)}</Text>
+        <View style={styles.sessionHeaderRight}>
+          {/* Sync status icon */}
+          <Icon
+            name={item.isSynced ? 'cloud-done' : 'cloud-offline'}
+            size={20}
+            color={item.isSynced ? '#34C759' : '#FF9500'}
+            style={styles.syncIcon}
+          />
+          <Text style={styles.sessionDuration}>{formatDuration(item.duration)}</Text>
+        </View>
       </View>
       <Text style={styles.sessionDate}>{formatDate(item.startTime)}</Text>
       <View style={styles.sessionStats}>
@@ -90,6 +166,57 @@ export const SessionsScreen: React.FC = () => {
     </TouchableOpacity>
   );
 
+  const renderSortModal = () => (
+    <Modal
+      visible={showSortModal}
+      transparent
+      animationType="fade"
+      onRequestClose={() => setShowSortModal(false)}
+    >
+      <TouchableOpacity
+        style={styles.modalOverlay}
+        activeOpacity={1}
+        onPress={() => setShowSortModal(false)}
+      >
+        <View style={styles.modalContent}>
+          <Text style={styles.modalTitle}>정렬 기준</Text>
+          {[
+            { value: 'date-desc', label: '최신순' },
+            { value: 'date-asc', label: '오래된순' },
+            { value: 'duration-desc', label: '긴 시간순' },
+            { value: 'duration-asc', label: '짧은 시간순' },
+            { value: 'name-asc', label: '이름 오름차순' },
+            { value: 'name-desc', label: '이름 내림차순' },
+          ].map((option) => (
+            <TouchableOpacity
+              key={option.value}
+              style={[
+                styles.modalOption,
+                sortOption === option.value && styles.modalOptionActive,
+              ]}
+              onPress={() => {
+                setSortOption(option.value as SortOption);
+                setShowSortModal(false);
+              }}
+            >
+              <Text
+                style={[
+                  styles.modalOptionText,
+                  sortOption === option.value && styles.modalOptionTextActive,
+                ]}
+              >
+                {option.label}
+              </Text>
+              {sortOption === option.value && (
+                <Icon name="checkmark" size={20} color="#007AFF" />
+              )}
+            </TouchableOpacity>
+          ))}
+        </View>
+      </TouchableOpacity>
+    </Modal>
+  );
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -97,16 +224,91 @@ export const SessionsScreen: React.FC = () => {
         <Text style={styles.subtitle}>총 {sessions.length}개의 세션</Text>
       </View>
 
-      {sessions.length === 0 ? (
+      {/* Search and Filter Bar */}
+      <View style={styles.searchFilterBar}>
+        <View style={styles.searchContainer}>
+          <Icon name="search" size={20} color="#8E8E93" style={styles.searchIcon} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="세션 검색..."
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholderTextColor="#8E8E93"
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchQuery('')}>
+              <Icon name="close-circle" size={20} color="#8E8E93" />
+            </TouchableOpacity>
+          )}
+        </View>
+
+        <View style={styles.filterButtons}>
+          {/* Sort button */}
+          <TouchableOpacity
+            style={styles.filterButton}
+            onPress={() => setShowSortModal(true)}
+          >
+            <Icon name="swap-vertical" size={18} color="#007AFF" />
+            <Text style={styles.filterButtonText}>{getSortLabel()}</Text>
+          </TouchableOpacity>
+
+          {/* Sync filter button */}
+          <TouchableOpacity
+            style={[
+              styles.filterButton,
+              filterSynced !== 'all' && styles.filterButtonActive,
+            ]}
+            onPress={() => {
+              const options: Array<'all' | 'synced' | 'unsynced'> = ['all', 'synced', 'unsynced'];
+              const currentIndex = options.indexOf(filterSynced);
+              const nextIndex = (currentIndex + 1) % options.length;
+              setFilterSynced(options[nextIndex]);
+            }}
+          >
+            <Icon
+              name={
+                filterSynced === 'synced'
+                  ? 'cloud-done'
+                  : filterSynced === 'unsynced'
+                  ? 'cloud-offline'
+                  : 'filter'
+              }
+              size={18}
+              color={filterSynced !== 'all' ? '#FFFFFF' : '#007AFF'}
+            />
+            <Text
+              style={[
+                styles.filterButtonText,
+                filterSynced !== 'all' && styles.filterButtonTextActive,
+              ]}
+            >
+              {filterSynced === 'synced'
+                ? '동기화됨'
+                : filterSynced === 'unsynced'
+                ? '미동기화'
+                : '전체'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {filteredSessions.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>녹음된 세션이 없습니다</Text>
+          <Icon name="folder-open-outline" size={64} color="#8E8E93" />
+          <Text style={styles.emptyText}>
+            {searchQuery || filterSynced !== 'all'
+              ? '검색 결과가 없습니다'
+              : '녹음된 세션이 없습니다'}
+          </Text>
           <Text style={styles.emptySubtext}>
-            홈 화면에서 녹음을 시작해보세요
+            {searchQuery || filterSynced !== 'all'
+              ? '다른 조건으로 검색해보세요'
+              : '홈 화면에서 녹음을 시작해보세요'}
           </Text>
         </View>
       ) : (
         <FlatList
-          data={sessions}
+          data={filteredSessions}
           renderItem={renderSession}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
@@ -115,6 +317,8 @@ export const SessionsScreen: React.FC = () => {
           }
         />
       )}
+
+      {renderSortModal()}
     </View>
   );
 };
@@ -122,29 +326,77 @@ export const SessionsScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#F2F2F7',
   },
   header: {
     padding: 20,
-    backgroundColor: '#fff',
+    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: '#E5E5EA',
   },
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#333',
+    color: '#000000',
     marginBottom: 4,
   },
   subtitle: {
     fontSize: 14,
-    color: '#666',
+    color: '#8E8E93',
+  },
+  searchFilterBar: {
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E5EA',
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F2F2F7',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    marginBottom: 12,
+  },
+  searchIcon: {
+    marginRight: 8,
+  },
+  searchInput: {
+    flex: 1,
+    height: 40,
+    fontSize: 16,
+    color: '#000000',
+  },
+  filterButtons: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  filterButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: '#F2F2F7',
+    gap: 4,
+  },
+  filterButtonActive: {
+    backgroundColor: '#007AFF',
+  },
+  filterButtonText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#007AFF',
+  },
+  filterButtonTextActive: {
+    color: '#FFFFFF',
   },
   listContent: {
     padding: 16,
   },
   sessionCard: {
-    backgroundColor: '#fff',
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
@@ -163,8 +415,16 @@ const styles = StyleSheet.create({
   sessionName: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#333',
+    color: '#000000',
     flex: 1,
+  },
+  sessionHeaderRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  syncIcon: {
+    marginLeft: 4,
   },
   sessionDuration: {
     fontSize: 16,
@@ -173,7 +433,7 @@ const styles = StyleSheet.create({
   },
   sessionDate: {
     fontSize: 14,
-    color: '#666',
+    color: '#8E8E93',
     marginBottom: 8,
   },
   sessionStats: {
@@ -182,7 +442,7 @@ const styles = StyleSheet.create({
   },
   statText: {
     fontSize: 12,
-    color: '#999',
+    color: '#8E8E93',
   },
   emptyContainer: {
     flex: 1,
@@ -193,13 +453,55 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#666',
+    color: '#8E8E93',
+    marginTop: 16,
     marginBottom: 8,
   },
   emptySubtext: {
     fontSize: 14,
-    color: '#999',
+    color: '#8E8E93',
     textAlign: 'center',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 20,
+    width: '100%',
+    maxWidth: 320,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#000000',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  modalOption: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+  modalOptionActive: {
+    backgroundColor: '#F2F2F7',
+  },
+  modalOptionText: {
+    fontSize: 16,
+    color: '#000000',
+  },
+  modalOptionTextActive: {
+    fontWeight: '600',
+    color: '#007AFF',
   },
 });
 

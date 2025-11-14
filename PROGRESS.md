@@ -22,11 +22,11 @@
 
 ## Phase 진행 현황
 
-### ✅ 완료된 Phase: 125/300
+### ✅ 완료된 Phase: 127/300
 
 ### 🔄 진행 중: 없음
 
-### ⏳ 대기 중: Phase 126-300
+### ⏳ 대기 중: Phase 128-300
 
 ---
 
@@ -16556,3 +16556,107 @@ import { SensorCard } from '@components';
 ---
 
 _최종 업데이트: 2025-11-14 03:40_
+
+## Phase 126-127: 녹음 제어 및 세션 관리 UI 개선 ✅
+
+**상태**: ✅ 완료
+**완료일**: 2025-11-14
+**실제 소요**: 1.5시간
+**우선순위**: critical
+
+### Phase 126: 녹음 제어 로직 연동
+
+- [x] useRecording hook 생성
+- [x] RecordingService와 React 통합
+- [x] 녹음 시작/중지 기능
+- [x] 상태 관리 (isRecording, isStarting, isStopping)
+- [x] 에러 처리
+- [x] HomeScreen 녹음 버튼 연동
+- [x] 녹음 타이머 구현
+- [x] Wake lock 및 foreground service 설정
+
+### Phase 127: SessionsScreen UI 향상
+
+- [x] 검색 기능 (세션 이름)
+- [x] 정렬 기능 (최신순, 오래된순, 시간순, 이름순)
+- [x] 필터 기능 (전체, 동기화됨, 미동기화)
+- [x] 동기화 상태 아이콘
+- [x] 정렬 모달
+- [x] 빈 상태 UI 개선
+- [x] 검색 결과 없음 UI
+
+### 생성된 파일
+
+```
+src/hooks/useRecording.ts                (190줄)
+```
+
+### 수정된 파일
+
+```
+src/hooks/index.ts                       (useRecording export 추가)
+src/screens/HomeScreen.tsx               (녹음 제어 연동, 450줄)
+src/screens/SessionsScreen.tsx           (필터/정렬/검색, 510줄)
+```
+
+### 주요 기능
+
+#### useRecording Hook
+- RecordingService와 React 통합
+- 상태 관리: state, sessionId, isRecording, isStarting, isStopping
+- 액션: startRecording, stopRecording, pauseRecording, resumeRecording
+- 이벤트 리스너: onStateChange, onError, onStatsUpdate
+- createRecordingConfig 헬퍼 함수
+
+#### HomeScreen 녹음 제어
+- 녹음 시작/중지 버튼
+- 녹음 중 타이머 표시
+- 현재 세션 정보
+- 상태 인디케이터 (녹음 중/대기 중)
+- 에러 알림
+
+#### SessionsScreen 향상
+- 검색 바 (세션 이름 검색)
+- 정렬 버튼 (6가지 옵션)
+- 동기화 필터 (전체/동기화됨/미동기화)
+- 동기화 상태 아이콘 (cloud-done/cloud-offline)
+- 정렬 모달 (6가지 옵션 선택)
+- 빈 상태 및 검색 결과 없음 UI
+
+### 사용 예시
+
+```typescript
+// useRecording hook 사용
+import { useRecording, createRecordingConfig } from '@hooks';
+import { RecordingMode } from '../services/RecordingService';
+
+const { isRecording, startRecording, stopRecording } = useRecording({
+  onError: (error) => Alert.alert('녹음 오류', error.message),
+});
+
+const handleStart = async () => {
+  const config = createRecordingConfig(RecordingMode.SENSOR_AND_AUDIO);
+  await startRecording(config);
+};
+```
+
+### 통계
+
+- **완료 Phase**: 126-127 (2개)
+- **코드 라인**: 1,150+ 줄
+- **파일 수**: 4개 (1개 신규, 3개 수정)
+
+### 다음 Phase
+
+→ Phase 128: 세션 리스트 데이터 연동 (WatermelonDB)
+
+---
+
+## 통계 업데이트
+
+**완료된 Phase: 127/300**
+**진행률: 42.3%**
+
+---
+
+_최종 업데이트: 2025-11-14 03:55_
