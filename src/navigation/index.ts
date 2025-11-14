@@ -2,6 +2,9 @@
  * Navigation barrel export
  */
 
+export {BottomTabNavigator} from './BottomTabNavigator';
+export type {BottomTabParamList} from './BottomTabNavigator';
+
 export {HistoryStack} from './HistoryStack';
 export type {HistoryStackParamList} from './HistoryStack';
 

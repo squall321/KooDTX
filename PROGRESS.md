@@ -22,11 +22,11 @@
 
 ## Phase 진행 현황
 
-### ✅ 완료된 Phase: 115/300
+### ✅ 완료된 Phase: 125/300
 
 ### 🔄 진행 중: 없음
 
-### ⏳ 대기 중: Phase 116-300
+### ⏳ 대기 중: Phase 126-300
 
 ---
 
@@ -16425,3 +16425,134 @@ const {
 ---
 
 _최종 업데이트: 2025-11-14 01:00_
+
+## Phase 121-125: UI 기본 구조 및 화면 구현 ✅
+
+**상태**: ✅ 완료
+**완료일**: 2025-11-14
+**실제 소요**: 2시간
+**우선순위**: high
+
+### Phase 121: 기본 화면 구조 설정
+
+- [x] SessionsScreen.tsx 생성
+- [x] 세션 목록 UI 구현
+- [x] 빈 상태 처리
+- [x] 리프레시 기능
+
+### Phase 122: Bottom Tab Navigator 설정
+
+- [x] BottomTabNavigator 생성
+- [x] 탭 아이콘 설정 (Ionicons)
+- [x] 5개 탭 연결 (Home, Recording, Sessions, Sync, Settings)
+- [x] 탭 스타일링
+- [x] 활성 탭 표시
+
+### Phase 123: HomeScreen 기본 UI
+
+- [x] 앱 로고 및 제목
+- [x] 현재 상태 표시 (녹음 중/대기 중)
+- [x] 녹음 시작 버튼
+- [x] 최근 세션 요약
+- [x] 동기화 상태 표시
+- [x] 스타일링 (iOS 스타일)
+
+### Phase 124: RecordingScreen 기본 UI
+
+- [x] 녹음 시작/중지 버튼
+- [x] 녹음 타이머
+- [x] 실시간 센서 값 표시
+- [x] 오디오 dB 레벨
+- [x] 세션 메타데이터 입력
+- [x] 상태 표시
+- [x] 애니메이션
+
+### Phase 125: 실시간 센서 데이터 표시 컴포넌트
+
+- [x] SensorCard.tsx 생성
+- [x] 센서 타입별 카드 (accelerometer, gyroscope, magnetometer, gps, audio)
+- [x] 실시간 값 표시 (X, Y, Z)
+- [x] GPS 좌표 표시
+- [x] 오디오 dB 레벨 바
+- [x] 단위 표시
+- [x] 스타일링
+- [x] 애니메이션 (활성 상태)
+
+### 생성된 파일
+
+```
+src/screens/SessionsScreen.tsx          (200줄)
+src/navigation/BottomTabNavigator.tsx    (120줄)
+src/screens/HomeScreen.tsx               (430줄)
+src/components/SensorCard.tsx            (340줄)
+```
+
+### 주요 기능
+
+#### SessionsScreen
+- 세션 목록 표시
+- 세션 상세 정보 (이름, 날짜, 시간, 센서 개수)
+- 빈 상태 UI
+- Pull-to-refresh
+
+#### BottomTabNavigator
+- 5개 탭 네비게이션
+- Ionicons 아이콘
+- 활성/비활성 색상
+- Platform별 높이 조정
+
+#### HomeScreen
+- 앱 로고 및 타이틀
+- 상태 인디케이터
+- 큰 녹음 시작 버튼
+- 세션 통계
+- 동기화 상태 및 진행률
+- 깔끔한 카드 UI
+
+#### SensorCard
+- 5가지 센서 타입 지원
+- XYZ 값 표시 (가속도계, 자이로스코프, 자기계)
+- GPS 좌표 표시
+- 오디오 레벨 바
+- 활성 상태 애니메이션
+- 타임스탬프 표시
+
+### 사용 예시
+
+```typescript
+// SensorCard 사용
+import { SensorCard } from '@components';
+
+<SensorCard
+  sensorType="accelerometer"
+  data={{
+    x: 0.123,
+    y: -0.456,
+    z: 9.789,
+    timestamp: Date.now(),
+  }}
+  isActive={true}
+  showGraph={false}
+/>
+```
+
+### 통계
+
+- **완료 Phase**: 121-125 (5개)
+- **코드 라인**: 1,090+ 줄
+- **파일 수**: 4개
+
+### 다음 Phase
+
+→ Phase 126: 녹음 제어 로직 연동
+
+---
+
+## 통계 업데이트
+
+**완료된 Phase: 125/300**
+**진행률: 41.7%**
+
+---
+
+_최종 업데이트: 2025-11-14 03:40_
