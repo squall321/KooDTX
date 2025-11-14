@@ -1,6 +1,6 @@
 /**
  * API Module Exports
- * Phase 101-105: Complete API client
+ * Phase 101-107: Complete API client
  */
 
 export {
@@ -27,5 +27,17 @@ export {
 
 export {authApi, type LoginRequest, type RegisterRequest, type AuthResponse} from './auth';
 export {sessionsApi, type Session, type CreateSessionRequest, type UpdateSessionRequest} from './sessions';
+export {uploadApi, type UploadOptions, type UploadProgress, type UploadResponse} from './upload';
+export {
+  syncApi,
+  SyncDirection,
+  SyncStatus,
+  type SyncItem,
+  type SyncPushRequest,
+  type SyncPushResponse,
+  type SyncPullRequest,
+  type SyncPullResponse,
+  type SyncStats,
+} from './sync';
 
 export default apiClient;

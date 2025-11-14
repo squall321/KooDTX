@@ -1,25 +1,14 @@
 /**
- * Sync services barrel export
+ * Sync Service Exports
+ * Phase 108-110
  */
 
 export {
-  UploadQueue,
-  getUploadQueue,
-  UploadTaskType,
-  UploadTaskStatus,
-} from './UploadQueue';
-export type {
-  UploadTask,
-  UploadHandler,
-  UploadProgress,
-} from './UploadQueue';
+  SyncService,
+  syncService,
+  SyncServiceState,
+  type SyncEvent,
+  type SyncEventListener,
+} from './SyncService';
 
-export {
-  SyncManager,
-  getSyncManager,
-  initializeSyncManager,
-} from './SyncManager';
-export type {
-  SyncOptions,
-  SyncStatus,
-} from './SyncManager';
+export default syncService;
