@@ -1,6 +1,6 @@
 /**
  * Sync Service Exports
- * Phase 108-110
+ * Phase 108-115: Complete sync service
  */
 
 export {
@@ -9,6 +9,12 @@ export {
   SyncServiceState,
   type SyncEvent,
   type SyncEventListener,
+  type SyncConfig,
 } from './SyncService';
+
+export {
+  BackgroundSyncManager,
+  backgroundSyncManager,
+} from './BackgroundSyncManager';
 
 export default syncService;
