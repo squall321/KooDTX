@@ -9,3 +9,4 @@ export {SessionDetailScreen} from './SessionDetailScreen';
 export {ChartScreen} from './ChartScreen';
 export {SettingsScreen} from './SettingsScreen';
 export {SyncStatusScreen} from './SyncStatusScreen';
+export { default as SyncScreen } from './SyncScreen';

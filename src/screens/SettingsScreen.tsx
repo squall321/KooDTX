@@ -22,10 +22,13 @@ import {
   Platform,
   TextInput,
   ActivityIndicator,
+  Modal,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import Slider from '@react-native-community/slider';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { database } from '../database';
+import { Session } from '../database/models/Session';
 
 interface SensorSettings {
   samplingRate: number; // Hz
@@ -89,6 +92,9 @@ export const SettingsScreen: React.FC = () => {
 
   // Data Management
   const [storageSize, setStorageSize] = useState('0 MB');
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteProgress, setDeleteProgress] = useState(0);
+  const [deleteMessage, setDeleteMessage] = useState('');
 
   // Load settings on mount
   useEffect(() => {
@@ -161,8 +167,33 @@ export const SettingsScreen: React.FC = () => {
   };
 
   const calculateStorageSize = async () => {
-    // TODO: Calculate actual storage size from database
-    setStorageSize('0 MB');
+    try {
+      // Get all sessions
+      const sessions = await database.get<Session>('sessions').query().fetch();
+
+      // Calculate total data size (rough estimate)
+      // Each session has metadata + sensor data records
+      let totalSize = 0;
+
+      for (const session of sessions) {
+        // Rough estimate: 1KB per session metadata + sensor data
+        // In real implementation, you'd count sensor data rows
+        totalSize += 1024; // 1KB for metadata
+        totalSize += session.duration * 100; // ~100 bytes per second of recording
+      }
+
+      // Convert to MB
+      const sizeMB = totalSize / (1024 * 1024);
+
+      if (sizeMB < 1) {
+        setStorageSize(`${(sizeMB * 1024).toFixed(2)} KB`);
+      } else {
+        setStorageSize(`${sizeMB.toFixed(2)} MB`);
+      }
+    } catch (error) {
+      console.error('Failed to calculate storage size:', error);
+      setStorageSize('계산 실패');
+    }
   };
 
   const clearCache = () => {
@@ -175,8 +206,30 @@ export const SettingsScreen: React.FC = () => {
           text: '삭제',
           style: 'destructive',
           onPress: async () => {
-            // TODO: Clear cache
-            Alert.alert('완료', '캐시가 삭제되었습니다.');
+            setIsDeleting(true);
+            setDeleteProgress(0);
+            setDeleteMessage('캐시 삭제 중...');
+
+            try {
+              // Clear AsyncStorage cache (except settings)
+              const allKeys = await AsyncStorage.getAllKeys();
+              const cacheKeys = allKeys.filter(
+                key => key !== 'koodtx_settings' && !key.startsWith('session_')
+              );
+
+              for (let i = 0; i < cacheKeys.length; i++) {
+                await AsyncStorage.removeItem(cacheKeys[i]);
+                setDeleteProgress((i + 1) / cacheKeys.length);
+              }
+
+              setIsDeleting(false);
+              Alert.alert('완료', '캐시가 삭제되었습니다.');
+              await calculateStorageSize();
+            } catch (error) {
+              setIsDeleting(false);
+              console.error('Failed to clear cache:', error);
+              Alert.alert('오류', '캐시 삭제에 실패했습니다.');
+            }
           },
         },
       ]
@@ -193,8 +246,40 @@ export const SettingsScreen: React.FC = () => {
           text: '삭제',
           style: 'destructive',
           onPress: async () => {
-            // TODO: Delete all data
-            Alert.alert('완료', '모든 데이터가 삭제되었습니다.');
+            setIsDeleting(true);
+            setDeleteProgress(0);
+            setDeleteMessage('모든 데이터 삭제 중...');
+
+            try {
+              // Step 1: Delete all sessions
+              setDeleteMessage('세션 데이터 삭제 중...');
+              const sessions = await database.get<Session>('sessions').query().fetch();
+
+              await database.write(async () => {
+                for (let i = 0; i < sessions.length; i++) {
+                  await sessions[i].markAsDeleted();
+                  setDeleteProgress((i + 1) / (sessions.length * 2));
+                }
+              });
+
+              // Step 2: Clear AsyncStorage (except settings)
+              setDeleteMessage('캐시 삭제 중...');
+              const allKeys = await AsyncStorage.getAllKeys();
+              const dataKeys = allKeys.filter(key => key !== 'koodtx_settings');
+
+              for (let i = 0; i < dataKeys.length; i++) {
+                await AsyncStorage.removeItem(dataKeys[i]);
+                setDeleteProgress(0.5 + (i + 1) / (dataKeys.length * 2));
+              }
+
+              setIsDeleting(false);
+              Alert.alert('완료', '모든 데이터가 삭제되었습니다.');
+              await calculateStorageSize();
+            } catch (error) {
+              setIsDeleting(false);
+              console.error('Failed to delete all data:', error);
+              Alert.alert('오류', '데이터 삭제에 실패했습니다.');
+            }
           },
         },
       ]
@@ -611,6 +696,31 @@ export const SettingsScreen: React.FC = () => {
       </View>
 
       <View style={styles.bottomPadding} />
+
+      {/* Progress Modal */}
+      <Modal
+        visible={isDeleting}
+        transparent={true}
+        animationType="fade"
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <ActivityIndicator size="large" color="#007AFF" />
+            <Text style={styles.modalTitle}>{deleteMessage}</Text>
+            <View style={styles.progressBarContainer}>
+              <View
+                style={[
+                  styles.progressBarFill,
+                  { width: `${deleteProgress * 100}%` }
+                ]}
+              />
+            </View>
+            <Text style={styles.progressText}>
+              {Math.round(deleteProgress * 100)}%
+            </Text>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 };
@@ -841,6 +951,44 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#FFFFFF',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 24,
+    alignItems: 'center',
+    minWidth: 280,
+  },
+  modalTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000000',
+    marginTop: 16,
+    marginBottom: 16,
+  },
+  progressBarContainer: {
+    width: '100%',
+    height: 8,
+    backgroundColor: '#F2F2F7',
+    borderRadius: 4,
+    overflow: 'hidden',
+    marginBottom: 12,
+  },
+  progressBarFill: {
+    height: '100%',
+    backgroundColor: '#007AFF',
+    borderRadius: 4,
+  },
+  progressText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#007AFF',
   },
   bottomPadding: {
     height: 40,

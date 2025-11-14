@@ -22,11 +22,11 @@
 
 ## Phase 진행 현황
 
-### ✅ 완료된 Phase: 135/300
+### ✅ 완료된 Phase: 137/300
 
 ### 🔄 진행 중: 없음
 
-### ⏳ 대기 중: Phase 136-300
+### ⏳ 대기 중: Phase 138-300
 
 ---
 
@@ -16995,3 +16995,206 @@ const handleTestConnection = async () => {
 ---
 
 _최종 업데이트: 2025-11-14 05:00_
+
+---
+
+## Phase 136-137: 데이터 관리 및 동기화 UI ✅
+
+**상태**: ✅ 완료
+**완료일**: 2025-11-14
+**우선순위**: high
+
+### Phase 136: 데이터 관리 UI
+
+Phase 132-133에서 기본 UI는 구현되었으며, 이번 Phase에서 실제 기능 구현 및 진행률 표시 추가:
+
+- [x] 실제 데이터 크기 계산 (WatermelonDB)
+  - Session 데이터 기반 크기 계산
+  - KB/MB 단위 자동 변환
+- [x] 캐시 삭제 기능
+  - AsyncStorage 캐시 삭제
+  - 진행률 표시 Modal
+  - 설정 데이터 보존
+- [x] 모든 데이터 삭제 기능
+  - WatermelonDB 세션 삭제
+  - AsyncStorage 데이터 삭제 (설정 제외)
+  - 2단계 진행률 표시
+- [x] 확인 다이얼로그
+  - Alert.alert 사용
+  - 취소/확인 옵션
+- [x] 진행률 표시
+  - Modal with ActivityIndicator
+  - Progress bar
+  - 진행 상태 메시지 (%, 상태)
+
+### Phase 137: SyncScreen 기본 UI
+
+기존 SyncStatusScreen (react-native-paper)을 프로젝트 스타일에 맞게 재구현:
+
+- [x] 동기화 상태 표시
+  - 상태 뱃지 (동기화 중/대기 중)
+  - 마지막 동기화 시간
+  - 상대 시간 표시 (X분 전, X시간 전)
+- [x] 동기화 진행률
+  - Progress bar
+  - 5개 통계 (전체, 완료, 실패, 진행 중, 대기)
+- [x] 수동 동기화 버튼
+  - 동기화 중 비활성화
+  - Icon + Text
+- [x] 동기화 큐 리스트
+  - 세션별 큐 아이템
+  - 타입별 아이콘 (세션, 센서, 오디오)
+  - 상태별 뱃지 (대기/진행/완료/실패)
+- [x] 동기화 로그
+  - 큐 리스트로 표시
+  - Empty state 처리
+- [x] 통계 표시
+  - 대기 중인 데이터 (세션, 센서, 오디오)
+  - 색상 코딩 (완료: 초록, 실패: 빨강, 진행: 파랑)
+- [x] 스타일링
+  - iOS 스타일 디자인
+  - Ionicons 사용
+  - Pull to refresh
+
+### 생성/수정된 파일
+
+```
+src/screens/SettingsScreen.tsx           (업데이트, +200줄)
+  - Modal import 추가
+  - database, Session import 추가
+  - 진행 상태 state 추가 (isDeleting, deleteProgress, deleteMessage)
+  - calculateStorageSize 실제 구현
+  - clearCache 실제 구현 (진행률 포함)
+  - deleteAllData 실제 구현 (진행률 포함)
+  - Progress Modal UI 추가
+  - Modal 스타일 추가
+
+src/screens/SyncScreen.tsx               (신규, 520줄)
+  - 완전히 새로운 Sync 화면
+  - useSyncStore 통합
+  - 5개 주요 섹션
+  - iOS 스타일 UI
+
+src/screens/index.ts                     (업데이트)
+  - SyncScreen export 추가
+
+src/navigation/BottomTabNavigator.tsx    (업데이트)
+  - SyncStatusScreen → SyncScreen 변경
+```
+
+### 주요 기능
+
+#### 데이터 관리 (Phase 136)
+
+**calculateStorageSize**
+```typescript
+const calculateStorageSize = async () => {
+  const sessions = await database.get<Session>('sessions').query().fetch();
+  let totalSize = 0;
+  
+  for (const session of sessions) {
+    totalSize += 1024; // 1KB 메타데이터
+    totalSize += session.duration * 100; // ~100 bytes/sec
+  }
+  
+  const sizeMB = totalSize / (1024 * 1024);
+  setStorageSize(sizeMB < 1 ? `${(sizeMB * 1024).toFixed(2)} KB` : `${sizeMB.toFixed(2)} MB`);
+};
+```
+
+**clearCache with Progress**
+```typescript
+const clearCache = () => {
+  Alert.alert('캐시 삭제', '캐시를 삭제하시겠습니까?', [
+    { text: '취소', style: 'cancel' },
+    { text: '삭제', style: 'destructive', onPress: async () => {
+      setIsDeleting(true);
+      setDeleteProgress(0);
+      setDeleteMessage('캐시 삭제 중...');
+      
+      const allKeys = await AsyncStorage.getAllKeys();
+      const cacheKeys = allKeys.filter(key => 
+        key !== 'koodtx_settings' && !key.startsWith('session_')
+      );
+      
+      for (let i = 0; i < cacheKeys.length; i++) {
+        await AsyncStorage.removeItem(cacheKeys[i]);
+        setDeleteProgress((i + 1) / cacheKeys.length);
+      }
+      
+      setIsDeleting(false);
+    }}
+  ]);
+};
+```
+
+**deleteAllData with 2-step Progress**
+```typescript
+// Step 1: Delete sessions
+const sessions = await database.get<Session>('sessions').query().fetch();
+await database.write(async () => {
+  for (let i = 0; i < sessions.length; i++) {
+    await sessions[i].markAsDeleted();
+    setDeleteProgress((i + 1) / (sessions.length * 2));
+  }
+});
+
+// Step 2: Clear AsyncStorage
+const dataKeys = allKeys.filter(key => key !== 'koodtx_settings');
+for (let i = 0; i < dataKeys.length; i++) {
+  await AsyncStorage.removeItem(dataKeys[i]);
+  setDeleteProgress(0.5 + (i + 1) / (dataKeys.length * 2));
+}
+```
+
+**Progress Modal**
+```typescript
+<Modal visible={isDeleting} transparent={true} animationType="fade">
+  <View style={styles.modalOverlay}>
+    <View style={styles.modalContent}>
+      <ActivityIndicator size="large" color="#007AFF" />
+      <Text style={styles.modalTitle}>{deleteMessage}</Text>
+      <View style={styles.progressBarContainer}>
+        <View style={[styles.progressBarFill, { width: `${deleteProgress * 100}%` }]} />
+      </View>
+      <Text style={styles.progressText}>{Math.round(deleteProgress * 100)}%</Text>
+    </View>
+  </View>
+</Modal>
+```
+
+#### 동기화 화면 (Phase 137)
+
+**UI 구조**
+- 동기화 상태 섹션 (상태, 마지막 동기화, 수동 동기화 버튼)
+- 대기 중인 데이터 섹션 (세션, 센서, 오디오 카운트)
+- 업로드 진행 상태 섹션 (Progress bar, 5개 통계, 재시도 버튼)
+- 동기화 로그 섹션 (큐 아이템 리스트 또는 Empty state)
+
+**주요 컴포넌트**
+- useSyncStore 통합으로 실시간 동기화 상태 반영
+- Pull to refresh
+- 2초 간격 자동 업데이트
+- 상대 시간 표시 (formatLastSyncTime)
+- 진행률 계산 및 시각화
+
+### 통계
+
+- **완료 Phase**: 136-137 (2개)
+- **코드 라인**: SettingsScreen +200줄, SyncScreen 520줄 (신규)
+- **파일 수**: 2개 업데이트, 1개 신규
+
+### 다음 Phase
+
+→ Phase 138: 동기화 진행률 컴포넌트
+
+---
+
+## 통계 업데이트
+
+**완료된 Phase: 137/300**
+**진행률: 45.7%**
+
+---
+
+_최종 업데이트: 2025-11-14 05:30_

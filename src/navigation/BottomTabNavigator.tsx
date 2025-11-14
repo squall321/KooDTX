@@ -8,7 +8,7 @@ import HomeScreen from '../screens/HomeScreen';
 import { RecordingScreen } from '../screens/RecordingScreen';
 import { SessionsScreen } from '../screens/SessionsScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
-import { SyncStatusScreen } from '../screens/SyncStatusScreen';
+import SyncScreen from '../screens/SyncScreen';
 
 export type BottomTabParamList = {
   Home: undefined;
@@ -103,7 +103,7 @@ export const BottomTabNavigator: React.FC = () => {
       />
       <Tab.Screen
         name="Sync"
-        component={SyncStatusScreen}
+        component={SyncScreen}
         options={{
           title: '동기화',
           tabBarLabel: '동기화',
