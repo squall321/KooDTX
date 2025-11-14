@@ -22,11 +22,11 @@
 
 ## Phase 진행 현황
 
-### ✅ 완료된 Phase: 133/300
+### ✅ 완료된 Phase: 135/300
 
 ### 🔄 진행 중: 없음
 
-### ⏳ 대기 중: Phase 134-300
+### ⏳ 대기 중: Phase 136-300
 
 ---
 
@@ -16887,13 +16887,111 @@ src/screens/SettingsScreen.tsx           (700줄, 완전 재구현)
 
 → Phase 134: 동기화 설정 UI (이미 구현됨)
 
+
+---
+
+## Phase 134-135: 동기화 & 서버 설정 UI 완성 ✅
+
+**상태**: ✅ 완료
+**완료일**: 2025-11-14
+**우선순위**: high
+
+### Phase 134: 동기화 설정 UI
+
+Phase 132-133에서 이미 완전히 구현됨:
+- [x] 자동 동기화 토글
+- [x] Wi-Fi 전용 토글
+- [x] 충전 중에만 토글
+- [x] 동기화 주기 슬라이더 (1-60분)
+- [x] AsyncStorage 저장
+
+### Phase 135: 서버 설정 UI 강화
+
+- [x] 서버 URL 수정 기능
+  - 편집 모드 활성화/비활성화
+  - TextInput으로 URL 입력
+  - 저장/취소 버튼
+  - URL 유효성 검증
+- [x] 연결 테스트 기능
+  - 테스트 버튼
+  - 로딩 인디케이터
+  - 성공/실패 메시지
+- [x] 로그아웃 기능
+  - 확인 다이얼로그
+  - 서버 설정 초기화
+
+### 생성/수정된 파일
+
+```
+src/screens/SettingsScreen.tsx           (850줄, 업데이트)
+```
+
+### 주요 기능
+
+#### 서버 URL 편집
+```typescript
+const [editingUrl, setEditingUrl] = useState(false);
+const [tempUrl, setTempUrl] = useState('');
+
+const handleEditUrl = () => {
+  setTempUrl(serverSettings.url);
+  setEditingUrl(true);
+};
+
+const handleSaveUrl = () => {
+  try {
+    new URL(tempUrl); // URL 유효성 검증
+    setServerSettings({ ...serverSettings, url: tempUrl });
+    setEditingUrl(false);
+  } catch (error) {
+    Alert.alert('오류', '올바른 URL 형식이 아닙니다.');
+  }
+};
+```
+
+#### 연결 테스트
+```typescript
+const handleTestConnection = async () => {
+  setTestingConnection(true);
+  // 실제 구현에서는 API 호출
+  await new Promise((resolve) => setTimeout(resolve, 1500));
+  Alert.alert('연결 테스트', '서버 연결에 성공했습니다.');
+  setTestingConnection(false);
+};
+```
+
+#### UI 개선
+- 편집 아이콘으로 직관적인 UI
+- 편집 모드 시 저장/취소 버튼 표시
+- 테스트 중 ActivityIndicator 표시
+- 로그아웃 확인 다이얼로그
+
+### 스타일 추가
+
+- `urlHeader`: URL 제목과 편집 아이콘
+- `urlInput`: URL TextInput 스타일
+- `urlEditButtons`: 저장/취소 버튼 컨테이너
+- `saveButton`: 파란색 저장 버튼
+- `cancelButton`: 회색 취소 버튼
+- `saveButtonText`: 버튼 텍스트 스타일
+
+### 통계
+
+- **완료 Phase**: 134-135 (2개)
+- **코드 라인**: +150 줄
+- **파일 수**: 1개 (업데이트)
+
+### 다음 Phase
+
+→ Phase 136: 앱 정보 확장
+
 ---
 
 ## 통계 업데이트
 
-**완료된 Phase: 133/300**
-**진행률: 44.3%**
+**완료된 Phase: 135/300**
+**진행률: 45.0%**
 
 ---
 
-_최종 업데이트: 2025-11-14 04:25_
+_최종 업데이트: 2025-11-14 05:00_

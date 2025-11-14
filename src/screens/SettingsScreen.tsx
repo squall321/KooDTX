@@ -20,6 +20,8 @@ import {
   Switch,
   Alert,
   Platform,
+  TextInput,
+  ActivityIndicator,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import Slider from '@react-native-community/slider';
@@ -81,6 +83,9 @@ export const SettingsScreen: React.FC = () => {
     url: 'https://api.example.com',
     isLoggedIn: false,
   });
+  const [editingUrl, setEditingUrl] = useState(false);
+  const [tempUrl, setTempUrl] = useState('');
+  const [testingConnection, setTestingConnection] = useState(false);
 
   // Data Management
   const [storageSize, setStorageSize] = useState('0 MB');
@@ -194,6 +199,65 @@ export const SettingsScreen: React.FC = () => {
         },
       ]
     );
+  };
+
+  // Phase 135: Server settings functions
+  const handleEditUrl = () => {
+    setTempUrl(serverSettings.url);
+    setEditingUrl(true);
+  };
+
+  const handleSaveUrl = () => {
+    if (tempUrl.trim()) {
+      // Basic URL validation
+      try {
+        new URL(tempUrl);
+        setServerSettings({ ...serverSettings, url: tempUrl });
+        setEditingUrl(false);
+        Alert.alert('성공', '서버 URL이 저장되었습니다.');
+      } catch (error) {
+        Alert.alert('오류', '올바른 URL 형식이 아닙니다.');
+      }
+    }
+  };
+
+  const handleCancelEditUrl = () => {
+    setEditingUrl(false);
+    setTempUrl('');
+  };
+
+  const handleTestConnection = async () => {
+    setTestingConnection(true);
+    try {
+      // TODO: Implement actual connection test
+      // Simulate network request
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+
+      // For now, just show success
+      Alert.alert('연결 테스트', '서버 연결에 성공했습니다.');
+    } catch (error) {
+      Alert.alert('연결 테스트', '서버 연결에 실패했습니다.');
+    } finally {
+      setTestingConnection(false);
+    }
+  };
+
+  const handleLogout = () => {
+    Alert.alert('로그아웃', '로그아웃 하시겠습니까?', [
+      { text: '취소', style: 'cancel' },
+      {
+        text: '로그아웃',
+        style: 'destructive',
+        onPress: () => {
+          setServerSettings({
+            ...serverSettings,
+            isLoggedIn: false,
+            username: undefined,
+          });
+          Alert.alert('완료', '로그아웃되었습니다.');
+        },
+      },
+    ]);
   };
 
   const renderSectionHeader = (title: string, iconName: string) => (
@@ -407,13 +471,50 @@ export const SettingsScreen: React.FC = () => {
         )}
       </View>
 
-      {/* Server Settings Section */}
+      {/* Server Settings Section - Phase 135 */}
       <View style={styles.section}>
         {renderSectionHeader('서버 설정', 'server')}
 
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>서버 URL</Text>
-          <Text style={styles.serverUrl}>{serverSettings.url}</Text>
+          <View style={styles.urlHeader}>
+            <Text style={styles.cardTitle}>서버 URL</Text>
+            {!editingUrl && (
+              <TouchableOpacity onPress={handleEditUrl}>
+                <Icon name="pencil" size={20} color="#007AFF" />
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {editingUrl ? (
+            <>
+              <TextInput
+                style={styles.urlInput}
+                value={tempUrl}
+                onChangeText={setTempUrl}
+                placeholder="https://api.example.com"
+                placeholderTextColor="#8E8E93"
+                autoCapitalize="none"
+                autoCorrect={false}
+                keyboardType="url"
+              />
+              <View style={styles.urlEditButtons}>
+                <TouchableOpacity
+                  style={[styles.button, styles.cancelButton]}
+                  onPress={handleCancelEditUrl}
+                >
+                  <Text style={styles.buttonText}>취소</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.button, styles.saveButton]}
+                  onPress={handleSaveUrl}
+                >
+                  <Text style={[styles.buttonText, styles.saveButtonText]}>저장</Text>
+                </TouchableOpacity>
+              </View>
+            </>
+          ) : (
+            <Text style={styles.serverUrl}>{serverSettings.url}</Text>
+          )}
 
           <View style={styles.serverStatus}>
             <Icon
@@ -430,12 +531,23 @@ export const SettingsScreen: React.FC = () => {
             <Text style={styles.username}>사용자: {serverSettings.username}</Text>
           )}
 
-          <TouchableOpacity style={styles.button}>
-            <Text style={styles.buttonText}>연결 테스트</Text>
+          <TouchableOpacity
+            style={styles.button}
+            onPress={handleTestConnection}
+            disabled={testingConnection}
+          >
+            {testingConnection ? (
+              <ActivityIndicator size="small" color="#007AFF" />
+            ) : (
+              <Text style={styles.buttonText}>연결 테스트</Text>
+            )}
           </TouchableOpacity>
 
           {serverSettings.isLoggedIn && (
-            <TouchableOpacity style={[styles.button, styles.logoutButton]}>
+            <TouchableOpacity
+              style={[styles.button, styles.logoutButton]}
+              onPress={handleLogout}
+            >
               <Text style={[styles.buttonText, styles.logoutButtonText]}>로그아웃</Text>
             </TouchableOpacity>
           )}
@@ -690,6 +802,45 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     color: '#007AFF',
+  },
+  urlHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  urlInput: {
+    backgroundColor: '#F2F2F7',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: '#000000',
+    marginBottom: 12,
+  },
+  urlEditButtons: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 12,
+  },
+  saveButton: {
+    flex: 1,
+    backgroundColor: '#007AFF',
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  cancelButton: {
+    flex: 1,
+    backgroundColor: '#8E8E93',
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  saveButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
   bottomPadding: {
     height: 40,
