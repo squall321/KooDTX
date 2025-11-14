@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -8,21 +8,12 @@ import {
   RefreshControl,
   TextInput,
   Modal,
+  ActivityIndicator,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Icon from 'react-native-vector-icons/Ionicons';
-
-interface Session {
-  id: string;
-  name: string;
-  startTime: number;
-  endTime?: number;
-  duration: number;
-  sensorCount: number;
-  audioFile?: string;
-  isSynced?: boolean;
-}
+import { useSessions, sortSessions, filterSessions, type SortOption } from '../hooks';
 
 type RootStackParamList = {
   SessionDetail: { sessionId: string };
@@ -31,76 +22,34 @@ type RootStackParamList = {
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Sessions'>;
 
-type SortOption = 'date-desc' | 'date-asc' | 'duration-desc' | 'duration-asc' | 'name-asc' | 'name-desc';
-
 export const SessionsScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
-  const [sessions, setSessions] = useState<Session[]>([]);
-  const [filteredSessions, setFilteredSessions] = useState<Session[]>([]);
-  const [refreshing, setRefreshing] = useState(false);
+
+  // Phase 128: WatermelonDB integration with real-time updates
+  const { sessions, isLoading, error, refresh } = useSessions({
+    includeActive: true,
+  });
 
   // Phase 127: Filter/Sort/Search features
   const [searchQuery, setSearchQuery] = useState('');
   const [sortOption, setSortOption] = useState<SortOption>('date-desc');
   const [showSortModal, setShowSortModal] = useState(false);
   const [filterSynced, setFilterSynced] = useState<'all' | 'synced' | 'unsynced'>('all');
-
-  const loadSessions = async () => {
-    // TODO: Load sessions from database
-    // This will be implemented when integrating with DatabaseService
-    setSessions([]);
-  };
+  const [refreshing, setRefreshing] = useState(false);
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await loadSessions();
+    await refresh();
     setRefreshing(false);
   };
 
-  useEffect(() => {
-    loadSessions();
-  }, []);
+  // Apply filters and sorting with useMemo for performance
+  const filteredSessions = useMemo(() => {
+    // First apply filters
+    const filtered = filterSessions(sessions, searchQuery, filterSynced);
 
-  // Apply filters and sorting
-  useEffect(() => {
-    let result = [...sessions];
-
-    // Search filter
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      result = result.filter((session) =>
-        session.name.toLowerCase().includes(query)
-      );
-    }
-
-    // Sync status filter
-    if (filterSynced === 'synced') {
-      result = result.filter((session) => session.isSynced);
-    } else if (filterSynced === 'unsynced') {
-      result = result.filter((session) => !session.isSynced);
-    }
-
-    // Sorting
-    result.sort((a, b) => {
-      switch (sortOption) {
-        case 'date-desc':
-          return b.startTime - a.startTime;
-        case 'date-asc':
-          return a.startTime - b.startTime;
-        case 'duration-desc':
-          return b.duration - a.duration;
-        case 'duration-asc':
-          return a.duration - b.duration;
-        case 'name-asc':
-          return a.name.localeCompare(b.name);
-        case 'name-desc':
-          return b.name.localeCompare(a.name);
-        default:
-          return 0;
-      }
-    });
-
-    setFilteredSessions(result);
+    // Then apply sorting
+    return sortSessions(filtered, sortOption);
   }, [sessions, searchQuery, sortOption, filterSynced]);
 
   const formatDuration = (ms: number): string => {
@@ -216,6 +165,42 @@ export const SessionsScreen: React.FC = () => {
       </TouchableOpacity>
     </Modal>
   );
+
+  // Loading state
+  if (isLoading && sessions.length === 0) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.title}>녹음 세션</Text>
+          <Text style={styles.subtitle}>로딩 중...</Text>
+        </View>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#007AFF" />
+          <Text style={styles.loadingText}>세션을 불러오는 중...</Text>
+        </View>
+      </View>
+    );
+  }
+
+  // Error state
+  if (error && sessions.length === 0) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.title}>녹음 세션</Text>
+          <Text style={styles.subtitle}>오류 발생</Text>
+        </View>
+        <View style={styles.emptyContainer}>
+          <Icon name="alert-circle-outline" size={64} color="#FF3B30" />
+          <Text style={styles.emptyText}>세션을 불러올 수 없습니다</Text>
+          <Text style={styles.emptySubtext}>{error.message}</Text>
+          <TouchableOpacity style={styles.retryButton} onPress={refresh}>
+            <Text style={styles.retryButtonText}>다시 시도</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -502,6 +487,29 @@ const styles = StyleSheet.create({
   modalOptionTextActive: {
     fontWeight: '600',
     color: '#007AFF',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 32,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: '#8E8E93',
+    marginTop: 16,
+  },
+  retryButton: {
+    marginTop: 20,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    backgroundColor: '#007AFF',
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
 });
 

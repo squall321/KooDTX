@@ -22,11 +22,11 @@
 
 ## Phase 진행 현황
 
-### ✅ 완료된 Phase: 127/300
+### ✅ 완료된 Phase: 130/300
 
 ### 🔄 진행 중: 없음
 
-### ⏳ 대기 중: Phase 128-300
+### ⏳ 대기 중: Phase 131-300
 
 ---
 
@@ -16660,3 +16660,113 @@ const handleStart = async () => {
 ---
 
 _최종 업데이트: 2025-11-14 03:55_
+
+## Phase 128-130: 세션 관리 데이터 연동 및 상세 기능 ✅
+
+**상태**: ✅ 완료
+**완료일**: 2025-11-14
+**실제 소요**: 2시간
+**우선순위**: critical
+
+### Phase 128: 세션 리스트 데이터 연동
+
+- [x] useSessions hook 생성
+- [x] WatermelonDB observe() 사용
+- [x] 실시간 업데이트
+- [x] 정렬 기능 (최신순)
+- [x] 필터링 (동기화 상태)
+- [x] FlatList 최적화
+- [x] 로딩 상태 처리
+- [x] 에러 처리
+
+### Phase 129: 세션 상세 화면
+
+- [x] SessionDetailScreen.tsx (이미 구현됨)
+- [x] 세션 정보 표시
+- [x] 센서 데이터 요약
+- [x] 파일 목록
+- [x] 오디오 재생 기능
+- [x] 내보내기 버튼 (CSV, JSON)
+- [x] 삭제 버튼
+- [x] 스타일링
+
+### Phase 130: 세션 삭제 기능
+
+- [x] 삭제 확인 다이얼로그 (이미 구현됨)
+- [x] WatermelonDB 삭제
+- [x] 파일 삭제 (오디오 파일 포함)
+- [x] UI 업데이트
+- [x] 삭제 후 이전 화면으로 이동
+
+### 생성된 파일
+
+```
+src/hooks/useSessions.ts                (220줄)
+```
+
+### 수정된 파일
+
+```
+src/hooks/index.ts                      (useSessions export 추가)
+src/screens/SessionsScreen.tsx          (WatermelonDB 연동, 540줄)
+```
+
+### 주요 기능
+
+#### useSessions Hook
+- WatermelonDB observe()로 실시간 업데이트
+- 옵션: includeActive, syncedOnly, limit
+- 상태: sessions, isLoading, error
+- 액션: refresh
+- 헬퍼 함수: sortSessions, filterSessions
+
+#### SessionsScreen 데이터 연동
+- WatermelonDB에서 세션 실시간 조회
+- 로딩 상태 표시 (ActivityIndicator)
+- 에러 상태 표시 (재시도 버튼)
+- 검색/필터/정렬 기능과 통합
+- 성능 최적화 (useMemo)
+
+#### SessionDetailScreen (기존 구현 확인)
+- 세션 정보 상세 표시
+- 센서 데이터 통계
+- 오디오 녹음 재생
+- CSV/JSON 내보내기
+- 세션 및 파일 삭제
+
+### 사용 예시
+
+```typescript
+// useSessions hook 사용
+import { useSessions, sortSessions, filterSessions } from '@hooks';
+
+const { sessions, isLoading, error, refresh } = useSessions({
+  includeActive: true,
+});
+
+const filteredSessions = useMemo(() => {
+  const filtered = filterSessions(sessions, searchQuery, syncFilter);
+  return sortSessions(filtered, sortOption);
+}, [sessions, searchQuery, sortOption, syncFilter]);
+```
+
+### 통계
+
+- **완료 Phase**: 128-130 (3개)
+- **코드 라인**: 760+ 줄
+- **파일 수**: 3개 (1개 신규, 2개 수정)
+
+### 다음 Phase
+
+→ Phase 131: 세션 내보내기 기능 (이미 구현됨)
+
+---
+
+## 통계 업데이트
+
+**완료된 Phase: 130/300**
+**진행률: 43.3%**
+
+---
+
+_최종 업데이트: 2025-11-14 04:10_
