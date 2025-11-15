@@ -23,6 +23,7 @@ import {
 import { Card, Button, Chip } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useThemeStore } from '../store/useThemeStore';
+import { logger } from '../utils/logger';
 
 /**
  * Beta Testing Information Screen
@@ -44,7 +45,7 @@ const BetaInfoScreenComponent = () => {
         Alert.alert('오류', `${label} 링크를 열 수 없습니다.`);
       }
     } catch (error) {
-      console.error(`Failed to open ${label}:`, error);
+      logger.error(`Failed to open ${label}:`, error);
       const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류';
       Alert.alert('오류', `링크 열기 실패: ${errorMessage}`);
     }

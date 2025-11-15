@@ -34,6 +34,7 @@ import { SettingsStackParamList } from '../navigation/SettingsStack';
 import { database } from '../database';
 import { Session } from '../database/models/Session';
 import { useThemeStore, ThemeMode } from '../store/useThemeStore';
+import { logger } from '../utils/logger';
 
 type SettingsScreenNavigationProp = NativeStackNavigationProp<SettingsStackParamList, 'SettingsList'>;
 
@@ -440,9 +441,9 @@ export const SettingsScreen: React.FC = () => {
         ]
       );
 
-      console.log('Exported settings:', jsonString);
+      logger.log('Exported settings:', jsonString);
     } catch (error) {
-      console.error('Failed to export settings:', error);
+      logger.error('Failed to export settings:', error);
       Alert.alert('오류', '설정 내보내기에 실패했습니다.');
     }
   };

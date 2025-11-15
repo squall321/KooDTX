@@ -3,7 +3,7 @@
  * Phase 193-196: 시스템 진단 및 모니터링 화면
  */
 
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useCallback} from 'react';
 import {View, StyleSheet, ScrollView, Platform} from 'react-native';
 import {
   Card,
@@ -15,6 +15,7 @@ import {
   Button,
 } from 'react-native-paper';
 import DeviceInfo from 'react-native-device-info';
+import {logger} from '../utils/logger';
 
 interface SystemInfo {
   cpuUsage: number;
@@ -78,7 +79,7 @@ export function DiagnosticsScreen() {
         diskTotal: totalDisk / (1024 * 1024 * 1024),
       });
     } catch (error) {
-      console.error('Failed to load system info:', error);
+      logger.error('Failed to load system info:', error);
     }
   };
 

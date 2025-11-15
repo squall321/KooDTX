@@ -8,6 +8,7 @@ import React, {useState, useEffect} from 'react';
 import {View, StyleSheet, ScrollView} from 'react-native';
 import {Text, Card, Button, Chip, ActivityIndicator} from 'react-native-paper';
 import type {SensorDataRecord} from '@database/models';
+import {logger} from '../utils/logger';
 
 interface DataPreviewProps {
   data: SensorDataRecord[];
@@ -57,7 +58,7 @@ const DataPreviewComponent = ({data, maxRows = 100}: DataPreviewProps) => {
 
       setPreview(csvLines.join('\n'));
     } catch (error) {
-      console.error('Failed to generate preview:', error);
+      logger.error('Failed to generate preview:', error);
       setPreview('데이터 미리보기 생성 실패');
     } finally {
       setIsLoading(false);

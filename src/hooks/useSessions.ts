@@ -9,6 +9,7 @@ import { useState, useEffect } from 'react';
 import { Q } from '@nozbe/watermelondb';
 import { database, RecordingSession } from '../database';
 import type { SensorType } from '@app-types/sensor.types';
+import {logger} from '../utils/logger';
 
 export type UploadStatus = 'pending' | 'in_progress' | 'completed' | 'failed';
 
@@ -127,7 +128,7 @@ export const useSessions = (options: UseSessionsOptions = {}): UseSessionsReturn
     } catch (err) {
       const error = err instanceof Error ? err : new Error(String(err));
       setError(error);
-      console.error('Failed to load sessions:', error);
+      logger.error('Failed to load sessions:', error);
     } finally {
       setIsLoading(false);
     }
@@ -168,7 +169,7 @@ export const useSessions = (options: UseSessionsOptions = {}): UseSessionsReturn
         const error = err instanceof Error ? err : new Error(String(err));
         setError(error);
         setIsLoading(false);
-        console.error('Session observation error:', error);
+        logger.error('Session observation error:', error);
       },
     });
 
@@ -191,7 +192,7 @@ export const useSessions = (options: UseSessionsOptions = {}): UseSessionsReturn
       // Also delete related sensor data and audio recordings
       // TODO: Implement cascade delete for sensor_data and audio_recordings
     } catch (err) {
-      console.error('Failed to delete session:', err);
+      logger.error('Failed to delete session:', err);
       throw err;
     }
   };
