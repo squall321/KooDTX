@@ -16,6 +16,8 @@
 import axios, {AxiosInstance, AxiosRequestConfig, AxiosResponse, AxiosError} from 'axios';
 import {AuthInterceptor, AuthInterceptorOptions} from './interceptors/authInterceptor';
 import {tokenStorage} from './storage/tokenStorage';
+import {envConfig} from '../config/env';
+import {logger} from '../utils/logger';
 
 /**
  * API configuration
@@ -40,10 +42,11 @@ export interface ApiErrorResponse {
 /**
  * Default API configuration
  * Phase 101: Base URL and timeout settings
+ * Updated: Using centralized environment configuration
  */
 const DEFAULT_CONFIG: ApiConfig = {
-  baseURL: process.env.API_BASE_URL || 'http://localhost:3000/api',
-  timeout: 30000, // 30 seconds
+  baseURL: envConfig.API_BASE_URL,
+  timeout: envConfig.API_TIMEOUT,
   headers: {
     'Content-Type': 'application/json',
     Accept: 'application/json',
@@ -98,7 +101,7 @@ export class ApiClient {
       this.setupAuthInterceptor();
     }
 
-    console.log('API Client initialized:', this.config.baseURL);
+    logger.log('API Client initialized:', this.config.baseURL);
   }
 
   /**
@@ -119,7 +122,7 @@ export class ApiClient {
     });
 
     this.authInterceptor.setup();
-    console.log('Auth interceptor enabled');
+    logger.log('Auth interceptor enabled');
   }
 
   /**
@@ -130,13 +133,11 @@ export class ApiClient {
     this.instance.interceptors.request.use(
       (config) => {
         // Log request (development only)
-        if (__DEV__) {
-          console.log(`API Request: ${config.method?.toUpperCase()} ${config.url}`);
-        }
+        logger.debug(`API Request: ${config.method?.toUpperCase()} ${config.url}`);
         return config;
       },
       (error) => {
-        console.error('Request interceptor error:', error);
+        logger.error('Request interceptor error:', error);
         return Promise.reject(error);
       },
     );
@@ -150,13 +151,11 @@ export class ApiClient {
     this.instance.interceptors.response.use(
       (response) => {
         // Log response (development only)
-        if (__DEV__) {
-          console.log(`API Response: ${response.status} ${response.config.url}`);
-        }
+        logger.debug(`API Response: ${response.status} ${response.config.url}`);
         return response;
       },
       (error: AxiosError) => {
-        console.error('Response interceptor error:', error);
+        logger.error('Response interceptor error:', error);
         return Promise.reject(this.handleError(error));
       },
     );
@@ -299,7 +298,7 @@ export class ApiClient {
   public setBaseURL(baseURL: string): void {
     this.config.baseURL = baseURL;
     this.instance.defaults.baseURL = baseURL;
-    console.log('API base URL updated:', baseURL);
+    logger.log('API base URL updated:', baseURL);
   }
 
   /**
@@ -314,7 +313,7 @@ export class ApiClient {
       ...headers,
     };
     Object.assign(this.instance.defaults.headers.common, headers);
-    console.log('API headers updated:', headers);
+    logger.log('API headers updated:', headers);
   }
 
   /**
