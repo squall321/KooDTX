@@ -23,6 +23,7 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { useSyncStore } from '../store/syncStore';
+import { logger } from '../utils/logger';
 
 interface SyncStats {
   totalTasks: number;
@@ -82,7 +83,7 @@ const SyncScreen: React.FC = () => {
       // In real implementation, fetch from sync service
       setSyncQueue([]);
     } catch (error) {
-      console.error('Failed to load sync data:', error);
+      logger.error('Failed to load sync data:', error);
     }
   };
 
@@ -95,15 +96,15 @@ const SyncScreen: React.FC = () => {
   const handleManualSync = async () => {
     try {
       // TODO: Implement manual sync
-      console.log('Manual sync triggered');
+      logger.log('Manual sync triggered');
     } catch (error) {
-      console.error('Failed to sync:', error);
+      logger.error('Failed to sync:', error);
     }
   };
 
   const handleRetryFailed = () => {
     // TODO: Retry failed sync tasks
-    console.log('Retry failed tasks');
+    logger.log('Retry failed tasks');
   };
 
   const formatLastSyncTime = () => {

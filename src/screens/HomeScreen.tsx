@@ -14,6 +14,7 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import { useSyncStore } from '../store/useSyncStore';
 import { useRecording, createRecordingConfig } from '../hooks';
 import { RecordingMode } from '../services/RecordingService';
+import { logger } from '../utils/logger';
 
 type RootStackParamList = {
   Recording: undefined;
@@ -109,7 +110,7 @@ export const HomeScreen: React.FC = () => {
       const config = createRecordingConfig(RecordingMode.SENSOR_AND_AUDIO);
       await startRecording(config);
     } catch (error) {
-      console.error('Failed to start recording:', error);
+      logger.error('Failed to start recording:', error);
     }
   };
 
@@ -117,7 +118,7 @@ export const HomeScreen: React.FC = () => {
     try {
       await stopRecording();
     } catch (error) {
-      console.error('Failed to stop recording:', error);
+      logger.error('Failed to stop recording:', error);
     }
   };
 

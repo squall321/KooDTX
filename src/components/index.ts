@@ -31,3 +31,7 @@ export type { DialogType, DialogButton } from './Dialog';
 // Chart components (Phase 151)
 export { default as SensorChart } from './SensorChart';
 export type { ChartType, ChartDataPoint, ChartDataset } from './SensorChart';
+
+// Data visualization components (Phase 185)
+export { DataPreview } from './DataPreview';
+export { AudioWaveform } from './AudioWaveform';

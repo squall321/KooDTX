@@ -8,6 +8,7 @@
  * - Server settings (URL, auth status)
  * - Data management (storage size, cache clear)
  * - App info (version, build)
+ * - Beta testing info (Phase 221)
  */
 
 import React, { useState, useEffect } from 'react';
@@ -27,8 +28,15 @@ import {
 import Icon from 'react-native-vector-icons/Ionicons';
 import Slider from '@react-native-community/slider';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { SettingsStackParamList } from '../navigation/SettingsStack';
 import { database } from '../database';
 import { Session } from '../database/models/Session';
+import { useThemeStore, ThemeMode } from '../store/useThemeStore';
+import { logger } from '../utils/logger';
+
+type SettingsScreenNavigationProp = NativeStackNavigationProp<SettingsStackParamList, 'SettingsList'>;
 
 interface SensorSettings {
   samplingRate: number; // Hz
@@ -48,6 +56,10 @@ interface SyncSettings {
   wifiOnly: boolean;
   chargingOnly: boolean;
   syncInterval: number; // minutes
+  // Phase 188-192: Advanced sync settings
+  batchSize: number; // number of items per batch
+  retryCount: number; // max retry attempts
+  timeout: number; // seconds
 }
 
 interface ServerSettings {
@@ -56,9 +68,31 @@ interface ServerSettings {
   username?: string;
 }
 
+// Phase 188-192: New interfaces
+interface AudioSettings {
+  sampleRate: number; // Hz (8000, 16000, 44100, 48000)
+  bitrate: number; // kbps (64, 128, 192, 256)
+  format: 'pcm' | 'aac' | 'mp3';
+  channels: 1 | 2; // mono or stereo
+}
+
+interface DataRetentionSettings {
+  enabled: boolean;
+  retentionDays: number; // days to keep data
+  autoDelete: boolean;
+}
+
+interface PerformanceSettings {
+  bufferSize: number; // KB
+  compressionEnabled: boolean;
+  compressionLevel: number; // 1-9
+}
+
 const SETTINGS_KEY = '@KooDTX:Settings';
 
 export const SettingsScreen: React.FC = () => {
+  const navigation = useNavigation<SettingsScreenNavigationProp>();
+
   // Sensor Settings (Phase 133)
   const [sensorSettings, setSensorSettings] = useState<SensorSettings>({
     samplingRate: 100,
@@ -79,6 +113,10 @@ export const SettingsScreen: React.FC = () => {
     wifiOnly: false,
     chargingOnly: false,
     syncInterval: 5,
+    // Phase 188-192: Advanced defaults
+    batchSize: 100,
+    retryCount: 3,
+    timeout: 30,
   });
 
   // Server Settings
@@ -89,6 +127,31 @@ export const SettingsScreen: React.FC = () => {
   const [editingUrl, setEditingUrl] = useState(false);
   const [tempUrl, setTempUrl] = useState('');
   const [testingConnection, setTestingConnection] = useState(false);
+
+  // Phase 188-192: Advanced Settings
+  const [audioSettings, setAudioSettings] = useState<AudioSettings>({
+    sampleRate: 44100,
+    bitrate: 128,
+    format: 'aac',
+    channels: 1,
+  });
+
+  const [dataRetention, setDataRetention] = useState<DataRetentionSettings>({
+    enabled: false,
+    retentionDays: 30,
+    autoDelete: false,
+  });
+
+  const [performanceSettings, setPerformanceSettings] = useState<PerformanceSettings>({
+    bufferSize: 256,
+    compressionEnabled: true,
+    compressionLevel: 6,
+  });
+
+  const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
+
+  // Phase 197: Theme Management
+  const { mode: themeMode, setTheme } = useThemeStore();
 
   // Data Management
   const [storageSize, setStorageSize] = useState('0 MB');
@@ -110,6 +173,10 @@ export const SettingsScreen: React.FC = () => {
         setSensorSettings(settings.sensor || sensorSettings);
         setSyncSettings(settings.sync || syncSettings);
         setServerSettings(settings.server || serverSettings);
+        // Phase 188-192: Load new settings
+        setAudioSettings(settings.audio || audioSettings);
+        setDataRetention(settings.dataRetention || dataRetention);
+        setPerformanceSettings(settings.performance || performanceSettings);
       }
     } catch (error) {
       console.error('Failed to load settings:', error);
@@ -122,6 +189,10 @@ export const SettingsScreen: React.FC = () => {
         sensor: sensorSettings,
         sync: syncSettings,
         server: serverSettings,
+        // Phase 188-192: Save new settings
+        audio: audioSettings,
+        dataRetention: dataRetention,
+        performance: performanceSettings,
       };
       await AsyncStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
       Alert.alert('성공', '설정이 저장되었습니다.');
@@ -345,6 +416,57 @@ export const SettingsScreen: React.FC = () => {
     ]);
   };
 
+  // Phase 188-192: Export/Import Settings
+  const exportSettings = async () => {
+    try {
+      const settings = {
+        sensor: sensorSettings,
+        sync: syncSettings,
+        audio: audioSettings,
+        dataRetention: dataRetention,
+        performance: performanceSettings,
+        exportDate: new Date().toISOString(),
+        version: '1.0.0',
+      };
+
+      const jsonString = JSON.stringify(settings, null, 2);
+
+      // In production, save to file or share
+      // For now, just copy to clipboard (would need Clipboard from react-native)
+      Alert.alert(
+        '설정 내보내기',
+        `설정이 준비되었습니다.\n\n크기: ${(jsonString.length / 1024).toFixed(2)} KB`,
+        [
+          { text: '확인', style: 'default' },
+        ]
+      );
+
+      logger.log('Exported settings:', jsonString);
+    } catch (error) {
+      logger.error('Failed to export settings:', error);
+      Alert.alert('오류', '설정 내보내기에 실패했습니다.');
+    }
+  };
+
+  const importSettings = () => {
+    Alert.alert(
+      '설정 가져오기',
+      '설정 파일을 선택하세요. 기존 설정은 덮어쓰여집니다.',
+      [
+        { text: '취소', style: 'cancel' },
+        {
+          text: '가져오기',
+          style: 'default',
+          onPress: () => {
+            // In production, open file picker
+            // For now, simulate import
+            Alert.alert('알림', '설정 가져오기 기능은 파일 시스템 권한이 필요합니다.');
+          },
+        },
+      ]
+    );
+  };
+
   const renderSectionHeader = (title: string, iconName: string) => (
     <View style={styles.sectionHeader}>
       <Icon name={iconName} size={24} color="#007AFF" />
@@ -556,6 +678,40 @@ export const SettingsScreen: React.FC = () => {
         )}
       </View>
 
+      {/* Phase 197: Theme Settings Section */}
+      <View style={styles.section}>
+        {renderSectionHeader('테마 설정', 'color-palette')}
+
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>테마 모드</Text>
+          {(['light', 'dark', 'system'] as const).map((mode) => (
+            <TouchableOpacity
+              key={mode}
+              style={styles.radioOption}
+              onPress={() => setTheme(mode)}
+            >
+              <Icon
+                name={
+                  themeMode === mode
+                    ? 'radio-button-on'
+                    : 'radio-button-off'
+                }
+                size={24}
+                color={themeMode === mode ? '#007AFF' : '#8E8E93'}
+              />
+              <Text style={styles.radioLabel}>
+                {mode === 'light' ? '라이트 모드' : mode === 'dark' ? '다크 모드' : '시스템 설정'}
+              </Text>
+            </TouchableOpacity>
+          ))}
+          <Text style={styles.settingDescription}>
+            {themeMode === 'system'
+              ? '시스템 설정에 따라 테마가 자동으로 변경됩니다'
+              : `현재 ${themeMode === 'dark' ? '다크' : '라이트'} 모드가 적용되었습니다`}
+          </Text>
+        </View>
+      </View>
+
       {/* Server Settings Section - Phase 135 */}
       <View style={styles.section}>
         {renderSectionHeader('서버 설정', 'server')}
@@ -664,6 +820,356 @@ export const SettingsScreen: React.FC = () => {
         </View>
       </View>
 
+      {/* Phase 188-192: Advanced Settings Toggle */}
+      <View style={styles.section}>
+        <TouchableOpacity
+          style={styles.advancedToggle}
+          onPress={() => setShowAdvancedSettings(!showAdvancedSettings)}
+        >
+          <Text style={styles.advancedToggleText}>고급 설정</Text>
+          <Icon
+            name={showAdvancedSettings ? 'chevron-up' : 'chevron-down'}
+            size={24}
+            color="#007AFF"
+          />
+        </TouchableOpacity>
+      </View>
+
+      {/* Phase 188-192: Advanced Settings Sections */}
+      {showAdvancedSettings && (
+        <>
+          {/* Advanced Sync Settings */}
+          <View style={styles.section}>
+            {renderSectionHeader('고급 동기화 설정', 'cloud-upload')}
+
+            <View style={styles.card}>
+              {/* Batch Size */}
+              <View style={styles.sliderContainer}>
+                <Text style={styles.settingLabel}>배치 크기</Text>
+                <Text style={styles.sliderValue}>{syncSettings.batchSize}개</Text>
+              </View>
+              <Slider
+                style={styles.slider}
+                minimumValue={10}
+                maximumValue={500}
+                step={10}
+                value={syncSettings.batchSize}
+                onValueChange={(value) =>
+                  setSyncSettings({ ...syncSettings, batchSize: value })
+                }
+                minimumTrackTintColor="#007AFF"
+                maximumTrackTintColor="#E5E5EA"
+                thumbTintColor="#007AFF"
+              />
+              <View style={styles.sliderLabels}>
+                <Text style={styles.sliderLabelText}>10개</Text>
+                <Text style={styles.sliderLabelText}>500개</Text>
+              </View>
+              <Text style={styles.settingDescription}>
+                한 번에 업로드할 항목 수
+              </Text>
+            </View>
+
+            <View style={styles.card}>
+              {/* Retry Count */}
+              <View style={styles.sliderContainer}>
+                <Text style={styles.settingLabel}>재시도 횟수</Text>
+                <Text style={styles.sliderValue}>{syncSettings.retryCount}회</Text>
+              </View>
+              <Slider
+                style={styles.slider}
+                minimumValue={0}
+                maximumValue={10}
+                step={1}
+                value={syncSettings.retryCount}
+                onValueChange={(value) =>
+                  setSyncSettings({ ...syncSettings, retryCount: value })
+                }
+                minimumTrackTintColor="#007AFF"
+                maximumTrackTintColor="#E5E5EA"
+                thumbTintColor="#007AFF"
+              />
+              <View style={styles.sliderLabels}>
+                <Text style={styles.sliderLabelText}>0회</Text>
+                <Text style={styles.sliderLabelText}>10회</Text>
+              </View>
+              <Text style={styles.settingDescription}>
+                실패 시 최대 재시도 횟수
+              </Text>
+            </View>
+
+            <View style={styles.card}>
+              {/* Timeout */}
+              <View style={styles.sliderContainer}>
+                <Text style={styles.settingLabel}>타임아웃</Text>
+                <Text style={styles.sliderValue}>{syncSettings.timeout}초</Text>
+              </View>
+              <Slider
+                style={styles.slider}
+                minimumValue={10}
+                maximumValue={120}
+                step={5}
+                value={syncSettings.timeout}
+                onValueChange={(value) =>
+                  setSyncSettings({ ...syncSettings, timeout: value })
+                }
+                minimumTrackTintColor="#007AFF"
+                maximumTrackTintColor="#E5E5EA"
+                thumbTintColor="#007AFF"
+              />
+              <View style={styles.sliderLabels}>
+                <Text style={styles.sliderLabelText}>10초</Text>
+                <Text style={styles.sliderLabelText}>120초</Text>
+              </View>
+              <Text style={styles.settingDescription}>
+                요청 타임아웃 시간
+              </Text>
+            </View>
+          </View>
+
+          {/* Audio Settings */}
+          <View style={styles.section}>
+            {renderSectionHeader('오디오 설정', 'musical-notes')}
+
+            <View style={styles.card}>
+              <Text style={styles.cardTitle}>샘플링 레이트</Text>
+              {[8000, 16000, 44100, 48000].map((rate) => (
+                <TouchableOpacity
+                  key={rate}
+                  style={styles.radioOption}
+                  onPress={() => setAudioSettings({ ...audioSettings, sampleRate: rate })}
+                >
+                  <Icon
+                    name={
+                      audioSettings.sampleRate === rate
+                        ? 'radio-button-on'
+                        : 'radio-button-off'
+                    }
+                    size={24}
+                    color={audioSettings.sampleRate === rate ? '#007AFF' : '#8E8E93'}
+                  />
+                  <Text style={styles.radioLabel}>
+                    {rate} Hz {rate === 44100 ? '(CD 품질)' : rate === 48000 ? '(고품질)' : ''}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <View style={styles.card}>
+              <View style={styles.sliderContainer}>
+                <Text style={styles.settingLabel}>비트레이트</Text>
+                <Text style={styles.sliderValue}>{audioSettings.bitrate} kbps</Text>
+              </View>
+              <Slider
+                style={styles.slider}
+                minimumValue={64}
+                maximumValue={320}
+                step={32}
+                value={audioSettings.bitrate}
+                onValueChange={(value) =>
+                  setAudioSettings({ ...audioSettings, bitrate: value })
+                }
+                minimumTrackTintColor="#007AFF"
+                maximumTrackTintColor="#E5E5EA"
+                thumbTintColor="#007AFF"
+              />
+              <View style={styles.sliderLabels}>
+                <Text style={styles.sliderLabelText}>64 kbps</Text>
+                <Text style={styles.sliderLabelText}>320 kbps</Text>
+              </View>
+            </View>
+
+            <View style={styles.card}>
+              <Text style={styles.cardTitle}>포맷</Text>
+              {(['pcm', 'aac', 'mp3'] as const).map((format) => (
+                <TouchableOpacity
+                  key={format}
+                  style={styles.radioOption}
+                  onPress={() => setAudioSettings({ ...audioSettings, format })}
+                >
+                  <Icon
+                    name={
+                      audioSettings.format === format
+                        ? 'radio-button-on'
+                        : 'radio-button-off'
+                    }
+                    size={24}
+                    color={audioSettings.format === format ? '#007AFF' : '#8E8E93'}
+                  />
+                  <Text style={styles.radioLabel}>
+                    {format.toUpperCase()} {format === 'pcm' ? '(무손실)' : ''}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <View style={styles.card}>
+              <Text style={styles.cardTitle}>채널</Text>
+              {([1, 2] as const).map((channels) => (
+                <TouchableOpacity
+                  key={channels}
+                  style={styles.radioOption}
+                  onPress={() => setAudioSettings({ ...audioSettings, channels })}
+                >
+                  <Icon
+                    name={
+                      audioSettings.channels === channels
+                        ? 'radio-button-on'
+                        : 'radio-button-off'
+                    }
+                    size={24}
+                    color={audioSettings.channels === channels ? '#007AFF' : '#8E8E93'}
+                  />
+                  <Text style={styles.radioLabel}>
+                    {channels === 1 ? '모노' : '스테레오'}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          {/* Data Retention Policy */}
+          <View style={styles.section}>
+            {renderSectionHeader('데이터 보존 정책', 'time')}
+
+            <View style={styles.card}>
+              {renderSettingRow(
+                '자동 정리 활성화',
+                dataRetention.enabled,
+                (value) => setDataRetention({ ...dataRetention, enabled: value }),
+                '오래된 데이터 자동 삭제'
+              )}
+            </View>
+
+            {dataRetention.enabled && (
+              <>
+                <View style={styles.card}>
+                  <View style={styles.sliderContainer}>
+                    <Text style={styles.settingLabel}>보존 기간</Text>
+                    <Text style={styles.sliderValue}>{dataRetention.retentionDays}일</Text>
+                  </View>
+                  <Slider
+                    style={styles.slider}
+                    minimumValue={7}
+                    maximumValue={365}
+                    step={1}
+                    value={dataRetention.retentionDays}
+                    onValueChange={(value) =>
+                      setDataRetention({ ...dataRetention, retentionDays: value })
+                    }
+                    minimumTrackTintColor="#007AFF"
+                    maximumTrackTintColor="#E5E5EA"
+                    thumbTintColor="#007AFF"
+                  />
+                  <View style={styles.sliderLabels}>
+                    <Text style={styles.sliderLabelText}>7일</Text>
+                    <Text style={styles.sliderLabelText}>365일</Text>
+                  </View>
+                  <Text style={styles.settingDescription}>
+                    {dataRetention.retentionDays}일 이전 데이터 삭제
+                  </Text>
+                </View>
+
+                <View style={styles.card}>
+                  {renderSettingRow(
+                    '자동 삭제',
+                    dataRetention.autoDelete,
+                    (value) => setDataRetention({ ...dataRetention, autoDelete: value }),
+                    '보존 기간 만료 시 자동 삭제'
+                  )}
+                </View>
+              </>
+            )}
+          </View>
+
+          {/* Performance Settings */}
+          <View style={styles.section}>
+            {renderSectionHeader('성능 설정', 'speedometer')}
+
+            <View style={styles.card}>
+              <View style={styles.sliderContainer}>
+                <Text style={styles.settingLabel}>버퍼 크기</Text>
+                <Text style={styles.sliderValue}>{performanceSettings.bufferSize} KB</Text>
+              </View>
+              <Slider
+                style={styles.slider}
+                minimumValue={64}
+                maximumValue={1024}
+                step={64}
+                value={performanceSettings.bufferSize}
+                onValueChange={(value) =>
+                  setPerformanceSettings({ ...performanceSettings, bufferSize: value })
+                }
+                minimumTrackTintColor="#007AFF"
+                maximumTrackTintColor="#E5E5EA"
+                thumbTintColor="#007AFF"
+              />
+              <View style={styles.sliderLabels}>
+                <Text style={styles.sliderLabelText}>64 KB</Text>
+                <Text style={styles.sliderLabelText}>1024 KB</Text>
+              </View>
+              <Text style={styles.settingDescription}>
+                센서 데이터 버퍼 크기
+              </Text>
+            </View>
+
+            <View style={styles.card}>
+              {renderSettingRow(
+                '압축 활성화',
+                performanceSettings.compressionEnabled,
+                (value) =>
+                  setPerformanceSettings({ ...performanceSettings, compressionEnabled: value }),
+                '데이터 압축으로 저장 공간 절약'
+              )}
+            </View>
+
+            {performanceSettings.compressionEnabled && (
+              <View style={styles.card}>
+                <View style={styles.sliderContainer}>
+                  <Text style={styles.settingLabel}>압축 레벨</Text>
+                  <Text style={styles.sliderValue}>{performanceSettings.compressionLevel}</Text>
+                </View>
+                <Slider
+                  style={styles.slider}
+                  minimumValue={1}
+                  maximumValue={9}
+                  step={1}
+                  value={performanceSettings.compressionLevel}
+                  onValueChange={(value) =>
+                    setPerformanceSettings({ ...performanceSettings, compressionLevel: value })
+                  }
+                  minimumTrackTintColor="#007AFF"
+                  maximumTrackTintColor="#E5E5EA"
+                  thumbTintColor="#007AFF"
+                />
+                <View style={styles.sliderLabels}>
+                  <Text style={styles.sliderLabelText}>1 (빠름)</Text>
+                  <Text style={styles.sliderLabelText}>9 (최대)</Text>
+                </View>
+                <Text style={styles.settingDescription}>
+                  높을수록 압축률 향상, 느린 속도
+                </Text>
+              </View>
+            )}
+          </View>
+
+          {/* Export/Import Settings */}
+          <View style={styles.section}>
+            {renderSectionHeader('설정 백업', 'download')}
+
+            <View style={styles.card}>
+              <TouchableOpacity style={styles.button} onPress={exportSettings}>
+                <Text style={styles.buttonText}>설정 내보내기</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.button} onPress={importSettings}>
+                <Text style={styles.buttonText}>설정 가져오기</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </>
+      )}
+
       {/* App Info Section */}
       <View style={styles.section}>
         {renderSectionHeader('앱 정보', 'information-circle')}
@@ -681,6 +1187,23 @@ export const SettingsScreen: React.FC = () => {
             <Text style={styles.infoLabel}>플랫폼</Text>
             <Text style={styles.infoValue}>{Platform.OS}</Text>
           </View>
+        </View>
+
+        {/* Phase 221: Beta Testing Info */}
+        <View style={styles.card}>
+          <TouchableOpacity
+            style={styles.betaButton}
+            onPress={() => navigation.navigate('BetaInfo')}
+          >
+            <View style={styles.betaButtonContent}>
+              <Icon name="rocket" size={24} color="#007AFF" style={styles.betaIcon} />
+              <View style={styles.betaTextContainer}>
+                <Text style={styles.betaButtonTitle}>베타 테스트 프로그램</Text>
+                <Text style={styles.betaButtonSubtitle}>새로운 기능을 먼저 체험하고 피드백을 제공하세요</Text>
+              </View>
+              <Icon name="chevron-forward" size={24} color="#C7C7CC" />
+            </View>
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -992,6 +1515,47 @@ const styles = StyleSheet.create({
   },
   bottomPadding: {
     height: 40,
+  },
+  // Phase 188-192: Advanced Settings styles
+  advancedToggle: {
+    backgroundColor: '#FFFFFF',
+    marginHorizontal: 16,
+    borderRadius: 12,
+    padding: 16,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  advancedToggleText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#007AFF',
+  },
+  // Phase 221: Beta Testing Button styles
+  betaButton: {
+    padding: 0,
+  },
+  betaButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+  },
+  betaIcon: {
+    marginRight: 12,
+  },
+  betaTextContainer: {
+    flex: 1,
+  },
+  betaButtonTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000000',
+    marginBottom: 4,
+  },
+  betaButtonSubtitle: {
+    fontSize: 13,
+    color: '#8E8E93',
+    lineHeight: 18,
   },
 });
 

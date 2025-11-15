@@ -20,6 +20,7 @@ import {
   RecordingState,
 } from '@store';
 import type {AndroidSensorType} from '@native';
+import {logger} from '../utils/logger';
 
 export interface UseSensorOptions {
   /**
@@ -345,7 +346,7 @@ export function useSensor(
         const service = sensorManager.current.getService(sensorType);
         if (service) {
           service.stop().catch(err => {
-            console.error('Failed to stop sensor on cleanup:', err);
+            logger.error('Failed to stop sensor on cleanup:', err);
           });
         }
       }

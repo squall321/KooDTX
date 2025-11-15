@@ -22,6 +22,7 @@ import {wakeLockService, WakeLockOptions} from './power/WakeLockService';
 import {foregroundServiceManager, ForegroundServiceOptions} from './background/ForegroundServiceManager';
 import {AndroidSensorType, SensorDataSample} from '@native';
 import {v4 as uuidv4} from 'uuid';
+import {logger} from '../utils/logger';
 
 /**
  * Recording mode
@@ -224,7 +225,7 @@ export class RecordingService {
       try {
         await wakeLockService.activate(sessionId);
       } catch (error) {
-        console.warn('Failed to activate wake lock:', error);
+        logger.warn('Failed to activate wake lock:', error);
         // Don't fail recording if wake lock fails
       }
 
@@ -237,13 +238,13 @@ export class RecordingService {
             config.foregroundServiceOptions,
           );
         } catch (error) {
-          console.warn('Failed to start foreground service:', error);
+          logger.warn('Failed to start foreground service:', error);
           // Don't fail recording if foreground service fails
         }
       }
 
       this.setState(IntegratedRecordingState.RECORDING);
-      console.log(`Integrated recording started: ${sessionId} (mode: ${config.mode})`);
+      logger.log(`Integrated recording started: ${sessionId} (mode: ${config.mode})`);
 
       return sessionId;
 
@@ -303,7 +304,7 @@ export class RecordingService {
       }
 
       this.setState(IntegratedRecordingState.STOPPED);
-      console.log(`Integrated recording stopped: ${this.currentSession?.sessionId}`);
+      logger.log(`Integrated recording stopped: ${this.currentSession?.sessionId}`);
 
       // Emit final stats
       this.emitStats();
@@ -313,7 +314,7 @@ export class RecordingService {
       try {
         await wakeLockService.deactivate(this.currentSession?.sessionId);
       } catch (error) {
-        console.warn('Failed to deactivate wake lock:', error);
+        logger.warn('Failed to deactivate wake lock:', error);
         // Don't fail recording stop if wake lock deactivation fails
       }
 
@@ -323,7 +324,7 @@ export class RecordingService {
         try {
           await foregroundServiceManager.stopForegroundService();
         } catch (error) {
-          console.warn('Failed to stop foreground service:', error);
+          logger.warn('Failed to stop foreground service:', error);
           // Don't fail recording stop if foreground service stop fails
         }
       }
@@ -378,11 +379,11 @@ export class RecordingService {
       try {
         await wakeLockService.deactivate(this.currentSession?.sessionId);
       } catch (error) {
-        console.warn('Failed to deactivate wake lock on pause:', error);
+        logger.warn('Failed to deactivate wake lock on pause:', error);
       }
 
       this.setState(IntegratedRecordingState.PAUSED);
-      console.log('Integrated recording paused');
+      logger.log('Integrated recording paused');
 
     } catch (error) {
       this.setState(IntegratedRecordingState.ERROR);
@@ -418,11 +419,11 @@ export class RecordingService {
       try {
         await wakeLockService.activate(this.currentSession?.sessionId);
       } catch (error) {
-        console.warn('Failed to re-activate wake lock on resume:', error);
+        logger.warn('Failed to re-activate wake lock on resume:', error);
       }
 
       this.setState(IntegratedRecordingState.RECORDING);
-      console.log('Integrated recording resumed');
+      logger.log('Integrated recording resumed');
 
     } catch (error) {
       this.setState(IntegratedRecordingState.ERROR);
@@ -527,7 +528,7 @@ export class RecordingService {
     try {
       await wakeLockService.forceRelease();
     } catch (error) {
-      console.warn('Failed to force release wake lock during cleanup:', error);
+      logger.warn('Failed to force release wake lock during cleanup:', error);
     }
 
     // Force stop foreground service
@@ -535,7 +536,7 @@ export class RecordingService {
     try {
       await foregroundServiceManager.cleanup();
     } catch (error) {
-      console.warn('Failed to cleanup foreground service during cleanup:', error);
+      logger.warn('Failed to cleanup foreground service during cleanup:', error);
     }
 
     // Clear listeners
@@ -621,7 +622,7 @@ export class RecordingService {
    * @param error Error
    */
   private handleSubserviceError(service: 'sensor' | 'audio', error: Error): void {
-    console.error(`${service} service error:`, error);
+    logger.error(`${service} service error:`, error);
 
     // If recording, emit error and consider stopping
     if (this.state === IntegratedRecordingState.RECORDING || this.state === IntegratedRecordingState.PAUSED) {
@@ -667,7 +668,7 @@ export class RecordingService {
       try {
         listener(event);
       } catch (error) {
-        console.error('Error in event listener:', error);
+        logger.error('Error in event listener:', error);
       }
     });
   }

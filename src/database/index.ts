@@ -16,6 +16,7 @@ import {
   SyncQueue,
   File,
 } from './models';
+import {logger} from '../utils/logger';
 
 // Database adapter configuration
 const adapter = new SQLiteAdapter({
@@ -24,7 +25,7 @@ const adapter = new SQLiteAdapter({
   jsi: false, // Use JSI (JavaScript Interface) - set to true for better performance on newer RN versions
   onSetUpError: error => {
     // Error handling
-    console.error('Database setup error:', error);
+    logger.error('Database setup error:', error);
   },
 });
 

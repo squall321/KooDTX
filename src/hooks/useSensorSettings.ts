@@ -23,6 +23,7 @@ import {
 } from '@services/settings/SensorSettingsService';
 import {GPSAccuracyMode} from '@services/gps/GPSService';
 import type {AndroidSensorType} from '@native';
+import {logger} from '../utils/logger';
 
 /**
  * Hook options
@@ -226,7 +227,7 @@ export function useSensorSettings(
     } catch (err) {
       const errorObj = err instanceof Error ? err : new Error(String(err));
       setError(errorObj);
-      console.error('Failed to initialize sensor settings:', errorObj);
+      logger.error('Failed to initialize sensor settings:', errorObj);
     } finally {
       setIsLoading(false);
     }
@@ -246,7 +247,7 @@ export function useSensorSettings(
     } catch (err) {
       const errorObj = err instanceof Error ? err : new Error(String(err));
       setError(errorObj);
-      console.error('Failed to refresh settings:', errorObj);
+      logger.error('Failed to refresh settings:', errorObj);
     }
   }, [isInitialized]);
 

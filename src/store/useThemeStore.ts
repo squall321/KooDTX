@@ -13,6 +13,7 @@ import { create } from 'zustand';
 import { Appearance, ColorSchemeName } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { lightColors, darkColors, commonColors } from '../theme/colors';
+import { logger } from '../utils/logger';
 
 const THEME_STORAGE_KEY = '@koodtx_theme';
 
@@ -93,9 +94,9 @@ export const useThemeStore = create<ThemeState>((set, get) => ({
         colors: getColors(activeTheme),
       });
 
-      console.log(`Theme set to: ${mode} (active: ${activeTheme})`);
+      logger.log(`Theme set to: ${mode} (active: ${activeTheme})`);
     } catch (error) {
-      console.error('Failed to set theme:', error);
+      logger.error('Failed to set theme:', error);
     }
   },
 
@@ -147,16 +148,16 @@ export const useThemeStore = create<ThemeState>((set, get) => ({
             activeTheme: newActiveTheme,
             colors: getColors(newActiveTheme),
           });
-          console.log(`System theme changed to: ${newActiveTheme}`);
+          logger.log(`System theme changed to: ${newActiveTheme}`);
         }
       });
 
       // Cleanup subscription on store unmount (if needed)
       // Note: Zustand doesn't have unmount, handle this in component if needed
 
-      console.log(`Theme initialized: ${mode} (active: ${activeTheme})`);
+      logger.log(`Theme initialized: ${mode} (active: ${activeTheme})`);
     } catch (error) {
-      console.error('Failed to initialize theme:', error);
+      logger.error('Failed to initialize theme:', error);
     }
   },
 

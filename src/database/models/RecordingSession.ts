@@ -7,6 +7,13 @@ import {Model} from '@nozbe/watermelondb';
 import {field, readonly, date, json} from '@nozbe/watermelondb/decorators';
 import type {SensorType} from '@app-types/sensor.types';
 
+export interface EventMarker {
+  id: string;
+  label: string;
+  timestamp: number;
+  description?: string;
+}
+
 export class RecordingSession extends Model {
   static override table = 'recording_sessions';
 
@@ -18,6 +25,7 @@ export class RecordingSession extends Model {
   @field('sample_rate') sampleRate!: number;
   @field('data_count') dataCount!: number;
   @field('notes') notes?: string;
+  @json('event_markers', (json: EventMarker[]) => json) eventMarkers?: EventMarker[];
   @field('is_uploaded') isUploaded!: boolean;
 
   @readonly @date('created_at') createdAt!: Date;

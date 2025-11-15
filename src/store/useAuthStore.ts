@@ -14,6 +14,7 @@
 import {create} from 'zustand';
 import {authApi, AuthResponse} from '../api/auth';
 import {tokenStorage} from '../api/storage/tokenStorage';
+import {logger} from '../utils/logger';
 
 /**
  * User information interface
@@ -102,12 +103,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           error: null,
         });
 
-        console.log('Login successful:', user.email);
+        logger.log('Login successful:', user.email);
       } else {
         throw new Error(response.message || 'Login failed');
       }
     } catch (error: any) {
-      console.error('Login error:', error);
+      logger.error('Login error:', error);
       set({
         error: error.message || '로그인 중 오류가 발생했습니다.',
         isLoading: false,
@@ -151,12 +152,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           error: null,
         });
 
-        console.log('Registration successful:', user.email);
+        logger.log('Registration successful:', user.email);
       } else {
         throw new Error(response.message || 'Registration failed');
       }
     } catch (error: any) {
-      console.error('Registration error:', error);
+      logger.error('Registration error:', error);
       set({
         error: error.message || '회원가입 중 오류가 발생했습니다.',
         isLoading: false,
@@ -189,9 +190,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         error: null,
       });
 
-      console.log('Logout successful');
+      logger.log('Logout successful');
     } catch (error: any) {
-      console.error('Logout error:', error);
+      logger.error('Logout error:', error);
       // Even if API fails, clear local state
       await tokenStorage.clearTokens();
       set({
@@ -212,13 +213,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const newAccessToken = await authApi.refreshToken();
 
       if (newAccessToken) {
-        console.log('Token refreshed successfully');
+        logger.log('Token refreshed successfully');
       } else {
         // If refresh fails, logout
         await get().logout();
       }
     } catch (error: any) {
-      console.error('Token refresh error:', error);
+      logger.error('Token refresh error:', error);
       // If refresh fails, logout
       await get().logout();
     }
@@ -245,7 +246,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
           // Mock user data (in production, fetch from server)
           // This is a placeholder - you should implement /auth/me endpoint
-          console.log('Auto-login: Tokens found, user should be authenticated');
+          logger.log('Auto-login: Tokens found, user should be authenticated');
 
           // For now, we'll just mark as authenticated
           // In a real app, you'd call an endpoint to get user info
@@ -266,7 +267,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         });
       }
     } catch (error: any) {
-      console.error('Check auth error:', error);
+      logger.error('Check auth error:', error);
       set({
         isAuthenticated: false,
         isInitializing: false,

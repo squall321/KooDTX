@@ -16,17 +16,24 @@ import {
   TextInput,
   ActivityIndicator,
   Banner,
+  FAB,
 } from 'react-native-paper';
 import {SensorType} from '@app-types/sensor.types';
 import {useSensorCollectionWithDB, usePermissions, useAudioRecording} from '@hooks';
 import {getRecordingSessionRepository} from '@database/repositories';
 import {generateSessionId} from '@utils';
+import type {EventMarker} from '@database/models/RecordingSession';
 
 export function RecordingScreen() {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [sessionNotes, setSessionNotes] = useState<string>('');
   const [showNotesDialog, setShowNotesDialog] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
+
+  // Event Marker state
+  const [showEventMarkerDialog, setShowEventMarkerDialog] = useState(false);
+  const [eventMarkerLabel, setEventMarkerLabel] = useState('');
+  const [eventMarkerDescription, setEventMarkerDescription] = useState('');
 
   // Permissions
   const {permissions, isLoading: permissionsLoading, requestPermissions, openSettings} = usePermissions();
@@ -190,6 +197,40 @@ export function RecordingScreen() {
       console.error('Failed to stop recording:', err);
     }
   }, [stop, stopAudio, isAudioRecording, runningSensors, sessionId, sessionRepo]);
+
+  // Add event marker
+  const handleAddEventMarker = useCallback(async () => {
+    if (!sessionId || !eventMarkerLabel.trim()) {
+      return;
+    }
+
+    try {
+      const session = await sessionRepo.findBySessionId(sessionId);
+      if (!session) {
+        console.error('Session not found');
+        return;
+      }
+
+      const newMarker: EventMarker = {
+        id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        label: eventMarkerLabel.trim(),
+        timestamp: Date.now(),
+        description: eventMarkerDescription.trim() || undefined,
+      };
+
+      const existingMarkers = session.eventMarkers || [];
+      await sessionRepo.updateBySessionId(sessionId, {
+        eventMarkers: [...existingMarkers, newMarker],
+      });
+
+      // Reset form and close dialog
+      setEventMarkerLabel('');
+      setEventMarkerDescription('');
+      setShowEventMarkerDialog(false);
+    } catch (err) {
+      console.error('Failed to add event marker:', err);
+    }
+  }, [sessionId, eventMarkerLabel, eventMarkerDescription, sessionRepo]);
 
   // Get statistics
   const bufferStats = isRunning ? getBufferStats() : null;
@@ -437,7 +478,54 @@ export function RecordingScreen() {
             <Button onPress={() => setShowNotesDialog(false)}>확인</Button>
           </Dialog.Actions>
         </Dialog>
+
+        {/* Event Marker Dialog */}
+        <Dialog visible={showEventMarkerDialog} onDismiss={() => setShowEventMarkerDialog(false)}>
+          <Dialog.Title>이벤트 마커 추가</Dialog.Title>
+          <Dialog.Content>
+            <TextInput
+              label="라벨 *"
+              value={eventMarkerLabel}
+              onChangeText={setEventMarkerLabel}
+              mode="outlined"
+              style={styles.dialogInput}
+              placeholder="예: 급정거, 회전, 신호등..."
+            />
+            <TextInput
+              label="설명 (선택)"
+              value={eventMarkerDescription}
+              onChangeText={setEventMarkerDescription}
+              multiline
+              numberOfLines={3}
+              mode="outlined"
+              style={styles.dialogInput}
+              placeholder="추가 설명을 입력하세요"
+            />
+            <Text variant="bodySmall" style={styles.timestampHint}>
+              타임스탬프: {new Date().toLocaleTimeString('ko-KR')}
+            </Text>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setShowEventMarkerDialog(false)}>취소</Button>
+            <Button
+              onPress={handleAddEventMarker}
+              disabled={!eventMarkerLabel.trim()}
+            >
+              추가
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
       </Portal>
+
+      {/* Floating Action Button - Only visible when recording */}
+      {isRunning && (
+        <FAB
+          icon="flag-plus"
+          label="이벤트 표시"
+          style={styles.fab}
+          onPress={() => setShowEventMarkerDialog(true)}
+        />
+      )}
     </ScrollView>
   );
 }
@@ -502,5 +590,19 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 12,
     color: '#666',
+  },
+  dialogInput: {
+    marginBottom: 12,
+  },
+  timestampHint: {
+    color: '#666',
+    fontStyle: 'italic',
+    marginTop: 4,
+  },
+  fab: {
+    position: 'absolute',
+    margin: 16,
+    right: 0,
+    bottom: 0,
   },
 });

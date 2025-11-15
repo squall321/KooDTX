@@ -8,6 +8,7 @@ import {
   createTable,
   addColumns,
 } from '@nozbe/watermelondb/Schema/migrations';
+import {logger} from '../utils/logger';
 
 /**
  * Migration from version 7 to version 8
@@ -198,10 +199,10 @@ export function isTableInMigrations(tableName: string): boolean {
 if (__DEV__) {
   const validation = validateMigrations();
   if (!validation.valid) {
-    console.warn('⚠️ Migration validation failed:');
-    validation.errors.forEach(error => console.warn(`  - ${error}`));
+    logger.warn('⚠️ Migration validation failed:');
+    validation.errors.forEach(error => logger.warn(`  - ${error}`));
   } else {
-    console.log('✓ Database migrations validated successfully');
-    console.log(getMigrationHistory());
+    logger.log('✓ Database migrations validated successfully');
+    logger.log(getMigrationHistory());
   }
 }

@@ -8,7 +8,7 @@
  * - 세션 삭제 기능
  */
 
-import React, {useCallback, useEffect, useState} from 'react';
+import React, {useCallback, useEffect, useState, useMemo} from 'react';
 import {View, ScrollView, StyleSheet, Alert} from 'react-native';
 import {
   Card,
@@ -23,7 +23,7 @@ import {
   List,
 } from 'react-native-paper';
 import type {NativeStackScreenProps} from '@react-navigation/native-stack';
-import type {RecordingSession, SensorDataRecord, AudioRecording} from '@database/models';
+import type {RecordingSession, SensorDataRecord, AudioRecording, EventMarker} from '@database/models';
 import {
   getRecordingSessionRepository,
   getSensorDataRepository,
@@ -34,6 +34,7 @@ import {SensorType} from '@app-types/sensor.types';
 import Share from 'react-native-share';
 import RNFS from 'react-native-fs';
 import {getAudioRecorderService} from '@services/audio/AudioRecorderService';
+import {DataPreview, AudioWaveform} from '@components';
 
 type HistoryStackParamList = {
   HistoryList: undefined;
@@ -53,6 +54,15 @@ interface SensorStats {
   avgAltitude?: number;
 }
 
+interface DataChunk {
+  sensorType: SensorType;
+  startTime: number;
+  endTime: number;
+  count: number;
+  size: number; // estimated size in bytes
+  uploaded: boolean;
+}
+
 export function SessionDetailScreen({route, navigation}: Props) {
   const {sessionId} = route.params;
   const [session, setSession] = useState<RecordingSession | null>(null);
@@ -65,11 +75,67 @@ export function SessionDetailScreen({route, navigation}: Props) {
   const [isLoading, setIsLoading] = useState(true);
   const [isExporting, setIsExporting] = useState(false);
   const [deleteDialogVisible, setDeleteDialogVisible] = useState(false);
+  const [expandedChunks, setExpandedChunks] = useState<Record<SensorType, boolean>>({} as Record<SensorType, boolean>);
+  const [showDataPreview, setShowDataPreview] = useState(false);
+  const [previewSensorType, setPreviewSensorType] = useState<SensorType | null>(null);
 
   const sessionRepo = getRecordingSessionRepository();
   const dataRepo = getSensorDataRepository();
   const audioRepo = getAudioRecordingRepository();
   const audioService = getAudioRecorderService();
+
+  // Calculate data chunks (10-second intervals)
+  const dataChunks = useMemo(() => {
+    const chunks: Record<SensorType, DataChunk[]> = {} as Record<SensorType, DataChunk[]>;
+    const CHUNK_DURATION = 10000; // 10 seconds
+
+    // Group data by sensor type
+    const groupedData = sensorData.reduce((acc, record) => {
+      const type = record.sensorType as SensorType;
+      if (!acc[type]) {
+        acc[type] = [];
+      }
+      acc[type].push(record);
+      return acc;
+    }, {} as Record<SensorType, SensorDataRecord[]>);
+
+    // Create chunks for each sensor type
+    Object.entries(groupedData).forEach(([type, records]) => {
+      const sensorType = type as SensorType;
+      chunks[sensorType] = [];
+
+      if (records.length === 0) return;
+
+      // Sort by timestamp
+      const sortedRecords = [...records].sort((a, b) => a.timestamp - b.timestamp);
+      const startTime = sortedRecords[0].timestamp;
+      const endTime = sortedRecords[sortedRecords.length - 1].timestamp;
+
+      // Create chunks
+      let currentChunkStart = startTime;
+      while (currentChunkStart < endTime) {
+        const currentChunkEnd = currentChunkStart + CHUNK_DURATION;
+        const chunkRecords = sortedRecords.filter(
+          r => r.timestamp >= currentChunkStart && r.timestamp < currentChunkEnd
+        );
+
+        if (chunkRecords.length > 0) {
+          chunks[sensorType].push({
+            sensorType,
+            startTime: currentChunkStart,
+            endTime: currentChunkEnd,
+            count: chunkRecords.length,
+            size: chunkRecords.length * 50, // Estimated 50 bytes per record
+            uploaded: session?.isUploaded || false,
+          });
+        }
+
+        currentChunkStart = currentChunkEnd;
+      }
+    });
+
+    return chunks;
+  }, [sensorData, session]);
 
   // Load session and sensor data
   const loadSessionData = useCallback(async () => {
@@ -576,6 +642,38 @@ export function SessionDetailScreen({route, navigation}: Props) {
         </Card.Content>
       </Card>
 
+      {/* Event Markers */}
+      {session.eventMarkers && session.eventMarkers.length > 0 && (
+        <Card style={styles.card}>
+          <Card.Content>
+            <Text variant="headlineSmall">이벤트 마커</Text>
+            <Divider style={styles.divider} />
+
+            <View style={styles.statsOverview}>
+              <Text variant="bodyMedium">
+                총 {session.eventMarkers.length}개의 이벤트
+              </Text>
+            </View>
+
+            {session.eventMarkers.map((marker: EventMarker, index: number) => (
+              <Card key={marker.id} style={styles.eventMarkerCard}>
+                <List.Item
+                  title={`🚩 ${marker.label}`}
+                  description={`${formatTimestamp(marker.timestamp)}${marker.description ? `\n${marker.description}` : ''}`}
+                  left={() => (
+                    <View style={styles.eventMarkerIndex}>
+                      <Text variant="bodySmall" style={styles.eventMarkerIndexText}>
+                        {index + 1}
+                      </Text>
+                    </View>
+                  )}
+                />
+              </Card>
+            ))}
+          </Card.Content>
+        </Card>
+      )}
+
       {/* Sensor Statistics */}
       <Card style={styles.card}>
         <Card.Content>
@@ -593,6 +691,77 @@ export function SessionDetailScreen({route, navigation}: Props) {
           )}
         </Card.Content>
       </Card>
+
+      {/* Data Chunks */}
+      {Object.keys(dataChunks).length > 0 && (
+        <Card style={styles.card}>
+          <Card.Content>
+            <Text variant="headlineSmall">데이터 청크</Text>
+            <Divider style={styles.divider} />
+
+            <View style={styles.statsOverview}>
+              <Text variant="bodySmall" style={{color: '#666'}}>
+                10초 단위로 그룹화된 센서 데이터
+              </Text>
+            </View>
+
+            {Object.entries(dataChunks).map(([type, chunks]) => {
+              const sensorType = type as SensorType;
+              const isExpanded = expandedChunks[sensorType];
+              const totalChunks = chunks.length;
+              const totalSize = chunks.reduce((sum, chunk) => sum + chunk.size, 0);
+
+              return (
+                <Card key={type} style={styles.chunkSensorCard}>
+                  <List.Accordion
+                    title={type}
+                    description={`${totalChunks}개 청크 · ${(totalSize / 1024).toFixed(2)} KB`}
+                    expanded={isExpanded}
+                    onPress={() =>
+                      setExpandedChunks(prev => ({
+                        ...prev,
+                        [sensorType]: !prev[sensorType],
+                      }))
+                    }
+                    left={props => <List.Icon {...props} icon="database" />}
+                  >
+                    {chunks.map((chunk, index) => {
+                      const duration = (chunk.endTime - chunk.startTime) / 1000;
+                      return (
+                        <List.Item
+                          key={index}
+                          title={`청크 #${index + 1}`}
+                          description={`${formatTimestamp(chunk.startTime)} · ${duration}초 · ${chunk.count}개 · ${(chunk.size / 1024).toFixed(2)} KB`}
+                          left={() => (
+                            <View style={styles.chunkStatus}>
+                              <Text variant="bodySmall">
+                                {chunk.uploaded ? '✓' : '○'}
+                              </Text>
+                            </View>
+                          )}
+                          style={styles.chunkItem}
+                        />
+                      );
+                    })}
+                    <Button
+                      mode="outlined"
+                      icon="eye"
+                      onPress={() => {
+                        setPreviewSensorType(sensorType);
+                        setShowDataPreview(true);
+                      }}
+                      style={styles.previewButton}
+                      compact
+                    >
+                      데이터 미리보기
+                    </Button>
+                  </List.Accordion>
+                </Card>
+              );
+            })}
+          </Card.Content>
+        </Card>
+      )}
 
       {/* Audio Recordings */}
       {audioRecordings.length > 0 && (
@@ -613,26 +782,32 @@ export function SessionDetailScreen({route, navigation}: Props) {
               const fileSizeMB = (recording.fileSize / (1024 * 1024)).toFixed(2);
 
               return (
-                <Card key={recording.id} style={styles.audioCard}>
-                  <List.Item
-                    title={formatTimestamp(recording.timestamp)}
-                    description={`${durationSeconds}초 · ${fileSizeMB}MB · ${recording.format}`}
-                    left={() => (
-                      <IconButton
-                        icon={isPlaying ? 'stop' : 'play'}
-                        size={24}
-                        onPress={() => toggleAudioPlayback(recording)}
-                      />
-                    )}
-                    right={() => (
-                      <IconButton
-                        icon="share-variant"
-                        size={20}
-                        onPress={() => shareAudioFile(recording)}
-                      />
-                    )}
+                <View key={recording.id}>
+                  <Card style={styles.audioCard}>
+                    <List.Item
+                      title={formatTimestamp(recording.timestamp)}
+                      description={`${durationSeconds}초 · ${fileSizeMB}MB · ${recording.format}`}
+                      left={() => (
+                        <IconButton
+                          icon={isPlaying ? 'stop' : 'play'}
+                          size={24}
+                          onPress={() => toggleAudioPlayback(recording)}
+                        />
+                      )}
+                      right={() => (
+                        <IconButton
+                          icon="share-variant"
+                          size={20}
+                          onPress={() => shareAudioFile(recording)}
+                        />
+                      )}
+                    />
+                  </Card>
+                  <AudioWaveform
+                    filePath={recording.filePath}
+                    duration={recording.duration}
                   />
-                </Card>
+                </View>
               );
             })}
           </Card.Content>
@@ -702,6 +877,27 @@ export function SessionDetailScreen({route, navigation}: Props) {
             <Button onPress={handleDelete} buttonColor="#dc3545">
               삭제
             </Button>
+          </Dialog.Actions>
+        </Dialog>
+
+        {/* Data Preview Dialog */}
+        <Dialog
+          visible={showDataPreview}
+          onDismiss={() => setShowDataPreview(false)}
+          style={styles.previewDialog}>
+          <Dialog.Title>센서 데이터 미리보기</Dialog.Title>
+          <Dialog.ScrollArea>
+            <ScrollView>
+              {previewSensorType && (
+                <DataPreview
+                  data={sensorData.filter(d => d.sensorType === previewSensorType)}
+                  maxRows={100}
+                />
+              )}
+            </ScrollView>
+          </Dialog.ScrollArea>
+          <Dialog.Actions>
+            <Button onPress={() => setShowDataPreview(false)}>닫기</Button>
           </Dialog.Actions>
         </Dialog>
       </Portal>
@@ -780,7 +976,48 @@ const styles = StyleSheet.create({
     backgroundColor: '#f5f5f5',
     elevation: 0,
   },
+  eventMarkerCard: {
+    marginTop: 8,
+    backgroundColor: '#fff3e0',
+    elevation: 1,
+  },
+  eventMarkerIndex: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#ff9800',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 8,
+  },
+  eventMarkerIndexText: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  chunkSensorCard: {
+    marginTop: 8,
+    backgroundColor: '#f5f5f5',
+    elevation: 0,
+  },
+  chunkItem: {
+    paddingLeft: 16,
+    backgroundColor: '#fafafa',
+  },
+  chunkStatus: {
+    width: 32,
+    height: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 8,
+  },
   button: {
     marginTop: 12,
+  },
+  previewButton: {
+    marginHorizontal: 16,
+    marginVertical: 8,
+  },
+  previewDialog: {
+    maxHeight: '80%',
   },
 });

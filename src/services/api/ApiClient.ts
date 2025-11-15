@@ -15,6 +15,7 @@ import axios, {
   AxiosResponse,
   AxiosError,
 } from 'axios';
+import {logger} from '../../utils/logger';
 
 /**
  * API 응답 타입
@@ -107,11 +108,11 @@ export class ApiClient {
           config.headers.Authorization = `Bearer ${this.authToken}`;
         }
 
-        console.log(`[API Request] ${config.method?.toUpperCase()} ${config.url}`);
+        logger.log(`[API Request] ${config.method?.toUpperCase()} ${config.url}`);
         return config;
       },
       (error) => {
-        console.error('[API Request Error]', error);
+        logger.error('[API Request Error]', error);
         return Promise.reject(error);
       },
     );
@@ -119,11 +120,11 @@ export class ApiClient {
     // 응답 인터셉터
     this.axiosInstance.interceptors.response.use(
       (response) => {
-        console.log(`[API Response] ${response.status} ${response.config.url}`);
+        logger.log(`[API Response] ${response.status} ${response.config.url}`);
         return response;
       },
       async (error: AxiosError) => {
-        console.error('[API Response Error]', error.message);
+        logger.error('[API Response Error]', error.message);
 
         // 재시도 로직
         const config = error.config;
@@ -132,7 +133,7 @@ export class ApiClient {
           (config as any).__retryCount = retryCount + 1;
 
           if (retryCount < (this.config.retryAttempts || 3)) {
-            console.log(`[API Retry] Attempt ${retryCount + 1}/${this.config.retryAttempts}`);
+            logger.log(`[API Retry] Attempt ${retryCount + 1}/${this.config.retryAttempts}`);
 
             // 재시도 딜레이
             await this.delay((this.config.retryDelay || 1000) * Math.pow(2, retryCount));

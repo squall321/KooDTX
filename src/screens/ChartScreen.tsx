@@ -21,6 +21,7 @@ import type {NativeStackScreenProps} from '@react-navigation/native-stack';
 import type {SensorDataRecord} from '@database/models';
 import {getSensorDataRepository} from '@database/repositories';
 import {SensorType} from '@app-types/sensor.types';
+import {logger} from '../utils/logger';
 
 type HistoryStackParamList = {
   HistoryList: undefined;
@@ -77,7 +78,7 @@ export function ChartScreen({route}: Props) {
         }
       }
     } catch (error) {
-      console.error('Failed to load sensor data:', error);
+      logger.error('Failed to load sensor data:', error);
       Alert.alert('오류', '센서 데이터를 불러오는데 실패했습니다.');
     } finally {
       setIsLoading(false);
