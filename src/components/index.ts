@@ -17,3 +17,13 @@ export type { SyncLogProps, SyncLogEntry } from './SyncLog';
 export { default as AuthGuard } from './AuthGuard';
 export { default as AuthProvider } from './AuthProvider';
 export { withAuth } from './withAuth';
+
+// UI components (Phase 146-150)
+export { default as SplashScreen } from './SplashScreen';
+export { default as LoadingIndicator, LoadingPresets } from './LoadingIndicator';
+export type { LoadingSize } from './LoadingIndicator';
+export { default as ErrorMessage, ErrorPresets } from './ErrorMessage';
+export type { ErrorType } from './ErrorMessage';
+export { default as Toast, toast, toastConfig } from './Toast';
+export { default as Dialog, DialogManager } from './Dialog';
+export type { DialogType, DialogButton } from './Dialog';
