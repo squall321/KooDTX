@@ -1,0 +1,1 @@
+Collect high-precision sensor data from your smartphone and sync to cloud

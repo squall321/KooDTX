@@ -1,0 +1,221 @@
+KooDTX - Professional Sensor Data Collection Platform
+
+Need to collect sensor data from smartphones for research or development?
+Tired of complex data collection and analysis workflows?
+
+KooDTX is an all-in-one solution for easy and accurate mobile sensor data collection.
+
+Key Features 🎯
+
+✅ Multiple Sensor Support
+• Accelerometer (3-axis)
+• Gyroscope (3-axis)
+• Magnetometer (3-axis)
+• GPS (Location tracking)
+• Audio Recording (Microphone)
+• Barometer, Light Sensor, etc.
+
+✅ High-Precision Data Collection
+• Up to 400Hz sampling rate
+• Microsecond-precision timestamps
+• Lossless raw data storage
+• Efficient batch processing
+
+✅ Local-First Architecture
+• Offline storage with WatermelonDB
+• Works without network
+• Access data anytime
+• Reliable SQLite-based storage
+
+✅ Smart Synchronization
+• Wi-Fi only mode
+• Automatic cloud backup
+• Auto-retry on failure
+• Real-time progress tracking
+• Batch upload for efficiency
+
+✅ Powerful Data Management
+• Session-based organization
+• Export to CSV/JSON
+• Real-time chart visualization
+• Audio playback & sharing
+• Session notes & tags
+
+✅ Professional Features
+• Customizable sampling rates
+• Multiple sensor simultaneous recording
+• Data integrity verification
+• Detailed metadata
+• Diagnostics & performance monitoring
+
+Use Cases 💡
+
+🔬 Academic Research
+• Mobile sensor-based experiments
+• Behavior pattern analysis
+• Location-based research
+• Physics experiment data collection
+
+👨‍💻 App Development
+• Sensor API testing
+• Algorithm validation
+• Performance benchmarking
+• Debugging & optimization
+
+🏃 Sports Science
+• Motion data collection
+• Posture & movement analysis
+• Performance measurement
+• Rehabilitation monitoring
+
+🏗️ IoT & Embedded
+• Sensor data validation
+• Prototype development
+• Field testing
+• Data collection pilot
+
+📊 Data Science
+• Machine learning training data
+• Sensor data analysis
+• Pattern recognition research
+• Time-series data analysis
+
+Tech Stack ⚙️
+
+• Built on React Native 0.73
+• WatermelonDB (SQLite) offline storage
+• Written in TypeScript
+• Material Design 3 UI
+• Offline-First Architecture
+• RESTful API sync
+
+Supported Sensors 📱
+
+Accelerometer
+- 3-axis (X, Y, Z) acceleration
+- Up to 400Hz sampling
+- Gravity & linear acceleration
+
+Gyroscope
+- 3-axis angular velocity
+- Rotation detection & tracking
+- High-precision motion analysis
+
+Magnetometer
+- Magnetic field measurement
+- Direction tracking
+- Compass functionality
+
+GPS
+- Latitude, longitude, altitude
+- Speed & bearing
+- Accuracy information
+- 1-10Hz sampling
+
+Audio
+- 48kHz high-quality recording
+- Stereo support
+- AAC encoding
+- Sound pressure level
+
+Privacy 🔒
+
+• All data stored locally first
+• User-controlled synchronization
+• HTTPS encrypted transfer
+• Delete data anytime
+• No third-party data sharing
+• GDPR compliant
+
+App Features 🌟
+
+✨ Intuitive User Interface
+• Material Design 3
+• Light/Dark mode support
+• Korean/English language
+• Accessibility features
+
+⚡ High Performance
+• Battery optimized
+• Memory efficient
+• Background operation
+• Fast app startup
+
+🔧 Customizable
+• Adjustable sampling rates
+• Selective sensor usage
+• Sync settings control
+• Custom API server
+
+📈 Data Analysis
+• Real-time data preview
+• Line chart visualization
+• Statistics (mean, max, min)
+• Data filtering
+
+Support 📧
+
+• Email: support@koodtx.com
+• Website: https://koodtx.com
+• Privacy Policy: https://koodtx.com/privacy
+• User Guide: Included in app
+
+Roadmap 🚀
+
+v1.1 (Coming Soon)
+• Additional sensor support
+• Real-time data streaming
+• Advanced filtering & analysis
+
+v1.2 (Planned)
+• Collaboration features
+• Cloud storage expansion
+• ML model integration
+
+v2.0 (Future)
+• Web dashboard
+• Public API
+• Enterprise features
+
+System Requirements 📋
+
+• Android 10.0 (API 29)+ recommended
+• Optimized for Android 14.0 (API 34)
+• Minimum 2GB RAM
+• 500MB free space
+• Internet (for sync, optional)
+
+Permissions ⚠️
+
+Required permissions and usage:
+
+• Location (GPS): Location data collection
+• Microphone: Audio recording
+• Storage: Data file storage
+• Network: Cloud synchronization
+• Sensors: Sensor data access
+
+All permissions requested only when needed.
+
+FAQ ❓
+
+Q: Is it free?
+A: Yes, KooDTX is completely free.
+
+Q: Can I use it offline?
+A: Yes, works perfectly offline. Only sync needs internet.
+
+Q: How much data can I store?
+A: Limited only by your device storage.
+
+Q: When will iOS version be available?
+A: iOS version is in development, coming soon.
+
+Q: Can I use it commercially?
+A: Yes, free for both research and commercial use.
+
+Download now and start professional sensor data collection! 🚀
+
+---
+
+KooDTX is the ultimate mobile sensor data collection tool for researchers, developers, and engineers.
