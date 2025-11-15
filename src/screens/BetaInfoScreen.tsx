@@ -24,6 +24,7 @@ import { Card, Button, Chip } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useThemeStore } from '../store/useThemeStore';
 import { logger } from '../utils/logger';
+import { getBetaLinks } from '../config/betaLinks';
 
 /**
  * Beta Testing Information Screen
@@ -31,6 +32,7 @@ import { logger } from '../utils/logger';
  */
 const BetaInfoScreenComponent = () => {
   const { colors } = useThemeStore();
+  const links = getBetaLinks();
   const [isBetaTester, setIsBetaTester] = useState(false);
 
   /**
@@ -56,62 +58,39 @@ const BetaInfoScreenComponent = () => {
    */
   const joinBeta = useCallback(() => {
     if (Platform.OS === 'ios') {
-      // TestFlight link (replace with actual link)
-      openLink(
-        'https://testflight.apple.com/join/YOUR_TESTFLIGHT_CODE',
-        'TestFlight'
-      );
+      openLink(links.testFlight, 'TestFlight');
     } else {
-      // Google Play Internal Testing link (replace with actual link)
-      openLink(
-        'https://play.google.com/apps/internaltest/YOUR_TESTING_TRACK',
-        'Google Play 베타 테스트'
-      );
+      openLink(links.playStoreInternalTest, 'Google Play 베타 테스트');
     }
-  }, [openLink]);
+  }, [openLink, links]);
 
   /**
    * Open feedback form
    */
   const openFeedbackForm = useCallback(() => {
-    // Google Forms or other feedback tool (replace with actual link)
-    openLink(
-      'https://forms.gle/YOUR_FEEDBACK_FORM',
-      '피드백 폼'
-    );
-  }, [openLink]);
+    openLink(links.feedbackForm, '피드백 폼');
+  }, [openLink, links]);
 
   /**
    * Report bug
    */
   const reportBug = useCallback(() => {
-    // Bug report form (replace with actual link)
-    openLink(
-      'https://forms.gle/YOUR_BUG_REPORT_FORM',
-      '버그 리포트'
-    );
-  }, [openLink]);
+    openLink(links.bugReportForm, '버그 리포트');
+  }, [openLink, links]);
 
   /**
    * Request feature
    */
   const requestFeature = useCallback(() => {
-    // Feature request form (replace with actual link)
-    openLink(
-      'https://forms.gle/YOUR_FEATURE_REQUEST_FORM',
-      '기능 요청'
-    );
-  }, [openLink]);
+    openLink(links.featureRequestForm, '기능 요청');
+  }, [openLink, links]);
 
   /**
    * Open Discord/Slack community (optional)
    */
   const openCommunity = useCallback(() => {
-    openLink(
-      'https://discord.gg/YOUR_DISCORD_INVITE',
-      'Discord 커뮤니티'
-    );
-  }, [openLink]);
+    openLink(links.discordInvite, 'Discord 커뮤니티');
+  }, [openLink, links]);
 
   // Memoize styles to prevent recreation on every render
   const styles = useMemo(() => StyleSheet.create({
