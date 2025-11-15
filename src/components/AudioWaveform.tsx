@@ -1,6 +1,7 @@
 /**
  * AudioWaveform Component
  * Phase 185: 오디오 파형 시각화
+ * Phase 201-203: React.memo optimization
  */
 
 import React, {useState, useEffect} from 'react';
@@ -14,11 +15,12 @@ interface AudioWaveformProps {
   sampleCount?: number;
 }
 
-export function AudioWaveform({
+// Phase 201-203: Memoized component to prevent unnecessary re-renders
+const AudioWaveformComponent = ({
   filePath,
   duration,
   sampleCount = 100,
-}: AudioWaveformProps) {
+}: AudioWaveformProps) => {
   const [waveformData, setWaveformData] = useState<number[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -157,4 +159,6 @@ const styles = StyleSheet.create({
   },
 });
 
+// Phase 201-203: Export memoized component
+export const AudioWaveform = React.memo(AudioWaveformComponent);
 export default AudioWaveform;

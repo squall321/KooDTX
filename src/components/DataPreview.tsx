@@ -1,6 +1,7 @@
 /**
  * DataPreview Component
  * Phase 185: CSV 데이터 미리보기
+ * Phase 201-203: React.memo optimization
  */
 
 import React, {useState, useEffect} from 'react';
@@ -13,7 +14,8 @@ interface DataPreviewProps {
   maxRows?: number;
 }
 
-export function DataPreview({data, maxRows = 100}: DataPreviewProps) {
+// Phase 201-203: Memoized component to prevent unnecessary re-renders
+const DataPreviewComponent = ({data, maxRows = 100}: DataPreviewProps) => {
   const [preview, setPreview] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
   const [showAll, setShowAll] = useState(false);
@@ -171,4 +173,6 @@ const styles = StyleSheet.create({
   },
 });
 
+// Phase 201-203: Export memoized component
+export const DataPreview = React.memo(DataPreviewComponent);
 export default DataPreview;
