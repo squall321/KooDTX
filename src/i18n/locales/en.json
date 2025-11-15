@@ -1,0 +1,83 @@
+{
+  "common": {
+    "appName": "KooDTX",
+    "ok": "OK",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "close": "Close",
+    "retry": "Retry",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "warning": "Warning",
+    "info": "Information"
+  },
+  "auth": {
+    "login": "Login",
+    "logout": "Logout",
+    "register": "Sign Up",
+    "email": "Email",
+    "password": "Password",
+    "confirmPassword": "Confirm Password",
+    "name": "Name",
+    "forgotPassword": "Forgot Password?",
+    "loginSuccess": "Login Successful",
+    "loginFailed": "Login Failed",
+    "registerSuccess": "Registration Successful",
+    "registerFailed": "Registration Failed",
+    "invalidEmail": "Invalid email format",
+    "passwordTooShort": "Password must be at least 8 characters",
+    "passwordMismatch": "Passwords do not match"
+  },
+  "navigation": {
+    "home": "Home",
+    "recording": "Recording",
+    "sessions": "Sessions",
+    "settings": "Settings",
+    "sync": "Sync"
+  },
+  "recording": {
+    "start": "Start Recording",
+    "stop": "Stop Recording",
+    "pause": "Pause",
+    "resume": "Resume",
+    "duration": "Duration",
+    "recording": "Recording"
+  },
+  "sessions": {
+    "title": "Sessions",
+    "empty": "No sessions",
+    "details": "Session Details",
+    "delete": "Delete Session",
+    "export": "Export"
+  },
+  "settings": {
+    "title": "Settings",
+    "language": "Language",
+    "theme": "Theme",
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System",
+    "notifications": "Notifications",
+    "about": "About"
+  },
+  "sync": {
+    "title": "Sync",
+    "lastSync": "Last Sync",
+    "sync": "Sync",
+    "syncing": "Syncing...",
+    "syncSuccess": "Sync Successful",
+    "syncFailed": "Sync Failed",
+    "serverUrl": "Server URL",
+    "autoSync": "Auto Sync"
+  },
+  "errors": {
+    "network": "Network Error",
+    "server": "Server Error",
+    "notFound": "Not Found",
+    "permission": "Permission Required",
+    "generic": "An error occurred"
+  }
+}
