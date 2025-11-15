@@ -1,25 +1,40 @@
 /**
- * Sync services barrel export
+ * Sync Service Exports
+ * Phase 108-120: Complete sync service
  */
 
 export {
-  UploadQueue,
-  getUploadQueue,
-  UploadTaskType,
-  UploadTaskStatus,
-} from './UploadQueue';
-export type {
-  UploadTask,
-  UploadHandler,
-  UploadProgress,
-} from './UploadQueue';
+  SyncService,
+  syncService,
+  SyncServiceState,
+  type SyncEvent,
+  type SyncEventListener,
+  type SyncConfig,
+} from './SyncService';
 
 export {
-  SyncManager,
-  getSyncManager,
-  initializeSyncManager,
-} from './SyncManager';
-export type {
-  SyncOptions,
-  SyncStatus,
-} from './SyncManager';
+  BackgroundSyncManager,
+  backgroundSyncManager,
+} from './BackgroundSyncManager';
+
+export {
+  SyncLogger,
+  syncLogger,
+  type SyncLog,
+  type SyncStatistics,
+} from './SyncLogger';
+
+export {
+  ConflictResolver,
+  conflictResolver,
+  ConflictStrategy,
+  type ConflictItem,
+} from './ConflictResolver';
+
+export {
+  SelectiveSync,
+  selectiveSync,
+  type SyncFilter,
+} from './SelectiveSync';
+
+export default syncService;
