@@ -29,6 +29,7 @@ import Slider from '@react-native-community/slider';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { database } from '../database';
 import { Session } from '../database/models/Session';
+import { useThemeStore, ThemeMode } from '../store/useThemeStore';
 
 interface SensorSettings {
   samplingRate: number; // Hz
@@ -139,6 +140,9 @@ export const SettingsScreen: React.FC = () => {
   });
 
   const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
+
+  // Phase 197: Theme Management
+  const { mode: themeMode, setTheme } = useThemeStore();
 
   // Data Management
   const [storageSize, setStorageSize] = useState('0 MB');
@@ -663,6 +667,40 @@ export const SettingsScreen: React.FC = () => {
             </View>
           </View>
         )}
+      </View>
+
+      {/* Phase 197: Theme Settings Section */}
+      <View style={styles.section}>
+        {renderSectionHeader('테마 설정', 'color-palette')}
+
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>테마 모드</Text>
+          {(['light', 'dark', 'system'] as const).map((mode) => (
+            <TouchableOpacity
+              key={mode}
+              style={styles.radioOption}
+              onPress={() => setTheme(mode)}
+            >
+              <Icon
+                name={
+                  themeMode === mode
+                    ? 'radio-button-on'
+                    : 'radio-button-off'
+                }
+                size={24}
+                color={themeMode === mode ? '#007AFF' : '#8E8E93'}
+              />
+              <Text style={styles.radioLabel}>
+                {mode === 'light' ? '라이트 모드' : mode === 'dark' ? '다크 모드' : '시스템 설정'}
+              </Text>
+            </TouchableOpacity>
+          ))}
+          <Text style={styles.settingDescription}>
+            {themeMode === 'system'
+              ? '시스템 설정에 따라 테마가 자동으로 변경됩니다'
+              : `현재 ${themeMode === 'dark' ? '다크' : '라이트'} 모드가 적용되었습니다`}
+          </Text>
+        </View>
       </View>
 
       {/* Server Settings Section - Phase 135 */}

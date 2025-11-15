@@ -204,26 +204,104 @@
 
 ---
 
-### Phase 197-200: 테마 및 UX 개선 ✅
+### Phase 197-200: 테마/접근성/i18n/애니메이션 ✅
 
-#### Phase 197: 다크 모드 테마
-**상태:** 기존 구현 유지 (React Native Paper 테마)
+#### Phase 197: 다크 모드 테마 ✅
+**파일:** `src/screens/SettingsScreen.tsx`, `src/store/useThemeStore.ts`, `src/theme/ThemeProvider.tsx`
 
-#### Phase 198: 접근성 (Accessibility)
-**개선 항목:**
-- contentDescription 추가 (부분적 구현)
-- 터치 타겟 최소 48dp (준수)
-- 색상 + 아이콘 조합 (구현됨)
+**신규 기능:**
+- Settings 화면에 테마 설정 섹션 추가
+- 라이트/다크/시스템 모드 라디오 버튼
+- 현재 테마 모드 표시
 
-#### Phase 199: 다국어 지원 (i18n)
-**상태:** 현재 한국어만 지원, 향후 확장 가능
+**기존 인프라 (Phase 153):**
+- Zustand 기반 테마 스토어
+- Light/Dark/System 모드 지원
+- AsyncStorage 영속화
+- 시스템 테마 자동 감지 (Appearance API)
+- StatusBar 자동 업데이트
+- ThemeProvider 컴포넌트
 
-#### Phase 200: 애니메이션 및 전환
-**기존 구현:**
-- React Navigation 화면 전환 애니메이션
-- Pull-to-refresh 애니메이션
-- 프로그레스 바 애니메이션
-- Swipeable 애니메이션
+**작동 방식:**
+- 사용자가 Settings에서 테마 선택
+- useThemeStore가 선택 저장 및 앱 전체 적용
+- 시스템 모드 선택 시 OS 테마 자동 추적
+- 앱 재시작 시 저장된 테마 복원
+
+---
+
+#### Phase 198: 접근성 (Accessibility) ✅
+**상태:** 기존 구현 확인
+
+**이미 구현된 항목:**
+- ✅ 터치 타겟 최소 48dp 준수
+- ✅ 색상 + 아이콘 조합 (색맹 대응)
+- ✅ Switch, Button 등 기본 컴포넌트 접근성 지원
+- ✅ TouchableOpacity에 적절한 hitSlop 설정
+
+**향후 개선 가능:**
+- accessibilityLabel 추가 (더 많은 컴포넌트에)
+- accessibilityHint 추가 (복잡한 동작 설명)
+- accessibilityRole 명시 (button, header, etc.)
+- Screen Reader 최적화
+
+---
+
+#### Phase 199: 다국어 지원 (i18n) ✅
+**파일:** `src/i18n/ko.ts`, `src/i18n/index.ts`, `src/hooks/useTranslation.ts`
+
+**신규 구현:**
+- i18n 인프라 구축
+- 한국어 문자열 정의 (ko.ts)
+  * common: 공통 문자열
+  * recording: 녹화 화면
+  * sessions: 세션 화면
+  * settings: 설정 화면
+  * sync: 동기화 상태
+  * errors: 에러 메시지
+- useTranslation 훅 생성
+- Type-safe 번역 (I18nStrings 타입)
+
+**사용 예시:**
+```typescript
+import { useTranslation } from '../hooks/useTranslation';
+
+const MyComponent = () => {
+  const { t } = useTranslation();
+  return <Text>{t.common.save}</Text>; // "저장"
+};
+```
+
+**향후 확장:**
+- en.ts (영어), ja.ts (일본어) 추가
+- AsyncStorage에서 사용자 언어 설정 로드
+- 언어 선택 UI 추가 (Settings 화면)
+- 모든 하드코딩된 문자열을 t.* 로 교체
+
+---
+
+#### Phase 200: 애니메이션 및 전환 ✅
+**상태:** 기존 구현 확인
+
+**이미 구현된 애니메이션:**
+- ✅ React Navigation 화면 전환 (슬라이드, 페이드)
+- ✅ Pull-to-refresh 애니메이션 (RefreshControl)
+- ✅ 프로그레스 바 애니메이션 (ProgressBar)
+- ✅ Swipeable 애니메이션 (세션 삭제)
+- ✅ ActivityIndicator 로딩 스피너
+- ✅ Modal 페이드 인/아웃 (fade animationType)
+- ✅ StatusBar 색상 전환
+
+**애니메이션 라이브러리:**
+- React Navigation: 화면 전환
+- React Native: 기본 애니메이션 (Animated API)
+- React Native Gesture Handler: Swipeable
+
+**향후 개선 가능:**
+- 더 부드러운 전환 (Reanimated 사용)
+- 커스텀 화면 전환 애니메이션
+- 리스트 아이템 애니메이션 (LayoutAnimation)
+- 버튼 누름 피드백 강화
 
 ---
 
