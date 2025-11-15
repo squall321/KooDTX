@@ -34,6 +34,7 @@ import {SensorType} from '@app-types/sensor.types';
 import Share from 'react-native-share';
 import RNFS from 'react-native-fs';
 import {getAudioRecorderService} from '@services/audio/AudioRecorderService';
+import {DataPreview, AudioWaveform} from '@components';
 
 type HistoryStackParamList = {
   HistoryList: undefined;
@@ -75,6 +76,8 @@ export function SessionDetailScreen({route, navigation}: Props) {
   const [isExporting, setIsExporting] = useState(false);
   const [deleteDialogVisible, setDeleteDialogVisible] = useState(false);
   const [expandedChunks, setExpandedChunks] = useState<Record<SensorType, boolean>>({} as Record<SensorType, boolean>);
+  const [showDataPreview, setShowDataPreview] = useState(false);
+  const [previewSensorType, setPreviewSensorType] = useState<SensorType | null>(null);
 
   const sessionRepo = getRecordingSessionRepository();
   const dataRepo = getSensorDataRepository();
@@ -740,6 +743,18 @@ export function SessionDetailScreen({route, navigation}: Props) {
                         />
                       );
                     })}
+                    <Button
+                      mode="outlined"
+                      icon="eye"
+                      onPress={() => {
+                        setPreviewSensorType(sensorType);
+                        setShowDataPreview(true);
+                      }}
+                      style={styles.previewButton}
+                      compact
+                    >
+                      데이터 미리보기
+                    </Button>
                   </List.Accordion>
                 </Card>
               );
@@ -767,26 +782,32 @@ export function SessionDetailScreen({route, navigation}: Props) {
               const fileSizeMB = (recording.fileSize / (1024 * 1024)).toFixed(2);
 
               return (
-                <Card key={recording.id} style={styles.audioCard}>
-                  <List.Item
-                    title={formatTimestamp(recording.timestamp)}
-                    description={`${durationSeconds}초 · ${fileSizeMB}MB · ${recording.format}`}
-                    left={() => (
-                      <IconButton
-                        icon={isPlaying ? 'stop' : 'play'}
-                        size={24}
-                        onPress={() => toggleAudioPlayback(recording)}
-                      />
-                    )}
-                    right={() => (
-                      <IconButton
-                        icon="share-variant"
-                        size={20}
-                        onPress={() => shareAudioFile(recording)}
-                      />
-                    )}
+                <View key={recording.id}>
+                  <Card style={styles.audioCard}>
+                    <List.Item
+                      title={formatTimestamp(recording.timestamp)}
+                      description={`${durationSeconds}초 · ${fileSizeMB}MB · ${recording.format}`}
+                      left={() => (
+                        <IconButton
+                          icon={isPlaying ? 'stop' : 'play'}
+                          size={24}
+                          onPress={() => toggleAudioPlayback(recording)}
+                        />
+                      )}
+                      right={() => (
+                        <IconButton
+                          icon="share-variant"
+                          size={20}
+                          onPress={() => shareAudioFile(recording)}
+                        />
+                      )}
+                    />
+                  </Card>
+                  <AudioWaveform
+                    filePath={recording.filePath}
+                    duration={recording.duration}
                   />
-                </Card>
+                </View>
               );
             })}
           </Card.Content>
@@ -856,6 +877,27 @@ export function SessionDetailScreen({route, navigation}: Props) {
             <Button onPress={handleDelete} buttonColor="#dc3545">
               삭제
             </Button>
+          </Dialog.Actions>
+        </Dialog>
+
+        {/* Data Preview Dialog */}
+        <Dialog
+          visible={showDataPreview}
+          onDismiss={() => setShowDataPreview(false)}
+          style={styles.previewDialog}>
+          <Dialog.Title>센서 데이터 미리보기</Dialog.Title>
+          <Dialog.ScrollArea>
+            <ScrollView>
+              {previewSensorType && (
+                <DataPreview
+                  data={sensorData.filter(d => d.sensorType === previewSensorType)}
+                  maxRows={100}
+                />
+              )}
+            </ScrollView>
+          </Dialog.ScrollArea>
+          <Dialog.Actions>
+            <Button onPress={() => setShowDataPreview(false)}>닫기</Button>
           </Dialog.Actions>
         </Dialog>
       </Portal>
@@ -970,5 +1012,12 @@ const styles = StyleSheet.create({
   },
   button: {
     marginTop: 12,
+  },
+  previewButton: {
+    marginHorizontal: 16,
+    marginVertical: 8,
+  },
+  previewDialog: {
+    maxHeight: '80%',
   },
 });
