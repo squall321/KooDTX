@@ -11,7 +11,7 @@
  * - iOS-style design
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -25,6 +25,7 @@ import {
   Alert,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
+import { useAuthStore } from '../store/useAuthStore';
 
 interface LoginScreenProps {
   navigation?: any; // React Navigation prop
@@ -34,8 +35,9 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
+
+  // Auth store
+  const { login, isLoading, error: authError, clearError } = useAuthStore();
 
   // Validate email format
   const isValidEmail = (email: string): boolean => {
@@ -46,66 +48,53 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   // Handle login
   const handleLogin = async () => {
     // Clear previous error
-    setError('');
+    clearError();
 
     // Validation
     if (!email.trim()) {
-      setError('이메일을 입력해주세요.');
+      Alert.alert('오류', '이메일을 입력해주세요.');
       return;
     }
 
     if (!isValidEmail(email)) {
-      setError('올바른 이메일 형식이 아닙니다.');
+      Alert.alert('오류', '올바른 이메일 형식이 아닙니다.');
       return;
     }
 
     if (!password) {
-      setError('비밀번호를 입력해주세요.');
+      Alert.alert('오류', '비밀번호를 입력해주세요.');
       return;
     }
 
     if (password.length < 6) {
-      setError('비밀번호는 최소 6자 이상이어야 합니다.');
+      Alert.alert('오류', '비밀번호는 최소 6자 이상이어야 합니다.');
       return;
     }
 
-    // Start loading
-    setIsLoading(true);
-
     try {
-      // TODO: Implement actual login API call
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      // Call login from auth store
+      await login(email, password);
 
-      // Mock success response
-      const success = Math.random() > 0.3; // 70% success rate for demo
-
-      if (success) {
-        Alert.alert('로그인 성공', '환영합니다!', [
-          {
-            text: '확인',
-            onPress: () => {
-              // TODO: Navigate to main app
-              // navigation?.replace('MainApp');
-              console.log('Login successful');
-            },
+      // On success, navigate to main app
+      Alert.alert('로그인 성공', '환영합니다!', [
+        {
+          text: '확인',
+          onPress: () => {
+            // Navigate to main app
+            navigation?.replace('MainApp');
           },
-        ]);
-      } else {
-        setError('이메일 또는 비밀번호가 올바르지 않습니다.');
-      }
+        },
+      ]);
     } catch (err: any) {
-      setError(err.message || '로그인 중 오류가 발생했습니다.');
-    } finally {
-      setIsLoading(false);
+      // Error is already set in auth store
+      Alert.alert('로그인 실패', err.message || '로그인 중 오류가 발생했습니다.');
     }
   };
 
   // Handle sign up navigation
   const handleSignUp = () => {
-    // TODO: Navigate to sign up screen
-    // navigation?.navigate('Register');
-    console.log('Navigate to sign up');
+    // Navigate to register screen
+    navigation?.navigate('Register');
   };
 
   // Handle forgot password
@@ -149,10 +138,10 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
         {/* Login Form */}
         <View style={styles.form}>
           {/* Error Message */}
-          {error ? (
+          {authError ? (
             <View style={styles.errorContainer}>
               <Icon name="alert-circle" size={20} color="#FF3B30" />
-              <Text style={styles.errorText}>{error}</Text>
+              <Text style={styles.errorText}>{authError}</Text>
             </View>
           ) : null}
 
@@ -166,7 +155,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
               value={email}
               onChangeText={(text) => {
                 setEmail(text);
-                setError('');
+                clearError();
               }}
               keyboardType="email-address"
               autoCapitalize="none"
@@ -185,7 +174,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
               value={password}
               onChangeText={(text) => {
                 setPassword(text);
-                setError('');
+                clearError();
               }}
               secureTextEntry={!showPassword}
               autoCapitalize="none"

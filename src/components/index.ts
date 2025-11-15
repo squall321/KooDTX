@@ -12,3 +12,8 @@ export { default as SyncProgress } from './SyncProgress';
 export type { SyncProgressProps } from './SyncProgress';
 export { default as SyncLog } from './SyncLog';
 export type { SyncLogProps, SyncLogEntry } from './SyncLog';
+
+// Authentication components (Phase 145)
+export { default as AuthGuard } from './AuthGuard';
+export { default as AuthProvider } from './AuthProvider';
+export { withAuth } from './withAuth';
