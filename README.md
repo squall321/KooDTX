@@ -78,6 +78,11 @@ KooDTX는 React Native로 구현한 센서 데이터 수집 및 동기화 애플
 - **@react-native-async-storage/async-storage**: 2.1.0 (설정 저장)
 - **react-native-fs**: 2.20.0 (파일 시스템 접근)
 
+### 알림
+- **@notifee/react-native**: 로컬 알림 시스템
+- 녹음 중 Foreground Service 알림
+- 동기화 완료 알림
+
 ### 기타
 - **date-fns**: 날짜 포맷팅
 - **lodash**: 유틸리티 함수
