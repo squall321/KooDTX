@@ -10,18 +10,17 @@
  * - Tester registration status
  */
 
-import React, { useState } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
   ScrollView,
   StyleSheet,
-  TouchableOpacity,
   Linking,
   Alert,
   Platform,
 } from 'react-native';
-import { Card, Button, Chip, Divider } from 'react-native-paper';
+import { Card, Button, Chip } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useThemeStore } from '../store/useThemeStore';
 
@@ -29,14 +28,14 @@ import { useThemeStore } from '../store/useThemeStore';
  * Beta Testing Information Screen
  * Phase 221: Beta tester recruitment and onboarding
  */
-export function BetaInfoScreen() {
+const BetaInfoScreenComponent = () => {
   const { colors } = useThemeStore();
   const [isBetaTester, setIsBetaTester] = useState(false);
 
   /**
-   * Open external link
+   * Open external link with error handling
    */
-  const openLink = async (url: string, label: string) => {
+  const openLink = useCallback(async (url: string, label: string) => {
     try {
       const supported = await Linking.canOpenURL(url);
       if (supported) {
@@ -46,14 +45,15 @@ export function BetaInfoScreen() {
       }
     } catch (error) {
       console.error(`Failed to open ${label}:`, error);
-      Alert.alert('오류', `링크 열기 실패: ${error}`);
+      const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류';
+      Alert.alert('오류', `링크 열기 실패: ${errorMessage}`);
     }
-  };
+  }, []);
 
   /**
    * Join beta program
    */
-  const joinBeta = () => {
+  const joinBeta = useCallback(() => {
     if (Platform.OS === 'ios') {
       // TestFlight link (replace with actual link)
       openLink(
@@ -67,58 +67,60 @@ export function BetaInfoScreen() {
         'Google Play 베타 테스트'
       );
     }
-  };
+  }, [openLink]);
 
   /**
    * Open feedback form
    */
-  const openFeedbackForm = () => {
+  const openFeedbackForm = useCallback(() => {
     // Google Forms or other feedback tool (replace with actual link)
     openLink(
       'https://forms.gle/YOUR_FEEDBACK_FORM',
       '피드백 폼'
     );
-  };
+  }, [openLink]);
 
   /**
    * Report bug
    */
-  const reportBug = () => {
+  const reportBug = useCallback(() => {
     // Bug report form (replace with actual link)
     openLink(
       'https://forms.gle/YOUR_BUG_REPORT_FORM',
       '버그 리포트'
     );
-  };
+  }, [openLink]);
 
   /**
    * Request feature
    */
-  const requestFeature = () => {
+  const requestFeature = useCallback(() => {
     // Feature request form (replace with actual link)
     openLink(
       'https://forms.gle/YOUR_FEATURE_REQUEST_FORM',
       '기능 요청'
     );
-  };
+  }, [openLink]);
 
   /**
    * Open Discord/Slack community (optional)
    */
-  const openCommunity = () => {
+  const openCommunity = useCallback(() => {
     openLink(
       'https://discord.gg/YOUR_DISCORD_INVITE',
       'Discord 커뮤니티'
     );
-  };
+  }, [openLink]);
 
-  const styles = StyleSheet.create({
+  // Memoize styles to prevent recreation on every render
+  const styles = useMemo(() => StyleSheet.create({
     container: {
       flex: 1,
       backgroundColor: colors.background,
     },
     scrollContent: {
       padding: 16,
+      paddingBottom: 32,
     },
     headerCard: {
       backgroundColor: colors.primaryContainer,
@@ -143,13 +145,15 @@ export function BetaInfoScreen() {
       marginBottom: 12,
       borderRadius: 8,
     },
+    sectionTitleContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 12,
+    },
     sectionTitle: {
       fontSize: 18,
       fontWeight: 'bold',
       color: colors.onSurface,
-      marginBottom: 12,
-      flexDirection: 'row',
-      alignItems: 'center',
     },
     sectionIcon: {
       marginRight: 8,
@@ -183,9 +187,6 @@ export function BetaInfoScreen() {
       marginRight: 8,
       marginBottom: 8,
     },
-    divider: {
-      marginVertical: 16,
-    },
     contactInfo: {
       backgroundColor: colors.secondaryContainer,
       padding: 12,
@@ -211,11 +212,21 @@ export function BetaInfoScreen() {
       flex: 1,
       marginLeft: 8,
     },
-  });
+    chipStyle: {
+      marginTop: 12,
+      alignSelf: 'flex-start',
+    },
+    currentStatusText: {
+      marginTop: 12,
+    },
+  }), [colors]);
 
   return (
     <View style={styles.container}>
-      <ScrollView style={styles.scrollContent}>
+      <ScrollView
+        style={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Header */}
         <View style={styles.headerCard}>
           <Text style={styles.headerTitle}>🚀 KooDTX 베타 테스트</Text>
@@ -225,7 +236,7 @@ export function BetaInfoScreen() {
           {isBetaTester && (
             <Chip
               icon="check-circle"
-              style={{ marginTop: 12, alignSelf: 'flex-start' }}
+              style={styles.chipStyle}
             >
               베타 테스터 등록됨
             </Chip>
@@ -234,7 +245,7 @@ export function BetaInfoScreen() {
 
         {/* What is Beta Testing */}
         <Card style={styles.sectionCard}>
-          <View style={styles.sectionTitle}>
+          <View style={styles.sectionTitleContainer}>
             <Icon name="information" size={24} color={colors.primary} style={styles.sectionIcon} />
             <Text style={styles.sectionTitle}>베타 테스트란?</Text>
           </View>
@@ -249,7 +260,7 @@ export function BetaInfoScreen() {
 
         {/* How to Join */}
         <Card style={styles.sectionCard}>
-          <View style={styles.sectionTitle}>
+          <View style={styles.sectionTitleContainer}>
             <Icon name="account-plus" size={24} color={colors.primary} style={styles.sectionIcon} />
             <Text style={styles.sectionTitle}>참여 방법</Text>
           </View>
@@ -280,7 +291,7 @@ export function BetaInfoScreen() {
 
         {/* Tester Group */}
         <Card style={styles.sectionCard}>
-          <View style={styles.sectionTitle}>
+          <View style={styles.sectionTitleContainer}>
             <Icon name="account-group" size={24} color={colors.primary} style={styles.sectionIcon} />
             <Text style={styles.sectionTitle}>테스터 그룹</Text>
           </View>
@@ -295,14 +306,14 @@ export function BetaInfoScreen() {
             <Chip icon="devices" style={styles.chip}>다양한 기기 테스트</Chip>
           </View>
 
-          <Text style={styles.sectionText} style={{ marginTop: 12 }}>
+          <Text style={[styles.sectionText, styles.currentStatusText]}>
             현재 모집 중인 그룹: 내부 베타 테스터 (Week 1)
           </Text>
         </Card>
 
         {/* Test Guide */}
         <Card style={styles.sectionCard}>
-          <View style={styles.sectionTitle}>
+          <View style={styles.sectionTitleContainer}>
             <Icon name="book-open-variant" size={24} color={colors.primary} style={styles.sectionIcon} />
             <Text style={styles.sectionTitle}>테스트 가이드</Text>
           </View>
@@ -325,7 +336,7 @@ export function BetaInfoScreen() {
 
         {/* Feedback Channels */}
         <Card style={styles.sectionCard}>
-          <View style={styles.sectionTitle}>
+          <View style={styles.sectionTitleContainer}>
             <Icon name="message-text" size={24} color={colors.primary} style={styles.sectionIcon} />
             <Text style={styles.sectionTitle}>피드백 채널</Text>
           </View>
@@ -386,7 +397,7 @@ export function BetaInfoScreen() {
 
         {/* Expected Timeline */}
         <Card style={styles.sectionCard}>
-          <View style={styles.sectionTitle}>
+          <View style={styles.sectionTitleContainer}>
             <Icon name="calendar-clock" size={24} color={colors.primary} style={styles.sectionIcon} />
             <Text style={styles.sectionTitle}>베타 테스트 일정</Text>
           </View>
@@ -395,14 +406,14 @@ export function BetaInfoScreen() {
           <Text style={styles.bulletPoint}>• Week 5: 최종 검증</Text>
           <Text style={styles.bulletPoint}>• Week 6: 정식 출시</Text>
 
-          <Text style={styles.sectionText} style={{ marginTop: 12 }}>
+          <Text style={[styles.sectionText, styles.currentStatusText]}>
             현재 진행 상태: 내부 베타 모집 중 (Week 1)
           </Text>
         </Card>
 
         {/* Rewards */}
         <Card style={styles.sectionCard}>
-          <View style={styles.sectionTitle}>
+          <View style={styles.sectionTitleContainer}>
             <Icon name="gift" size={24} color={colors.primary} style={styles.sectionIcon} />
             <Text style={styles.sectionTitle}>테스터 혜택</Text>
           </View>
@@ -415,6 +426,8 @@ export function BetaInfoScreen() {
       </ScrollView>
     </View>
   );
-}
+};
 
+// Memoize component to prevent unnecessary re-renders
+export const BetaInfoScreen = React.memo(BetaInfoScreenComponent);
 export default BetaInfoScreen;
