@@ -8,6 +8,7 @@
  * - Server settings (URL, auth status)
  * - Data management (storage size, cache clear)
  * - App info (version, build)
+ * - Beta testing info (Phase 221)
  */
 
 import React, { useState, useEffect } from 'react';
@@ -27,9 +28,14 @@ import {
 import Icon from 'react-native-vector-icons/Ionicons';
 import Slider from '@react-native-community/slider';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { SettingsStackParamList } from '../navigation/SettingsStack';
 import { database } from '../database';
 import { Session } from '../database/models/Session';
 import { useThemeStore, ThemeMode } from '../store/useThemeStore';
+
+type SettingsScreenNavigationProp = NativeStackNavigationProp<SettingsStackParamList, 'SettingsList'>;
 
 interface SensorSettings {
   samplingRate: number; // Hz
@@ -84,6 +90,8 @@ interface PerformanceSettings {
 const SETTINGS_KEY = '@KooDTX:Settings';
 
 export const SettingsScreen: React.FC = () => {
+  const navigation = useNavigation<SettingsScreenNavigationProp>();
+
   // Sensor Settings (Phase 133)
   const [sensorSettings, setSensorSettings] = useState<SensorSettings>({
     samplingRate: 100,
@@ -1179,6 +1187,23 @@ export const SettingsScreen: React.FC = () => {
             <Text style={styles.infoValue}>{Platform.OS}</Text>
           </View>
         </View>
+
+        {/* Phase 221: Beta Testing Info */}
+        <View style={styles.card}>
+          <TouchableOpacity
+            style={styles.betaButton}
+            onPress={() => navigation.navigate('BetaInfo')}
+          >
+            <View style={styles.betaButtonContent}>
+              <Icon name="rocket" size={24} color="#007AFF" style={styles.betaIcon} />
+              <View style={styles.betaTextContainer}>
+                <Text style={styles.betaButtonTitle}>베타 테스트 프로그램</Text>
+                <Text style={styles.betaButtonSubtitle}>새로운 기능을 먼저 체험하고 피드백을 제공하세요</Text>
+              </View>
+              <Icon name="chevron-forward" size={24} color="#C7C7CC" />
+            </View>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Action Buttons */}
@@ -1504,6 +1529,32 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     color: '#007AFF',
+  },
+  // Phase 221: Beta Testing Button styles
+  betaButton: {
+    padding: 0,
+  },
+  betaButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+  },
+  betaIcon: {
+    marginRight: 12,
+  },
+  betaTextContainer: {
+    flex: 1,
+  },
+  betaButtonTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000000',
+    marginBottom: 4,
+  },
+  betaButtonSubtitle: {
+    fontSize: 13,
+    color: '#8E8E93',
+    lineHeight: 18,
   },
 });
 
