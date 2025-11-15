@@ -25,6 +25,7 @@ import {getSyncManager} from '@services/sync';
 import {getUploadQueue} from '@services/sync';
 import type {SyncStatus, UploadProgress} from '@services/sync';
 import {formatTimestamp} from '@utils/date';
+import {logger} from '../utils/logger';
 
 // Helper: 바이트를 사람이 읽기 쉬운 형식으로 변환
 const formatBytes = (bytes: number): string => {
@@ -67,7 +68,7 @@ export function SyncStatusScreen() {
       const progress = uploadQueue.getProgress();
       setUploadProgress(progress);
     } catch (error) {
-      console.error('Failed to load sync status:', error);
+      logger.error('Failed to load sync status:', error);
     }
   }, [syncManager, uploadQueue]);
 
@@ -137,7 +138,7 @@ export function SyncStatusScreen() {
     try {
       await syncManager.sync();
     } catch (error) {
-      console.error('Failed to sync:', error);
+      logger.error('Failed to sync:', error);
     }
   }, [syncManager]);
 

@@ -9,6 +9,7 @@
  */
 
 import { Image, Platform, Dimensions } from 'react-native';
+import { logger } from './logger';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -67,9 +68,9 @@ export const preloadImages = async (
       return Image.prefetch(uri);
     });
     await Promise.all(promises);
-    console.log(`Successfully preloaded ${imageUris.length} images`);
+    logger.log(`Successfully preloaded ${imageUris.length} images`);
   } catch (error) {
-    console.error('Failed to preload images:', error);
+    logger.error('Failed to preload images:', error);
   }
 };
 
