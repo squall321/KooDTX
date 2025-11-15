@@ -27,3 +27,7 @@ export type { ErrorType } from './ErrorMessage';
 export { default as Toast, toast, toastConfig } from './Toast';
 export { default as Dialog, DialogManager } from './Dialog';
 export type { DialogType, DialogButton } from './Dialog';
+
+// Chart components (Phase 151)
+export { default as SensorChart } from './SensorChart';
+export type { ChartType, ChartDataPoint, ChartDataset } from './SensorChart';
