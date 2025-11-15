@@ -6,7 +6,7 @@
 import {appSchema, tableSchema} from '@nozbe/watermelondb';
 
 export const schema = appSchema({
-  version: 8,
+  version: 9,
   tables: [
     // Recording Sessions
     tableSchema({
@@ -20,6 +20,7 @@ export const schema = appSchema({
         {name: 'sample_rate', type: 'number'},
         {name: 'data_count', type: 'number'},
         {name: 'notes', type: 'string', isOptional: true},
+        {name: 'event_markers', type: 'string', isOptional: true}, // JSON array of event markers
         {name: 'is_uploaded', type: 'boolean'},
         {name: 'created_at', type: 'number'},
         {name: 'updated_at', type: 'number'},

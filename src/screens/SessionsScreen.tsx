@@ -9,11 +9,14 @@ import {
   TextInput,
   Modal,
   ActivityIndicator,
+  Alert,
+  Animated,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Icon from 'react-native-vector-icons/Ionicons';
-import { useSessions, sortSessions, filterSessions, type SortOption } from '../hooks';
+import { Swipeable } from 'react-native-gesture-handler';
+import { useSessions, sortSessions, filterSessions, type SortOption, type UploadStatus } from '../hooks';
 
 type RootStackParamList = {
   SessionDetail: { sessionId: string };
@@ -26,7 +29,7 @@ export const SessionsScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
 
   // Phase 128: WatermelonDB integration with real-time updates
-  const { sessions, isLoading, error, refresh } = useSessions({
+  const { sessions, isLoading, error, refresh, deleteSession } = useSessions({
     includeActive: true,
   });
 
@@ -77,6 +80,28 @@ export const SessionsScreen: React.FC = () => {
     });
   };
 
+  const formatSize = (bytes: number): string => {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
+  };
+
+  const getUploadStatusIcon = (status: UploadStatus): { name: string; color: string } => {
+    switch (status) {
+      case 'completed':
+        return { name: 'cloud-done', color: '#34C759' };
+      case 'in_progress':
+        return { name: 'cloud-upload', color: '#007AFF' };
+      case 'failed':
+        return { name: 'cloud-offline', color: '#FF3B30' };
+      case 'pending':
+      default:
+        return { name: 'cloud-outline', color: '#FF9500' };
+    }
+  };
+
   const getSortLabel = (): string => {
     switch (sortOption) {
       case 'date-desc': return '최신순';
@@ -89,31 +114,117 @@ export const SessionsScreen: React.FC = () => {
     }
   };
 
-  const renderSession = ({ item }: { item: Session }) => (
-    <TouchableOpacity
-      style={styles.sessionCard}
-      onPress={() => navigation.navigate('SessionDetail', { sessionId: item.id })}
-    >
-      <View style={styles.sessionHeader}>
-        <Text style={styles.sessionName}>{item.name}</Text>
-        <View style={styles.sessionHeaderRight}>
-          {/* Sync status icon */}
-          <Icon
-            name={item.isSynced ? 'cloud-done' : 'cloud-offline'}
-            size={20}
-            color={item.isSynced ? '#34C759' : '#FF9500'}
-            style={styles.syncIcon}
-          />
-          <Text style={styles.sessionDuration}>{formatDuration(item.duration)}</Text>
-        </View>
-      </View>
-      <Text style={styles.sessionDate}>{formatDate(item.startTime)}</Text>
-      <View style={styles.sessionStats}>
-        <Text style={styles.statText}>센서 데이터: {item.sensorCount}건</Text>
-        {item.audioFile && <Text style={styles.statText}>오디오 포함</Text>}
-      </View>
-    </TouchableOpacity>
-  );
+  const handleDeleteSession = (session: Session) => {
+    Alert.alert(
+      '세션 삭제',
+      `"${session.name}" 세션을 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다.`,
+      [
+        { text: '취소', style: 'cancel' },
+        {
+          text: '삭제',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteSession(session.id);
+            } catch (err) {
+              Alert.alert('오류', '세션 삭제에 실패했습니다.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const renderRightActions = (item: Session, progress: Animated.AnimatedInterpolation<number>) => {
+    const trans = progress.interpolate({
+      inputRange: [0, 1],
+      outputRange: [100, 0],
+    });
+
+    return (
+      <Animated.View style={[styles.swipeActionContainer, { transform: [{ translateX: trans }] }]}>
+        <TouchableOpacity
+          style={styles.deleteButton}
+          onPress={() => handleDeleteSession(item)}
+        >
+          <Icon name="trash-outline" size={24} color="#FFFFFF" />
+          <Text style={styles.deleteButtonText}>삭제</Text>
+        </TouchableOpacity>
+      </Animated.View>
+    );
+  };
+
+  const renderSession = ({ item }: { item: Session }) => {
+    const uploadIcon = getUploadStatusIcon(item.uploadStatus);
+
+    return (
+      <Swipeable
+        renderRightActions={(progress) => renderRightActions(item, progress)}
+        overshootRight={false}
+      >
+        <TouchableOpacity
+          style={styles.sessionCard}
+          onPress={() => navigation.navigate('SessionDetail', { sessionId: item.id })}
+        >
+          <View style={styles.sessionHeader}>
+            <View style={styles.sessionTitleContainer}>
+              <Text style={styles.sessionName} numberOfLines={1}>{item.name}</Text>
+              <Text style={styles.sessionId}>ID: {item.sessionId.slice(0, 8)}...</Text>
+            </View>
+            <View style={styles.sessionHeaderRight}>
+              {/* Upload status icon */}
+              <Icon
+                name={uploadIcon.name}
+                size={20}
+                color={uploadIcon.color}
+                style={styles.syncIcon}
+              />
+              <Text style={styles.sessionDuration}>{formatDuration(item.duration)}</Text>
+            </View>
+          </View>
+
+          <View style={styles.sessionDateRow}>
+            <Icon name="time-outline" size={14} color="#8E8E93" />
+            <Text style={styles.sessionDate}>{formatDate(item.startTime)}</Text>
+            {item.endTime && (
+              <Text style={styles.sessionDateEnd}> ~ {new Date(item.endTime).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}</Text>
+            )}
+          </View>
+
+          <View style={styles.sessionStats}>
+            <View style={styles.statItem}>
+              <Icon name="stats-chart-outline" size={14} color="#8E8E93" />
+              <Text style={styles.statText}>{item.sensorCount.toLocaleString()}건</Text>
+            </View>
+            <View style={styles.statItem}>
+              <Icon name="folder-outline" size={14} color="#8E8E93" />
+              <Text style={styles.statText}>{item.fileCount}개 파일</Text>
+            </View>
+            <View style={styles.statItem}>
+              <Icon name="save-outline" size={14} color="#8E8E93" />
+              <Text style={styles.statText}>{formatSize(item.totalSize)}</Text>
+            </View>
+            {item.audioFile && (
+              <View style={styles.statItem}>
+                <Icon name="musical-note-outline" size={14} color="#8E8E93" />
+                <Text style={styles.statText}>오디오</Text>
+              </View>
+            )}
+          </View>
+
+          {/* Upload progress bar (if in progress) */}
+          {item.uploadStatus === 'in_progress' && item.uploadProgress !== undefined && (
+            <View style={styles.progressContainer}>
+              <View style={styles.progressBar}>
+                <View style={[styles.progressFill, { width: `${item.uploadProgress}%` }]} />
+              </View>
+              <Text style={styles.progressText}>{item.uploadProgress}%</Text>
+            </View>
+          )}
+        </TouchableOpacity>
+      </Swipeable>
+    );
+  };
 
   const renderSortModal = () => (
     <Modal
@@ -397,11 +508,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 8,
   },
+  sessionTitleContainer: {
+    flex: 1,
+    marginRight: 12,
+  },
   sessionName: {
     fontSize: 18,
     fontWeight: '600',
     color: '#000000',
-    flex: 1,
+    marginBottom: 2,
+  },
+  sessionId: {
+    fontSize: 11,
+    color: '#8E8E93',
+    fontFamily: 'Courier',
   },
   sessionHeaderRight: {
     flexDirection: 'row',
@@ -416,18 +536,77 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: '#007AFF',
   },
+  sessionDateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+    gap: 4,
+  },
   sessionDate: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#8E8E93',
-    marginBottom: 8,
+  },
+  sessionDateEnd: {
+    fontSize: 13,
+    color: '#8E8E93',
+    fontStyle: 'italic',
   },
   sessionStats: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 12,
+  },
+  statItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
   statText: {
     fontSize: 12,
     color: '#8E8E93',
+  },
+  progressContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 12,
+    gap: 8,
+  },
+  progressBar: {
+    flex: 1,
+    height: 4,
+    backgroundColor: '#E5E5EA',
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: '#007AFF',
+  },
+  progressText: {
+    fontSize: 11,
+    color: '#007AFF',
+    fontWeight: '600',
+    minWidth: 36,
+    textAlign: 'right',
+  },
+  swipeActionContainer: {
+    flexDirection: 'row',
+    marginBottom: 12,
+  },
+  deleteButton: {
+    backgroundColor: '#FF3B30',
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 80,
+    borderTopRightRadius: 12,
+    borderBottomRightRadius: 12,
+    paddingHorizontal: 12,
+  },
+  deleteButtonText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '600',
+    marginTop: 4,
   },
   emptyContainer: {
     flex: 1,

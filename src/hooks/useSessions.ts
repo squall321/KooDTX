@@ -10,6 +10,8 @@ import { Q } from '@nozbe/watermelondb';
 import { database, RecordingSession } from '../database';
 import type { SensorType } from '@app-types/sensor.types';
 
+export type UploadStatus = 'pending' | 'in_progress' | 'completed' | 'failed';
+
 export interface SessionData {
   id: string;
   sessionId: string;
@@ -23,6 +25,10 @@ export interface SessionData {
   isActive: boolean;
   enabledSensors: SensorType[];
   notes?: string;
+  fileCount: number;
+  totalSize: number; // in bytes
+  uploadStatus: UploadStatus;
+  uploadProgress?: number; // 0-100
 }
 
 export type SortOption = 'date-desc' | 'date-asc' | 'duration-desc' | 'duration-asc' | 'name-asc' | 'name-desc';
@@ -38,12 +44,28 @@ export interface UseSessionsReturn {
   isLoading: boolean;
   error: Error | null;
   refresh: () => Promise<void>;
+  deleteSession: (sessionId: string) => Promise<void>;
 }
 
 const convertToSessionData = (session: RecordingSession): SessionData => {
   const startTime = session.startTime;
   const endTime = session.endTime || Date.now();
   const duration = endTime - startTime;
+
+  // Calculate file count (1 for session metadata + enabled sensors)
+  const fileCount = 1 + (session.enabledSensors?.length || 0);
+
+  // Estimate total size based on data count and sensors
+  // Rough estimate: ~50 bytes per sensor data point
+  const estimatedSize = (session.dataCount || 0) * 50;
+
+  // Determine upload status
+  let uploadStatus: UploadStatus = 'pending';
+  if (session.isUploaded) {
+    uploadStatus = 'completed';
+  } else if (session.isActive) {
+    uploadStatus = 'pending';
+  }
 
   return {
     id: session.id,
@@ -58,6 +80,10 @@ const convertToSessionData = (session: RecordingSession): SessionData => {
     isActive: session.isActive,
     enabledSensors: session.enabledSensors,
     notes: session.notes,
+    fileCount,
+    totalSize: estimatedSize,
+    uploadStatus,
+    uploadProgress: session.isUploaded ? 100 : 0,
   };
 };
 
@@ -153,11 +179,29 @@ export const useSessions = (options: UseSessionsOptions = {}): UseSessionsReturn
     await loadSessions();
   };
 
+  const deleteSession = async (sessionId: string) => {
+    try {
+      const collection = database.get<RecordingSession>('recording_sessions');
+      const session = await collection.find(sessionId);
+
+      await database.write(async () => {
+        await session.destroyPermanently();
+      });
+
+      // Also delete related sensor data and audio recordings
+      // TODO: Implement cascade delete for sensor_data and audio_recordings
+    } catch (err) {
+      console.error('Failed to delete session:', err);
+      throw err;
+    }
+  };
+
   return {
     sessions,
     isLoading,
     error,
     refresh,
+    deleteSession,
   };
 };
 
