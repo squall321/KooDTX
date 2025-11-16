@@ -12,12 +12,15 @@ import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import {HistoryScreen} from '@screens/HistoryScreen';
 import {SessionDetailScreen} from '@screens/SessionDetailScreen';
 import {ChartScreen} from '@screens/ChartScreen';
+import {DataVisualizationScreen} from '@screens/DataVisualizationScreen';
 import {useTheme} from 'react-native-paper';
+import type {SensorType} from '@app-types/sensor.types';
 
 export type HistoryStackParamList = {
   HistoryList: undefined;
   SessionDetail: {sessionId: string};
   Chart: {sessionId: string};
+  DataVisualization: {sessionId: string; sensorType?: SensorType};
 };
 
 const Stack = createNativeStackNavigator<HistoryStackParamList>();
@@ -56,6 +59,13 @@ export function HistoryStack() {
         component={ChartScreen}
         options={{
           title: '센서 데이터 차트',
+        }}
+      />
+      <Stack.Screen
+        name="DataVisualization"
+        component={DataVisualizationScreen}
+        options={{
+          title: '고급 데이터 분석',
         }}
       />
     </Stack.Navigator>
