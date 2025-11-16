@@ -13,28 +13,44 @@
 import * as Sentry from '@sentry/react-native';
 import { Platform } from 'react-native';
 import DeviceInfo from 'react-native-device-info';
-
-const SENTRY_DSN = 'YOUR_SENTRY_DSN_HERE'; // Replace with your actual DSN
+import { envConfig } from '../config/env';
+import { logger } from './logger';
 
 /**
  * Initialize Sentry
  */
 export const initSentry = () => {
-  Sentry.init({
-    dsn: SENTRY_DSN,
-    environment: __DEV__ ? 'development' : 'production',
-    enabled: !__DEV__, // Only enable in production
-    tracesSampleRate: 1.0, // 100% of transactions for performance monitoring
-    enableAutoSessionTracking: true,
-    sessionTrackingIntervalMillis: 30000,
+  // Check if Sentry DSN is configured
+  if (!envConfig.SENTRY_DSN) {
+    logger.warn('Sentry DSN not configured. Crash reporting disabled.');
+    return;
+  }
 
-    // Integrations
-    integrations: [
-      new Sentry.ReactNativeTracing({
-        tracingOrigins: ['localhost', 'api.example.com', /^\//],
-        routingInstrumentation: new Sentry.ReactNavigationInstrumentation(),
-      }),
-    ],
+  // Only enable Sentry if crash reporting is enabled
+  if (!envConfig.ENABLE_CRASH_REPORTING) {
+    logger.log('Crash reporting disabled in environment config.');
+    return;
+  }
+
+  try {
+    // Get API base URL domain for tracing
+    const apiDomain = envConfig.API_BASE_URL.replace(/^https?:\/\//, '').split('/')[0];
+
+    Sentry.init({
+      dsn: envConfig.SENTRY_DSN,
+      environment: envConfig.NODE_ENV,
+      enabled: envConfig.ENABLE_CRASH_REPORTING,
+      tracesSampleRate: envConfig.IS_PROD ? 0.2 : 1.0, // 20% in prod, 100% in dev
+      enableAutoSessionTracking: true,
+      sessionTrackingIntervalMillis: 30000,
+
+      // Integrations
+      integrations: [
+        new Sentry.ReactNativeTracing({
+          tracingOrigins: ['localhost', apiDomain, /^\//],
+          routingInstrumentation: new Sentry.ReactNavigationInstrumentation(),
+        }),
+      ],
 
     // Before send callback
     beforeSend(event, hint) {
@@ -63,10 +79,15 @@ export const initSentry = () => {
 
       return event;
     },
-  });
+    });
 
-  // Set initial context
-  setDeviceContext();
+    // Set initial context
+    setDeviceContext();
+
+    logger.log('Sentry initialized successfully');
+  } catch (error) {
+    logger.error('Failed to initialize Sentry:', error);
+  }
 };
 
 /**

@@ -8,6 +8,8 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { envConfig } from '../../config/env';
+import { logger } from '../../utils/logger';
 
 /**
  * API 설정
@@ -38,12 +40,13 @@ export interface AppSettings {
 
 /**
  * 기본 설정
+ * Updated: Using centralized environment configuration
  */
 const DEFAULT_SETTINGS: AppSettings = {
   api: {
-    baseURL: 'https://api.example.com',
-    timeout: 30000,
-    retryAttempts: 3,
+    baseURL: envConfig.API_BASE_URL,
+    timeout: envConfig.API_TIMEOUT,
+    retryAttempts: envConfig.API_RETRY_ATTEMPTS,
   },
   sync: {
     autoSync: true,
@@ -106,9 +109,9 @@ export class SettingsManager {
       }
 
       this.isInitialized = true;
-      console.log('[SettingsManager] Initialized with settings:', this.settings);
+      logger.log('[SettingsManager] Initialized with settings:', this.settings);
     } catch (error) {
-      console.error('[SettingsManager] Failed to initialize:', error);
+      logger.error('[SettingsManager] Failed to initialize:', error);
       // 기본 설정 사용
       this.settings = DEFAULT_SETTINGS;
       this.isInitialized = true;
@@ -125,7 +128,7 @@ export class SettingsManager {
         return JSON.parse(json);
       }
     } catch (error) {
-      console.error('[SettingsManager] Failed to load API settings:', error);
+      logger.error('[SettingsManager] Failed to load API settings:', error);
     }
     return null;
   }
@@ -140,7 +143,7 @@ export class SettingsManager {
         return JSON.parse(json);
       }
     } catch (error) {
-      console.error('[SettingsManager] Failed to load sync settings:', error);
+      logger.error('[SettingsManager] Failed to load sync settings:', error);
     }
     return null;
   }
