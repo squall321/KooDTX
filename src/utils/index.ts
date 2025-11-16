@@ -24,3 +24,18 @@ export * from './array';
 
 // Object utilities
 export * from './object';
+
+// Statistics utilities (Phase 251)
+export * from './statistics';
+
+// FFT utilities (Phase 252)
+export * from './fft';
+
+// Data analysis utilities (Phase 252)
+export * from './dataAnalysis';
+
+// Report generation utilities (Phase 252)
+export * from './reportGenerator';
+
+// Logger utility
+export * from './logger';

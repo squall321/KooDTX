@@ -5,6 +5,8 @@
  * - HistoryList: 세션 목록 화면
  * - SessionDetail: 세션 상세 화면
  * - Chart: 센서 데이터 차트 화면
+ * - DataVisualization: 고급 데이터 분석 화면
+ * - Analysis: 종합 데이터 분석 화면 (Phase 252)
  */
 
 import React from 'react';
@@ -13,6 +15,7 @@ import {HistoryScreen} from '@screens/HistoryScreen';
 import {SessionDetailScreen} from '@screens/SessionDetailScreen';
 import {ChartScreen} from '@screens/ChartScreen';
 import {DataVisualizationScreen} from '@screens/DataVisualizationScreen';
+import {AnalysisScreen} from '@screens/AnalysisScreen';
 import {useTheme} from 'react-native-paper';
 import type {SensorType} from '@app-types/sensor.types';
 
@@ -21,6 +24,7 @@ export type HistoryStackParamList = {
   SessionDetail: {sessionId: string};
   Chart: {sessionId: string};
   DataVisualization: {sessionId: string; sensorType?: SensorType};
+  Analysis: {sessionId: string; sensorType?: SensorType};
 };
 
 const Stack = createNativeStackNavigator<HistoryStackParamList>();
@@ -66,6 +70,13 @@ export function HistoryStack() {
         component={DataVisualizationScreen}
         options={{
           title: '고급 데이터 분석',
+        }}
+      />
+      <Stack.Screen
+        name="Analysis"
+        component={AnalysisScreen}
+        options={{
+          title: '종합 데이터 분석',
         }}
       />
     </Stack.Navigator>
